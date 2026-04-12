@@ -6,6 +6,7 @@ import { SupabaseTransactionRepository } from './repositories/TransactionReposit
 import { SupabaseDebtRepository } from './repositories/DebtRepository';
 import { SupabaseInstallmentRepository } from './repositories/InstallmentRepository';
 import { SupabaseFinancialScoreRepository } from './repositories/FinancialScoreRepository';
+import { SupabaseFindeksRepository } from './repositories/FindeksRepository';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseKey = import.meta.env.VITE_SUPABASE_SUPABASE_ANON_KEY as string;
@@ -23,4 +24,5 @@ export const dataSourceAdapter: IDataSourceAdapter = {
   debt: new SupabaseDebtRepository(supabase),
   installment: new SupabaseInstallmentRepository(supabase),
   financialScore: new SupabaseFinancialScoreRepository(supabase),
+  findeks: new SupabaseFindeksRepository(),
 };

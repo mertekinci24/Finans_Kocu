@@ -5,6 +5,8 @@ import type {
   Debt,
   Installment,
   FinancialScore,
+  FindeksReport,
+  ActionStep,
 } from '@types';
 
 export interface IUserRepository {
@@ -64,6 +66,17 @@ export interface IFinancialScoreRepository {
   update(userId: string, score: Partial<FinancialScore>): Promise<FinancialScore>;
 }
 
+export interface IFindeksRepository {
+  createReport(report: Omit<FindeksReport, 'id' | 'createdAt' | 'updatedAt'>): Promise<FindeksReport>;
+  getLatestReport(userId: string): Promise<FindeksReport | null>;
+  getReportHistory(userId: string, limit?: number): Promise<FindeksReport[]>;
+  updateReportAnalysis(
+    reportId: string,
+    aiAnalysis: string,
+    actionPlan: ActionStep[]
+  ): Promise<FindeksReport>;
+}
+
 export interface IDataSourceAdapter {
   user: IUserRepository;
   account: IAccountRepository;
@@ -71,4 +84,5 @@ export interface IDataSourceAdapter {
   debt: IDebtRepository;
   installment: IInstallmentRepository;
   financialScore: IFinancialScoreRepository;
+  findeks: IFindeksRepository;
 }

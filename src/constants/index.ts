@@ -11,6 +11,7 @@ export const ROUTES = {
   DEBTS: '/debts',
   INSTALLMENTS: '/installments',
   CATEGORIES: '/categories',
+  FINDEKS: '/findeks',
   SETTINGS: '/settings',
 } as const;
 

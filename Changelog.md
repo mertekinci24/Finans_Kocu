@@ -1,6 +1,28 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 14:45
+- Görev No: 30 — Findeks OCR & AI Analiz Motoru (Faz 2 Sprint 1)
+- Modül: OCR / PDF Parsing / AI Analysis / Findeks Integration
+- Yapılan İş:
+  * tesseract.js v5 eklendi (Türkçe OCR desteği)
+  * supabase/migrations: findeks_reports + findeks_score_history tabloları (RLS + indexes)
+  * src/types/index.ts — FindeksReport, ActionStep, DelayRecord, BankAccount interfaces
+  * src/services/findeks/findeksOcrParser.ts — extractTextFromPDF + parseRawFindeksText + determineRiskLevel
+  * src/services/findeks/claudeAnalyzer.ts — Claude Sonnet 4.6 API entegrasyonu (Türkçe tavsiye + aksiyon planı)
+  * src/services/supabase/repositories/FindeksRepository.ts — createReport, getLatestReport, getReportHistory, updateReportAnalysis
+  * src/pages/Findeks.tsx — 4-adım upload flow (Upload → Preview → Analysis → Result)
+  * src/components/findeks/FindeksScoreScale.tsx — 5-seviye risk gösterimi (Kritik→Prestijli) + interaktif bar
+  * src/components/findeks/ActionPlanCard.tsx — 3-adımlı aksiyon planı kartları (timeline + expected impact)
+  * src/constants/index.ts — FINDEKS route
+  * src/components/layout/Sidebar.tsx — "Findeks Analizi" menüsü
+  * src/App.tsx — /findeks route entegrasyonu
+  * src/services/types.ts — IFindeksRepository interface + adapter update
+  * Hata Düzeltmeleri: Tesseract.js File handling, TypeScript type mappings, Turkish character normalization
+- Findeks Puanlama Skalası: Kritik (🔴 1-969) → Gelişime Açık (🟠 970-1149) → Dengeli (🟡 1150-1469) → Güvenli (🔵 1470-1719) → Prestijli (🟢 1720-1900)
+- Build: Başarılı — 690 KB (198 KB gzip), 586 modül, 0 hata
+- MVP Status: Faz 1 → 100% (29/29), Faz 2 Sprint 1 başlatıldı
+
 ## 2026-04-12 13:30
 - Görev No: 26-29 — Mükemmellik Sprinti (Sprint 3 Final)
 - Modül: Tema Sistemi + Kategori + TransactionForm + PDF + CommandPalette + Micro-animations

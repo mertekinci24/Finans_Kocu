@@ -82,3 +82,54 @@ export interface FinancialScore {
   installmentBurdenRatio: number;
   lastCalculatedAt: Date;
 }
+
+export interface FindeksReport {
+  id: string;
+  userId: string;
+  fileName: string;
+  creditScore: number;
+  limitUsageRatio: number;
+  delayMonths: number;
+  delayHistory: DelayRecord[];
+  bankAccounts: number;
+  creditCards: number;
+  activeDebts: number;
+  banksList: BankAccount[];
+  aiAnalysis?: string;
+  actionPlan?: ActionStep[];
+  riskLevel: 'kritik' | 'gelişim_açık' | 'dengeli' | 'güvenli' | 'prestijli';
+  scoreImprovementPotential: number;
+  uploadedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DelayRecord {
+  date: string;
+  monthsDelayed: number;
+}
+
+export interface BankAccount {
+  name: string;
+  type: 'banka' | 'kredi_kartı';
+  status: 'aktif' | 'pasif';
+  accountsCount?: number;
+}
+
+export interface ActionStep {
+  priority: 1 | 2 | 3;
+  title: string;
+  description: string;
+  expectedImpact: number;
+  timeline: string;
+}
+
+export interface FindeksScoreHistory {
+  id: string;
+  userId: string;
+  reportId: string;
+  score: number;
+  recordedAt: Date;
+  previousScore?: number;
+  scoreChange?: number;
+}

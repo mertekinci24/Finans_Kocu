@@ -3,6 +3,30 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (Faz 2 Sprint 1 — Görev 30: Findeks OCR & AI)
+- Kaynak Görev: 30 (Findeks OCR + Claude Sonnet)
+- Borç Tanımı: Tesseract.js v5 bundle boyutu ~34 KB; client-side OCR çalışması bazen yavaş (50+ sayfalı PDF'ler)
+- Etki: 690 KB toplam bundle (198 KB gzip); Tesseract WASM dosyası lazy-load gerekli; büyük PDF'lerde UI freeze riski
+- Öncelik: Orta
+- Çözüm Planı:
+  * Faz 2 sonrası: Web Worker'da OCR işlemi (UI blocking ortadan kaldırılacak)
+  * Cloud Vision API fallback for complex/scanned PDFs
+  * Tesseract model cache optimization (WASM caching stratejisi)
+- Hedef Tarih: Faz 2 (Adım 3) — Performance & Cloud Integration
+- Durum: Açık
+
+## 2026-04-12 (Faz 2 Sprint 1 — Findeks AI Analizi)
+- Kaynak Görev: 30 (Claude Sonnet 4.6 entegrasyonu)
+- Borç Tanımı: Claude API anahtarı client-side .env'de saklanıyor (security risk); API token rate limiting yok
+- Etki: Kötü niyetli kullanıcı API key'i sızdırabilir, rate limit aşılabilir
+- Öncelik: Yüksek (Security issue)
+- Çözüm Planı:
+  * API key'i backend Edge Function'a taşı (Supabase Edge Function)
+  * Frontend → Edge Function (Claude API call), Edge Function → Client (sonuç)
+  * Rate limiting + API key rotation mekanizması ekle
+- Hedef Tarih: Faz 2 Adım 2 — Backend Security Hardening
+- Durum: Açık
+
 ## 2026-04-12 (Sprint 3 Final — Görev 26-29: Mükemmellik Sprinti)
 - Kaynak Görev: 26-29 (TransactionForm + Categories + PDF + Tema)
 - Borç Tanımı: Framer Motion bundle boyutunu ~100 KB artırdı; tree-shaking sınırlı
