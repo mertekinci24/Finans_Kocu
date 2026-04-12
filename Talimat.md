@@ -14,3 +14,4 @@
 11. Güvenlik, performans ve veri bütünlüğü her zaman özelliklerden önce gelir.
 12. Türkçe UX standarttır. TRY para formatı varsayılandır.
 13. İş bitmeden rapor bitmez; kayıt tutulmayan iş yapılmamış sayılır.
+14. Her adımdan sonra github safety push 
