@@ -8,46 +8,54 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 - BLOCKED
 - DONE
 
-## Faz 1 — MVP
+## Faz 1 — MVP (Sprint 1: Görsel Temel)
 1. [DONE] Repo kurulumu, klasör yapısı, lint, formatter
-2. [IN_PROGRESS] React + TypeScript setup (web done, Tauri pending)
+2. [DONE] React + TypeScript setup (web done, Tauri pending)
 3. [DONE] Tasarım sistemi (renkler, typography, spacing)
 4. [DONE] Supabase + Service Layer (Database-agnostic)
 5. [DONE] Zustand Store (UI state management)
 6. [DONE] React Router + Layout Shell
-7. [DONE] Dashboard skeleton
+7. [DONE] Dashboard component (fully functional with Supabase integration)
 8. [DONE] Supabase schema + RLS (users, accounts, transactions, debts, installments, scores)
-9. [IN_PROGRESS] Hesap yönetimi modülü (CRUD forms + Account list)
-10. [TODO] Gelir/Gider CRUD
-11. [TODO] Hızlı işlem kutusu
-12. [TODO] Kategori sistemi
-13. [TODO] Borç modülü
-14. [TODO] Taksit merkezi
-15. [TODO] Multi-layer Scoring Engine Implementation
-16. [TODO] PDF rapor export
-17. [TODO] Light/Dark tema
-18. [TODO] Onboarding akışı
-19. [TODO] Testler
-20. [TODO] Release build
+9. [IN_PROGRESS] Hesap yönetimi modülü (Account list + CRUD forms)
+10. [TODO] İşlem Listesi sayfası (Transaction list view)
+11. [TODO] Gelir/Gider İşlem Formu (detailed income/expense form)
+12. [TODO] Hızlı işlem kutusu (Quick transaction input)
+13. [TODO] Kategori sistemi (Category CRUD + suggestions)
+14. [TODO] Taksit merkezi — temel (Basic installment list + load indicator)
+15. [TODO] Borç merkezi — temel (Basic debt list)
 
-## Faz 2
-19. [TODO] Banka ekstresi parser
-20. [TODO] Enflasyon modu
-21. [TODO] SGK/Vergi hatırlatıcı
-22. [TODO] Widget altyapısı
-23. [TODO] Gelişmiş temalar
+## Faz 1 — MVP (Sprint 2: Finansal Hareket)
+16. [TODO] Banka ekstresi parser (PDF upload + auto-categorization)
+17. [TODO] Gelir/Gider CRUD formu — detaylı (with recurring options)
+18. [TODO] Taksit merkezi — detaylı (Installment calendar + early payoff calc)
+19. [TODO] Borç merkezi — detaylı (Debt management + status tracking)
+20. [TODO] Bütçe hedefleri sistemi (Category budgets + tracking)
+21. [TODO] İşlem düzenleme/silme (Inline editing + Undo)
 
-## Faz 3
-24. [TODO] Findeks OCR
-25. [TODO] AI yorum sistemi
-26. [TODO] WhatsApp asistan
-27. [TODO] Nakit akışı tahmini
-28. [TODO] Senaryo simülasyonu
-29. [TODO] Hedef sistemi
+## Faz 1 — MVP (Sprint 3: Akıllı Koç)
+22. [TODO] Finansal Sağlık Skoru — detaylı (7 sub-scores + improvements)
+23. [TODO] Kural Motoru — 8 temel kural (Rule-based alerts)
+24. [TODO] PDF rapor export (Monthly financial summary)
+25. [TODO] Enflasyon modu (Real vs nominal comparison with TCMB API)
+26. [TODO] Light/Dark/AMOLED tema sistemi
+27. [TODO] Onboarding akışı (4-step wizard with confetti)
+28. [TODO] Testler
+29. [TODO] Release build
 
-## Faz 4+
-30. [TODO] Ödeme sistemi
-31. [TODO] Pro plan yetkilendirme
-32. [TODO] Mobil uygulama
-33. [TODO] Open banking
-34. [TODO] B2B panel
+## Faz 2 (MVP Sonrası)
+30. [TODO] Findeks OCR + AI analizi
+31. [TODO] WhatsApp tarzı AI asistan
+32. [TODO] SGK/Vergi hatırlatıcı sistemi
+33. [TODO] Widget altyapısı (drag-drop)
+34. [TODO] Gelişmiş temalar (custom color schemes)
+35. [TODO] Bütçe tahmini (ML-based)
+36. [TODO] Aile bütçesi modu
+
+## Faz 3+
+37. [TODO] React Native mobil uygulama
+38. [TODO] Open Banking entegrasyonu (BKM)
+39. [TODO] Ödeme sistemi (İyzico)
+40. [TODO] Pro plan yetkilendirme
+41. [TODO] B2B danışman paneli
+42. [TODO] API marketplace

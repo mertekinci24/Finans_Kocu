@@ -1,6 +1,30 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 06:15
+- Görev No: 9 (Partial) — Dashboard Component (Sprint 1)
+- Modül: Frontend / UI Layer
+- Yapılan İş:
+  * Dashboard component fully implemented with real data loading from Supabase
+  * Financial score calculation engine (65/100 base score with proper color coding)
+  * Monthly income/expense summary with TL formatting
+  * Total balance, installment burden, and total debt cards
+  * Recent transactions list (5 items, sorted by date, color-coded income/expense)
+  * Upcoming payments section (3 items, urgent payments highlighted in red)
+  * Proper loading skeleton screens with animate-pulse
+  * Color-coded status indicators (green/blue/yellow/red based on score ranges)
+  * Responsive grid layout (1 col mobile, 2 cols tablet, 3 cols desktop)
+  * Hover effects and transitions for better UX
+- Dosyalar:
+  * src/pages/Dashboard.tsx (270 lines, fully typed)
+- Uygulanmış Master Plan Özelikleri:
+  * Hızlı Yükleme: Skeleton screens (animate-pulse)
+  * Bağlamsal Bilgi: Her kart altında açıklayıcı metin
+  * Renk Kodlaması: Sağlık skoru renklere göre değişiyor
+  * Responsive Design: Mobile-first approach
+- Risk: Minimal — Build passed (382.71 KB gzip)
+- Sonraki Adım: Account List & Account CRUD forms (Sprint 1)
+
 ## Şablon
 ## YYYY-MM-DD HH:MM
 ## 2026-04-12 04:15
@@ -10,12 +34,6 @@ Tüm değişiklikler tarih/saat ile yazılır.
 - Dosyalar: logic_specs_v2.md, Tasks.md, Changelog.md, technical_debt.md
 - Risk: Mimari Borç oluştu (SQLite matematiksel hesaplama yükü).
 - Sonraki Adım: Skorlama motorunun koda dökülmesi.
-- Görev No:
-- Modül:
-- Yapılan İş:
-- Dosyalar:
-- Risk:
-- Sonraki Adım:
 
 ## 2026-04-12 05:00
 - Görev No: 8 (Supabase Schema + RLS)
