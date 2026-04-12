@@ -8,6 +8,12 @@ import { generateMonthlyReport } from '@/services/pdfExport';
 import { CURRENCY_SYMBOL } from '@/constants';
 import FinancialScoreCard from '@/components/insights/FinancialScoreCard';
 import CoachInsights from '@/components/insights/CoachInsights';
+import WidgetGrid from '@/components/dashboard/WidgetGrid';
+import FinancialScoreWidget from '@/components/dashboard/widgets/FinancialScoreWidget';
+import MonthlySummaryWidget from '@/components/dashboard/widgets/MonthlySummaryWidget';
+import AccountBalanceWidget from '@/components/dashboard/widgets/AccountBalanceWidget';
+import { DashboardLayout } from '@/types/widgets';
+import { SupabaseDashboardLayoutRepository } from '@/services/supabase/repositories/DashboardLayoutRepository';
 import type { Account, Transaction, Debt, Installment } from '@/types';
 
 export default function Dashboard(): JSX.Element {
@@ -20,12 +26,46 @@ export default function Dashboard(): JSX.Element {
   const [scoreData, setScoreData] = useState<DetailedScore | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDragMode, setIsDragMode] = useState(false);
+  const [layout, setLayout] = useState<DashboardLayout | null>(null);
+  const layoutRepository = new SupabaseDashboardLayoutRepository();
 
   useEffect(() => {
     if (user?.id) {
       loadDashboardData(user.id);
+      loadLayout(user.id);
     }
   }, [user?.id]);
+
+  const loadLayout = async (userId: string) => {
+    try {
+      const userLayout = await layoutRepository.getLayout(userId);
+      setLayout(userLayout);
+    } catch (err) {
+      console.error('Layout load error:', err);
+    }
+  };
+
+  const handleSaveLayout = async (newLayout: DashboardLayout) => {
+    if (!user?.id) return;
+    try {
+      const saved = await layoutRepository.saveLayout(user.id, newLayout);
+      setLayout(saved);
+    } catch (err) {
+      console.error('Layout save error:', err);
+    }
+  };
+
+  const handleResetLayout = async () => {
+    if (!user?.id) return;
+    try {
+      const reset = await layoutRepository.resetLayout(user.id);
+      setLayout(reset);
+      setIsDragMode(false);
+    } catch (err) {
+      console.error('Layout reset error:', err);
+    }
+  };
 
   const loadDashboardData = async (userId: string) => {
     try {
@@ -148,6 +188,26 @@ export default function Dashboard(): JSX.Element {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setIsDragMode(!isDragMode)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              isDragMode
+                ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                : 'bg-neutral-100 text-neutral-600 border border-neutral-300'
+            }`}
+            title={isDragMode ? 'Düzeni Kaydet' : 'Düzeni Düzenle'}
+          >
+            {isDragMode ? '✓ Düzenleme Modu' : '✎ Düzenle'}
+          </button>
+          {isDragMode && (
+            <button
+              onClick={handleResetLayout}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors border border-red-300"
+              title="Varsayılan düzeni geri yükle"
+            >
+              Sıfırla
+            </button>
+          )}
+          <button
             onClick={() => setUseRealValue(!useRealValue)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               useRealValue
@@ -179,15 +239,50 @@ export default function Dashboard(): JSX.Element {
         </div>
       </div>
 
+      {layout && (
+        <WidgetGrid
+          layout={layout}
+          isDragMode={isDragMode}
+          isLoading={loading}
+          widgets={{
+            'score-1': (
+              <FinancialScoreWidget score={scoreData} isLoading={loading} />
+            ),
+            'summary-1': (
+              <MonthlySummaryWidget
+                monthlyIncome={monthlyIncome}
+                monthlyExpenses={monthlyExpenses}
+                monthlyInstallment={monthlyInstallment}
+                displayIncome={displayIncome}
+                displayExpenses={displayExpenses}
+                isLoading={loading}
+              />
+            ),
+            'balance-1': (
+              <AccountBalanceWidget accounts={accounts} isLoading={loading} />
+            ),
+          }}
+          onReorder={(reorderedWidgets) => {
+            if (layout) {
+              handleSaveLayout({
+                ...layout,
+                widgets: reorderedWidgets,
+              });
+            }
+          }}
+        />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {scoreData && (
+        {scoreData && !isDragMode && (
           <div className="lg:col-span-2">
             <FinancialScoreCard score={scoreData.score} explanation={scoreData.explanation} />
           </div>
         )}
 
-        <div className="bg-white border border-neutral-200 rounded-xl p-4 space-y-2">
-          <div className="text-xs font-medium text-neutral-600 uppercase">Hızlı Özet</div>
+        {!isDragMode && (
+          <div className="bg-white border border-neutral-200 rounded-xl p-4 space-y-2">
+            <div className="text-xs font-medium text-neutral-600 uppercase">Hızlı Özet</div>
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-xs text-neutral-600">Gelir</span>
@@ -212,38 +307,42 @@ export default function Dashboard(): JSX.Element {
             )}
           </div>
         </div>
+        )}
       </div>
 
-      {insights.length > 0 && (
+      {!isDragMode && insights.length > 0 && (
         <div className="bg-white border border-neutral-200 rounded-xl p-5">
           <CoachInsights insights={insights} />
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-neutral-200 rounded-lg p-4">
-          <div className="text-xs font-medium text-neutral-600 mb-1">Toplam Bakiye</div>
-          <div className="text-2xl font-bold text-primary-600">{fmt(totalBalance)}</div>
-          <div className="text-xs text-neutral-500 mt-1">{accounts.length} hesap</div>
-        </div>
+      {!isDragMode && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white border border-neutral-200 rounded-lg p-4">
+            <div className="text-xs font-medium text-neutral-600 mb-1">Toplam Bakiye</div>
+            <div className="text-2xl font-bold text-primary-600">{fmt(totalBalance)}</div>
+            <div className="text-xs text-neutral-500 mt-1">{accounts.length} hesap</div>
+          </div>
 
-        <div className="bg-white border border-neutral-200 rounded-lg p-4">
-          <div className="text-xs font-medium text-neutral-600 mb-1">Taksit Yükü</div>
-          <div className="text-2xl font-bold text-warning-600">{fmt(monthlyInstallment)}</div>
-          <div className="text-xs text-neutral-500 mt-1">
-            {monthlyIncome > 0 ? `%${((monthlyInstallment / monthlyIncome) * 100).toFixed(0)}` : '—'}
+          <div className="bg-white border border-neutral-200 rounded-lg p-4">
+            <div className="text-xs font-medium text-neutral-600 mb-1">Taksit Yükü</div>
+            <div className="text-2xl font-bold text-warning-600">{fmt(monthlyInstallment)}</div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {monthlyIncome > 0 ? `%${((monthlyInstallment / monthlyIncome) * 100).toFixed(0)}` : '—'}
+            </div>
+          </div>
+
+          <div className="bg-white border border-neutral-200 rounded-lg p-4">
+            <div className="text-xs font-medium text-neutral-600 mb-1">Toplam Borç</div>
+            <div className="text-2xl font-bold text-error-600">{fmt(totalDebt)}</div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {debts.filter((d) => d.status === 'active').length} borç
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="bg-white border border-neutral-200 rounded-lg p-4">
-          <div className="text-xs font-medium text-neutral-600 mb-1">Toplam Borç</div>
-          <div className="text-2xl font-bold text-error-600">{fmt(totalDebt)}</div>
-          <div className="text-xs text-neutral-500 mt-1">
-            {debts.filter((d) => d.status === 'active').length} borç
-          </div>
-        </div>
-      </div>
-
+      {!isDragMode && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white border border-neutral-200 rounded-lg p-5">
           <h2 className="text-sm font-semibold text-neutral-900 mb-3">Son İşlemler</h2>
@@ -294,6 +393,7 @@ export default function Dashboard(): JSX.Element {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

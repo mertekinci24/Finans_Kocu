@@ -1,6 +1,29 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 17:30
+- Görev No: 33 — Widget Altyapısı & Modüler Dashboard (Faz 2 Sprint 2)
+- Modül: dnd-kit Drag-Drop / Supabase Layout Persistence / Skeleton Screens / Widget System
+- Yapılan İş:
+  * npm packages: @dnd-kit/core + @dnd-kit/sortable + @dnd-kit/utilities
+  * supabase/migrations: dashboard_layouts tablosu (user-specific layout persistence, RLS)
+  * src/types/widgets.ts — Widget, DashboardLayout, WidgetSize, WidgetType + DEFAULT_DASHBOARD_LAYOUT
+  * src/services/supabase/repositories/DashboardLayoutRepository.ts — getLayout, saveLayout, resetLayout
+  * src/components/dashboard/WidgetGrid.tsx — dnd-kit DndContext, SortableContext, reordering
+  * src/components/dashboard/DraggableWidget.tsx — useSortable wrapper, drag-mode visual feedback
+  * src/components/dashboard/WidgetSkeletons.tsx — Loading screens with animate-pulse
+  * src/components/dashboard/widgets/ — Modular widgets (FinancialScoreWidget, MonthlySummaryWidget, AccountBalanceWidget)
+  * src/pages/Dashboard.tsx — Integrated WidgetGrid, drag mode toggle, Reset Layout button
+- Widget Özellikleri:
+  - 4-column responsive grid (1x1, 2x1, 2x2 sizes)
+  - Drag-drop reordering with dashed-border drag mode
+  - Layout persistence: Supabase saves per-user widget order
+  - Reset Layout: One-click return to defaults
+  - Skeleton Screens: Loading states for perceived performance
+  - Edit/Save modes: Toggle ✎ Düzenle for drag mode
+- Performans: 768 modüller, 878 KB JS (257 KB gzip), 0 TS hatası
+- Faz 2 Status: Sprint 1-2 → 4/? DONE
+
 ## 2026-04-12 16:00
 - Görev No: 32 — SGK/Vergi Modülü & AI Gateway (Faz 2 Sprint 1)
 - Modül: Tax Calendar / Bağkur Calculator / AI Model Selection / BYOK Vault

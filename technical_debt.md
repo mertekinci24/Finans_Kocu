@@ -3,6 +3,29 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (Faz 2 Sprint 2 — Görev 33: Widget Altyapısı)
+- Kaynak Görev: 33 (Widget Altyapısı + Drag-Drop)
+- Borç Tanımı 1: Widget Grid 4-column fixed; responsive breakpoints eksik
+- Etki: Mobil/tablet'de widget overflow; grid collapse undefined
+- Öncelik: Orta (UX)
+- Çözüm: Add responsive grid (1 col mobile, 2 col tablet, 4 col desktop)
+- Hedef Tarih: Faz 2 + 1
+- Durum: Açık
+
+- Borç Tanımı 2: Drag-mode sadece 3 widget placeholder; diğerleri TODO
+- Etki: Dashboard eksik görünüyor
+- Öncelik: Orta (Feature)
+- Çözüm: Implement ExpenseBreakdownWidget, RecentTransactionsWidget, DebtsOverviewWidget, TaxObligationsWidget, CoachInsightsWidget
+- Hedef Tarih: Faz 2 + 1
+- Durum: Açık
+
+- Borç Tanımı 3: Auto-save drag reorder'dan sonra; feedback yok
+- Etki: User unsaved changes riski; no visual confirmation
+- Öncelik: Orta (UX)
+- Çözüm: Auto-exit drag mode + toast "Düzen kaydedildi ✓"
+- Hedef Tarih: Faz 2 + 1
+- Durum: Açık
+
 ## 2026-04-12 (Faz 2 Sprint 1 — Görev 32: Tax Module & AI Gateway)
 - Kaynak Görev: 32 (SGK/Vergi Modülü + AI Gateway)
 - Borç Tanımı 1: BYOK vault client-side localStorage'de saklanıyor (security vs UX tradeoff)

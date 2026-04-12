@@ -43,11 +43,11 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 28. [DONE] PDF rapor export (Monthly financial summary)
 29. [DONE] Light/Dark/AMOLED tema sistemi
 
-## Faz 2 (MVP Sonrası — Sprint 1: Derinlik & AI)
+## Faz 2 (MVP Sonrası — Sprint 1-2: Derinlik & AI)
 30. [DONE] Findeks OCR + AI analizi
 31. [DONE] WhatsApp tarzı AI asistan
 32. [DONE] SGK/Vergi hatırlatıcı sistemi + AI Gateway
-33. [TODO] Widget altyapısı (drag-drop)
+33. [DONE] Widget altyapısı (drag-drop + Supabase persistence + Reset)
 34. [TODO] Gelişmiş temalar (custom color schemes)
 35. [TODO] Bütçe tahmini (ML-based)
 36. [TODO] Aile bütçesi modu
