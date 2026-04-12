@@ -53,6 +53,7 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
           date: transaction.date.toISOString().split('T')[0],
           type: transaction.type,
           note: transaction.note || null,
+          recurring: transaction.recurring || 'none',
         },
       ])
       .select()
@@ -94,6 +95,7 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
         date: transaction.date ? transaction.date.toISOString().split('T')[0] : undefined,
         type: transaction.type,
         note: transaction.note,
+        recurring: transaction.recurring,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -119,6 +121,7 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
       date: new Date(row.date),
       type: row.type,
       note: row.note,
+      recurring: row.recurring ?? 'none',
       createdAt: new Date(row.created_at),
       updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
     };

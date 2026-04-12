@@ -57,12 +57,11 @@ const menuItems: MenuItem[] = [
     ),
   },
   {
-    label: 'Ayarlar',
-    path: ROUTES.SETTINGS,
+    label: 'Kategoriler',
+    path: ROUTES.CATEGORIES,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
       </svg>
     ),
   },
@@ -75,11 +74,12 @@ export default function Sidebar(): JSX.Element {
   return (
     <aside
       className={clsx(
-        'fixed left-0 top-16 h-[calc(100vh-4rem)] bg-neutral-50 border-r border-neutral-200 transition-transform duration-300 lg:relative lg:translate-x-0 z-30',
-        sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'
+        'fixed left-0 top-16 h-[calc(100vh-4rem)] border-r border-neutral-200 transition-all duration-300 lg:relative lg:translate-x-0 z-30 no-print',
+        sidebarOpen ? 'translate-x-0 w-56' : '-translate-x-full w-56 lg:w-56'
       )}
+      style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border)' }}
     >
-      <nav className="flex flex-col gap-1 p-3">
+      <nav className="flex flex-col gap-0.5 p-3">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -87,13 +87,13 @@ export default function Sidebar(): JSX.Element {
               key={item.path}
               to={item.path}
               className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm font-medium',
                 isActive
                   ? 'bg-primary-600 text-white shadow-sm'
                   : 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900'
               )}
             >
-              <span className={isActive ? 'text-white' : 'text-neutral-500'}>{item.icon}</span>
+              <span className={isActive ? 'text-white' : 'text-neutral-400'}>{item.icon}</span>
               {item.label}
               {item.badge && (
                 <span className="ml-auto text-xs bg-error-500 text-white rounded-full px-1.5 py-0.5">
@@ -104,6 +104,12 @@ export default function Sidebar(): JSX.Element {
           );
         })}
       </nav>
+
+      <div className="absolute bottom-4 left-3 right-3">
+        <div className="text-xs text-neutral-400 text-center px-2 py-1.5 rounded-lg bg-neutral-50">
+          FinansKoçu v0.1
+        </div>
+      </div>
     </aside>
   );
 }

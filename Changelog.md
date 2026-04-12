@@ -1,6 +1,33 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 13:30
+- Görev No: 26-29 — Mükemmellik Sprinti (Sprint 3 Final)
+- Modül: Tema Sistemi + Kategori + TransactionForm + PDF + CommandPalette + Micro-animations
+- Yapılan İş:
+  * framer-motion v11 eklendi (micro-animations)
+  * supabase/migrations: categories tablosu + transactions.recurring kolonu
+  * src/constants/index.ts — CATEGORIES route + DEFAULT_CATEGORIES seed data
+  * src/types/index.ts — Category interface + Transaction.recurring field
+  * src/stores/uiStore.ts — Theme persistence (localStorage) + commandPaletteOpen state
+  * tailwind.config.js — darkMode selector + fade-in/slide-up/scale-in keyframes
+  * src/index.css — CSS custom property tema sistemi (Light/Dark/AMOLED) + Tailwind override rules
+  * src/layouts/MainLayout.tsx — data-theme attribute injection + system preference listener
+  * src/components/layout/ThemeSelector.tsx — dropdown tema seçici (4 seçenek) + framer-motion
+  * src/components/layout/CommandPalette.tsx — ⌘K paleti (navigasyon + tema değiştirme)
+  * src/components/layout/TopBar.tsx — ThemeSelector + ⌘K search button
+  * src/components/layout/Sidebar.tsx — Kategoriler menüsü + CSS variable theming
+  * src/services/supabase/adapter.ts — supabase client export edildi
+  * src/services/supabase/repositories/TransactionRepository.ts — recurring field + createMany
+  * src/components/transactions/TransactionForm.tsx — tam CRUD modal (recurring, kategori, not, hesap)
+  * src/pages/Categories.tsx — bütçe takipli kategori yönetim paneli + framer-motion
+  * src/services/pdfExport.ts — print-window bazlı aylık özet raporu
+  * src/pages/Dashboard.tsx — PDF raporu butonu
+  * src/pages/Transactions.tsx — Yeni İşlem butonu + TransactionForm entegrasyonu
+  * src/App.tsx — /categories route
+- MVP Tamamlanma: 29/29 Faz-1 görevi DONE (100%)
+- Build: Başarılı — 656 KB (186 KB gzip), 534 modül, 0 hata
+
 ## 2026-04-12 12:00
 - Görev No: 25 — İşlem Import Preview Ekranı (Sprint 3 Part 2)
 - Modül: Data Import / Transaction Automation

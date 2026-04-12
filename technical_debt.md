@@ -3,6 +3,24 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (Sprint 3 Final — Görev 26-29: Mükemmellik Sprinti)
+- Kaynak Görev: 26-29 (TransactionForm + Categories + PDF + Tema)
+- Borç Tanımı: Framer Motion bundle boyutunu ~100 KB artırdı; tree-shaking sınırlı
+- Etki: 656 KB toplam bundle (186 KB gzip) — chunk size warning; LCP yavaşlayabilir düşük bant genişliğinde
+- Öncelik: Düşük
+- Çözüm Planı: Faz 2'de lazy import + dynamic import ile Framer Motion bölümlerini code-split et; `motion/react` yerine `motion/dist/es2015` minimal build
+- Hedef Tarih: Faz 2 — Performance Sprint
+- Durum: Açık
+
+## 2026-04-12 (Sprint 3 Final — Tema Sistemi)
+- Kaynak Görev: 29 (Light/Dark/AMOLED tema sistemi)
+- Borç Tanımı: CSS override stratejisi `[data-theme="dark"] .bg-white` şeklinde; tüm Tailwind renk utility sınıfları tek tek override edilmedi (sadece yaygın kullanılanlar)
+- Etki: Tema geçişinde bazı kenar bileşenlerde renk tutarsızlıkları oluşabilir
+- Öncelik: Düşük
+- Çözüm Planı: Tailwind CSS v4 ile native dark mode token sistemi; veya tüm bileşenlerde Tailwind `dark:` prefix'e geçiş
+- Hedef Tarih: Faz 2 — Design System Audit
+- Durum: Açık
+
 ## 2026-04-12 (Sprint 3 Part 2 — Görev 25: Import Preview)
 - Kaynak Görev: 25 (Transaction Import Preview)
 - Borç Tanımı: Parser sadece CSV/TXT destekliyor; Garanti/İş/YKB PDF ekstresi desteği yok

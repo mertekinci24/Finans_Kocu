@@ -5,6 +5,7 @@ import { dataSourceAdapter } from '@/services/supabase/adapter';
 import QuickInput from '@/components/transactions/QuickInput';
 import TransactionRow from '@/components/transactions/TransactionRow';
 import ImportPreview from '@/components/transactions/ImportPreview';
+import TransactionForm from '@/components/transactions/TransactionForm';
 import type { Transaction, Account } from '@/types';
 
 type FilterType = 'all' | 'gelir' | 'gider';
@@ -18,6 +19,7 @@ export default function Transactions(): JSX.Element {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showImport, setShowImport] = useState(false);
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -100,6 +102,15 @@ export default function Transactions(): JSX.Element {
     setTransactions((prev) => [...imported, ...prev]);
   };
 
+  const handleFormSave = (tx: Transaction) => {
+    setTransactions((prev) => {
+      const exists = prev.find((t) => t.id === tx.id);
+      if (exists) return prev.map((t) => (t.id === tx.id ? tx : t));
+      return [tx, ...prev];
+    });
+    setShowTransactionForm(false);
+  };
+
   return (
     <div className="space-y-6">
       {showImport && (
@@ -111,12 +122,30 @@ export default function Transactions(): JSX.Element {
         />
       )}
 
+      {showTransactionForm && (
+        <TransactionForm
+          accounts={accounts}
+          onSave={handleFormSave}
+          onClose={() => setShowTransactionForm(false)}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900">İşlemler</h1>
           <p className="text-neutral-600 mt-1 text-sm">Tıklayarak inline düzenleyebilirsin</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowTransactionForm(true)}
+            disabled={accounts.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Yeni İşlem
+          </button>
           <button
             onClick={() => setShowImport(true)}
             disabled={accounts.length === 0}

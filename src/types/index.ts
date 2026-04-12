@@ -29,8 +29,21 @@ export interface Transaction {
   date: Date;
   type: 'gelir' | 'gider';
   note?: string;
+  recurring?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
   createdAt: Date;
   updatedAt?: Date;
+}
+
+export interface Category {
+  id: string;
+  userId: string;
+  name: string;
+  color: string;
+  icon?: string;
+  monthlyBudget?: number;
+  type: 'gelir' | 'gider' | 'ikisi_de';
+  isDefault: boolean;
+  createdAt: Date;
 }
 
 export interface Debt {

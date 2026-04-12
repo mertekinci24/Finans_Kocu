@@ -19,9 +19,9 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 8. [DONE] Supabase schema + RLS (users, accounts, transactions, debts, installments, scores)
 9. [DONE] Hesap yönetimi modülü (Account list + CRUD + BankLogo + soft delete + undo 5sn)
 10. [DONE] İşlem Listesi sayfası (Transaction list + month nav + gelir/gider/kategori filtresi)
-11. [TODO] Gelir/Gider İşlem Formu — detaylı (recurring, note, hesap seçimi, tam CRUD)
+11. [DONE] Gelir/Gider İşlem Formu — detaylı (recurring, note, hesap seçimi, tam CRUD)
 12. [DONE] Hızlı işlem kutusu (QuickInput — Enter ile kayıt + otomatik kategori önerisi)
-13. [TODO] Kategori sistemi (Category CRUD + bütçe takibi)
+13. [DONE] Kategori sistemi (Category CRUD + bütçe takibi)
 14. [DONE] Taksit merkezi — temel (Envanter + Kapasite Hesaplayıcı + 12 Aylık Taksit Takvimi + %30 uyarı)
 15. [DONE] Borç merkezi — temel (Borç listesi + Borç/Gelir risk analizi + renk kodlama + tahmini kapanış)
 
@@ -38,10 +38,10 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 23. [DONE] Banka ekstresi parser (CSV/TXT, auto-kategorize)
 24. [DONE] Enflasyon modu (Nominal vs Reel değer toggle + hook)
 25. [DONE] İşlem import preview ekranı
-26. [TODO] Detaylı İşlem CRUD formu (recurring, kategori tagging, not)
-27. [TODO] Kategori sistemi (Category CRUD + bütçe takibi)
-28. [TODO] PDF rapor export (Monthly financial summary)
-29. [TODO] Light/Dark/AMOLED tema sistemi
+26. [DONE] Detaylı İşlem CRUD formu (recurring, kategori tagging, not)
+27. [DONE] Kategori sistemi (Category CRUD + bütçe takibi)
+28. [DONE] PDF rapor export (Monthly financial summary)
+29. [DONE] Light/Dark/AMOLED tema sistemi
 
 ## Faz 2 (MVP Sonrası)
 30. [TODO] Findeks OCR + AI analizi

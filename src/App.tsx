@@ -6,6 +6,7 @@ import Accounts from '@/pages/Accounts';
 import Transactions from '@/pages/Transactions';
 import Installments from '@/pages/Installments';
 import Debts from '@/pages/Debts';
+import Categories from '@/pages/Categories';
 import SignIn from '@/pages/SignIn';
 import SignUp from '@/pages/SignUp';
 import { ROUTES } from '@/constants';
@@ -45,6 +46,7 @@ export default function App(): JSX.Element {
           <Route path={ROUTES.TRANSACTIONS} element={<Transactions />} />
           <Route path={ROUTES.INSTALLMENTS} element={<Installments />} />
           <Route path={ROUTES.DEBTS} element={<Debts />} />
+          <Route path={ROUTES.CATEGORIES} element={<Categories />} />
         </Route>
       </Routes>
     </Router>

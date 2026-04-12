@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
@@ -19,20 +20,29 @@ export default {
         },
         success: {
           50: '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
           500: '#22c55e',
           600: '#16a34a',
+          700: '#15803d',
           900: '#14532d',
         },
         warning: {
           50: '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
           500: '#eab308',
           600: '#ca8a04',
+          700: '#a16207',
           900: '#713f12',
         },
         error: {
           50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
           500: '#ef4444',
           600: '#dc2626',
+          700: '#b91c1c',
           900: '#7f1d1d',
         },
         neutral: {
@@ -61,6 +71,25 @@ export default {
         xl: '2rem',
         '2xl': '3rem',
         '3xl': '4rem',
+      },
+      keyframes: {
+        'fade-in': {
+          from: { opacity: '0', transform: 'translateY(4px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'slide-up': {
+          from: { opacity: '0', transform: 'translateY(16px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'scale-in': {
+          from: { opacity: '0', transform: 'scale(0.97)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 0.2s ease-out',
+        'slide-up': 'slide-up 0.25s ease-out',
+        'scale-in': 'scale-in 0.2s ease-out',
       },
     },
   },
