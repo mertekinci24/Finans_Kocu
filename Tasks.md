@@ -17,11 +17,11 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 6. [DONE] React Router + Layout Shell
 7. [DONE] Dashboard component (fully functional with Supabase integration)
 8. [DONE] Supabase schema + RLS (users, accounts, transactions, debts, installments, scores)
-9. [IN_PROGRESS] Hesap yönetimi modülü (Account list + CRUD forms)
-10. [TODO] İşlem Listesi sayfası (Transaction list view)
-11. [TODO] Gelir/Gider İşlem Formu (detailed income/expense form)
-12. [TODO] Hızlı işlem kutusu (Quick transaction input)
-13. [TODO] Kategori sistemi (Category CRUD + suggestions)
+9. [DONE] Hesap yönetimi modülü (Account list + CRUD + BankLogo + soft delete + undo 5sn)
+10. [DONE] İşlem Listesi sayfası (Transaction list + month nav + gelir/gider/kategori filtresi)
+11. [TODO] Gelir/Gider İşlem Formu — detaylı (recurring, note, hesap seçimi, tam CRUD)
+12. [DONE] Hızlı işlem kutusu (QuickInput — Enter ile kayıt + otomatik kategori önerisi)
+13. [TODO] Kategori sistemi (Category CRUD + bütçe takibi)
 14. [TODO] Taksit merkezi — temel (Basic installment list + load indicator)
 15. [TODO] Borç merkezi — temel (Basic debt list)
 

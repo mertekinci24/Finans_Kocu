@@ -1,6 +1,32 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 07:30
+- Görev No: 9, 10, 12 — Hesap Yönetimi + İşlem Listesi + Hızlı Giriş (Sprint 1)
+- Modül: Frontend / UI Layer — Account, Transaction, Utility modules
+- Yapılan İş:
+  * src/utils/categoryPredictor.ts — 13 kategori kuralı, geçmiş işlemlerden öğrenme, parseQuickInput
+  * src/utils/bankLogos.ts — 13 Türk bankası tanıma (Garanti, İş, YKB, Akbank, Ziraat vb.), renk kodları
+  * src/components/accounts/BankLogo.tsx — banka renkli logo badge bileşeni (sm/md/lg boyut)
+  * src/components/accounts/AccountCard.tsx — inline düzenleme (tıkla → edit mode), 5sn undo mekanizması, kredi kartı limit göstergesi
+  * src/components/accounts/AccountForm.tsx — yeni hesap formu (3 tip: nakit/banka/kredi kartı), kart limiti desteği, validasyon
+  * src/pages/Accounts.tsx — toplam varlık + borç özet kartları, hesap listesi, soft delete (is_active)
+  * src/components/transactions/QuickInput.tsx — Enter ile kayıt, anlık tutar parse, kategori öneri butonları, geçmişten öğrenme
+  * src/components/transactions/TransactionRow.tsx — inline düzenleme, 5sn undo, hover'da delete butonu
+  * src/pages/Transactions.tsx — aylık görünüm, önceki/sonraki ay navigasyonu, tip + kategori filtresi, gelir/gider/net özet
+  * src/components/layout/Sidebar.tsx — SVG ikonlar eklendi (6 menü öğesi)
+  * src/App.tsx — /accounts ve /transactions rotaları eklendi
+- Uygulanmış Master Plan Hız & Konfor Özellikleri:
+  * Hızlı İşlem Kutusu: '3500 market' → Enter → 2 saniyede kayıt (6.2)
+  * Akıllı Kategori: Kural motoru + geçmişten öğrenme, 13 kategori (6.2)
+  * Inline Düzenleme: Tıkla → modal yok, yerinde düzenleme (6.2)
+  * Geri Al (Undo): Silme sonrası 5sn içinde geri alınabilir (6.2)
+  * Skeleton Screens: Tüm sayfalar yüklenirken iskelet gösterir (6.2)
+  * Banka Logoları: 13 TR bankası tanınıyor, renk kodlu badge
+  * Soft Delete: Hesaplar is_active=false ile silinir, veri korunur
+- Risk: Minimal — Build passed (414.55 KB, 111 modules)
+- Sonraki Adım: Taksit Merkezi + Borç Merkezi (Sprint 1 finale)
+
 ## 2026-04-12 06:15
 - Görev No: 9 (Partial) — Dashboard Component (Sprint 1)
 - Modül: Frontend / UI Layer
