@@ -7,7 +7,7 @@
 4. Kesinlikle yama yapılmayacak. Kök neden çözülmeden iş kapatılmayacak.
 5. Her görev sonunda `Changelog.md` dosyasına şablona uygun kayıt zorunludur.
 6. Her 3 tamamlanan görev sonrası `technical_debt.md` incele, kayıt ekle, mümkünse öncelik borcu kapat.
-7. Her hata, sapma veya başarısız deneme sonrası `debugging.md` kaydı oluştur.
+7. Her hata, sapma veya başarısız deneme sonrası `debugging.md` kaydı oluştur. Çıkardığımız derslerin hepsini       kaydet.
 8. Kod; modüler, test edilebilir, tip güvenli ve okunabilir olacak.
 9. Geçici console log, dead code, kullanılmayan import bırakılmayacak.
 10. DONE işaretlenen her görev için doğrulama testi yapılacak.
