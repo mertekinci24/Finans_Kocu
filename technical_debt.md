@@ -3,6 +3,38 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (Faz 2 Sprint 1 — Görev 32: Tax Module & AI Gateway)
+- Kaynak Görev: 32 (SGK/Vergi Modülü + AI Gateway)
+- Borç Tanımı 1: BYOK vault client-side localStorage'de saklanıyor (security vs UX tradeoff)
+- Etki: Browser devtools açılırsa AES-256 key'ler görülebilir; cross-site script (XSS) risk; sensitive production key'ler client'de exposed
+- Öncelik: YÜKSEK (Security)
+- Çözüm Planı:
+  * Supabase Auth session'ı BYOK'a gate'le (authenticated users only)
+  * Sensitive key'leri (production Stripe, OpenAI) memory'de tutar, localStorage'de VALUE sakla değil REFERENCE
+  * KeyVault migration: Supabase Vault (encrypted at-rest) → backend proxy
+- Hedef Tarih: Faz 2 Adım 3 — Encryption & Secret Management
+- Durum: Açık
+
+- Borç Tanımı 2: Tax calculator statik tier tanımlanmış; TCMB enflasyon API entegrasyonu yok
+- Etki: Bağkur primler statik kalıyor, gerçek SGK prim oranları değiştiğinde manuel update gerekli
+- Öncelik: Orta (Maintenance & Accuracy)
+- Çözüm Planı:
+  * TCMB API or SGK official endpoint → annual tier sync
+  * Notification: Prim oranı değiştiğinde kullanıcıya uyar
+  * Dashboard widget: "Bağkur Prim Oranları Güncellendi" banner
+- Hedef Tarih: Faz 2 + 2 — External API Integrations
+- Durum: Açık
+
+- Borç Tanımı 3: Tax Payment History tek başına Supabase'de; desktop offline sync yok
+- Etki: Network down → yeni tax payment recordenemez; eventual consistency delay
+- Öncelik: Düşük (Reliability & Offline Support)
+- Çözüm Planı:
+  * IndexedDB local queue → offline tax payments
+  * Sync engine: Online dönünce Supabase'e push
+  * Conflict resolution: Last-write-wins on duplicate obligation_id
+- Hedef Tarih: Faz 3 — Offline-First Architecture
+- Durum: Açık
+
 ## 2026-04-12 (Faz 2 Sprint 1 — Görev 31: AI Asistan)
 - Kaynak Görev: 31 (WhatsApp Tarzı AI Asistan + Claude)
 - Borç Tanımı 1: Claude API anahtarı client-side .env'de saklanıyor (critical security issue); rate limiting yok

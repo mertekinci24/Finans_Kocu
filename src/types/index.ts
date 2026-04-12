@@ -186,3 +186,49 @@ export interface TransactionTrend {
   topCategories: Array<{ name: string; amount: number }>;
   savingsRate: number;
 }
+
+export type ObligationType = 'kdv' | 'muhtasar' | 'geçici_vergi' | 'sgk_bağkur' | 'gelir_vergisi' | 'stopaj';
+export type PaymentStatus = 'pending' | 'paid' | 'overdue';
+export type BaskurProfileType = 'free_professional' | 'self_employed' | 'artisan' | 'farmer' | 'employee_with_private';
+export type BaskurTier = 'tier1' | 'tier2' | 'tier3' | 'tier4' | 'tier5' | 'tier6';
+
+export interface TaxObligation {
+  id: string;
+  userId?: string;
+  obligationType: ObligationType;
+  dueDate: Date;
+  description: string;
+  estimatedAmount: number;
+  paymentStatus: PaymentStatus;
+  reminderSent: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BaskurProfile {
+  id: string;
+  userId: string;
+  profileType: BaskurProfileType;
+  grossIncomeMonthly: number;
+  baskurTier: BaskurTier;
+  monthlyPremium: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TaxPaymentHistory {
+  id: string;
+  userId: string;
+  obligationType: string;
+  paidDate: Date;
+  amountPaid: number;
+  isOnTime: boolean;
+  createdAt: Date;
+}
+
+export interface AIModelConfig {
+  provider: 'claude' | 'gemini' | 'gpt4';
+  apiKey?: string;
+  isDefault: boolean;
+}

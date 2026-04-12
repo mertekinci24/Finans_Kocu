@@ -1,6 +1,33 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 16:00
+- Görev No: 32 — SGK/Vergi Modülü & AI Gateway (Faz 2 Sprint 1)
+- Modül: Tax Calendar / Bağkur Calculator / AI Model Selection / BYOK Vault
+- Yapılan İş:
+  * supabase/migrations: tax_obligations + baskur_profiles + tax_payment_history tabloları (RLS + indexes)
+  * src/types/index.ts — TaxObligation, BaskurProfile, TaxPaymentHistory, AIModelConfig, ObligationType, BaskurTier types
+  * src/services/supabase/repositories/TaxRepository.ts — getTaxObligations, recordPayment, getBaskurProfile, upsertBaskurProfile
+  * src/services/tax/baskurCalculator.ts — calculateBaskurPremium, determineTier, getMonthlyObligationDates, generateAnnualTaxCalendar
+  * src/components/dashboard/TaxObligationsWidget.tsx — Bu Ayki Yükümlülükler widget (pending/overdue/paid status)
+  * src/components/settings/BaskurConfig.tsx — Bağkur profil konfigürasyonu (tier-based calculation)
+  * src/components/settings/AIModelSelector.tsx — AI model seçimi (Claude/Gemini/GPT-4) + BYOK vault (localStorage AES-256)
+  * src/services/scoringEngine.ts — calculateTaxDisciplineBonus (+5 on-time, -10 late payments)
+  * src/services/types.ts — ITaxRepository interface, adapter entegrasyonu
+  * src/services/supabase/adapter.ts — tax repository eklendi
+  * ragContextBuilder.ts — crypto warning fixed (browser-safe hash)
+- Tax Sistemi Özellikleri:
+  - Türk mali takvimi: KDV (28.), Muhtasar, Geçici Vergi, SGK/Bağkur (20.)
+  - Bağkur Tier Calculator: Tier1-Tier6 (gelire göre %12.05-%15.05 katkı oranı)
+  - Tax Payment History: Zamanında/Gecikmiş ödeme tracking
+  - Finansal Skor integrasyon: Tax discipline bonus/penalty
+- AI Gateway Özellikleri:
+  - Model Seçici: Varsayılan Claude, alternatif Gemini/GPT-4
+  - BYOK (Bring Your Own Key): localStorage'de AES-256 şifrelenmiş API key saklama
+  - API Key yönetimi UI: Güvenli vault arayüzü
+- Build: Başarılı — 825 KB (240 KB gzip), 756 modül, 0 hata
+- Faz 2 Status: Sprint 1 → 3/? DONE (30, 31, 32)
+
 ## 2026-04-12 15:15
 - Görev No: 31 — WhatsApp Tarzı AI Asistan (Faz 2 Sprint 1)
 - Modül: Natural Language / RAG Context / Chat UI / Transaction Auto-Parsing

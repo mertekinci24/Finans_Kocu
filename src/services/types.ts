@@ -10,6 +10,9 @@ import type {
   ChatSession,
   ChatMessage,
   SuggestedTransaction,
+  TaxObligation,
+  BaskurProfile,
+  TaxPaymentHistory,
 } from '@types';
 
 export interface IUserRepository {
@@ -95,6 +98,14 @@ export interface IChatRepository {
   ): Promise<ChatMessage>;
 }
 
+export interface ITaxRepository {
+  getTaxObligations(userId?: string): Promise<TaxObligation[]>;
+  markPaymentStatus(obligationId: string, status: 'paid' | 'overdue'): Promise<void>;
+  recordPayment(userId: string, obligationType: string, amountPaid: number, dueDate: Date): Promise<TaxPaymentHistory>;
+  getBaskurProfile(userId: string): Promise<BaskurProfile | null>;
+  upsertBaskurProfile(userId: string, profile: Omit<BaskurProfile, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<BaskurProfile>;
+}
+
 export interface IDataSourceAdapter {
   user: IUserRepository;
   account: IAccountRepository;
@@ -104,4 +115,5 @@ export interface IDataSourceAdapter {
   financialScore: IFinancialScoreRepository;
   findeks: IFindeksRepository;
   chat: IChatRepository;
+  tax: ITaxRepository;
 }

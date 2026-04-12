@@ -1,10 +1,11 @@
-import type { Account, Transaction, Debt, Installment, FinancialScore } from '@/types';
+import type { Account, Transaction, Debt, Installment, FinancialScore, TaxPaymentHistory } from '@/types';
 
 export interface ScoringInput {
   accounts: Account[];
   transactions: Transaction[];
   debts: Debt[];
   installments: Installment[];
+  taxPayments?: TaxPaymentHistory[];
 }
 
 export interface DetailedScore {
@@ -163,6 +164,33 @@ export class ScoringEngine {
   }
 
   /**
+   * Vergi/Prim Disiplini Bonusu
+   * Zamanında ödenen vergiler/primler +5 puan
+   * Gecikmiş ödemeler -10 puan
+   */
+  private calculateTaxDisciplineBonus(taxPayments: TaxPaymentHistory[]): number {
+    if (taxPayments.length === 0) return 0;
+
+    const lastYear = new Date();
+    lastYear.setFullYear(lastYear.getFullYear() - 1);
+
+    const recentPayments = taxPayments.filter((p) => new Date(p.paidDate) >= lastYear);
+
+    if (recentPayments.length === 0) return 0;
+
+    const onTimePayments = recentPayments.filter((p) => p.isOnTime).length;
+    const latePayments = recentPayments.filter((p) => !p.isOnTime).length;
+
+    const onTimeRatio = onTimePayments / recentPayments.length;
+
+    if (onTimeRatio === 1) return 5;
+    if (onTimeRatio >= 0.8) return 3;
+    if (latePayments > 0) return -10;
+
+    return 0;
+  }
+
+  /**
    * Kritik Risk Kontrolü (Red Flags)
    * Aşağıdakilerden birinin gerçekleşmesi durumunda skoru max 24'e sabitler
    */
@@ -250,6 +278,7 @@ export class ScoringEngine {
       monthlyIncome
     );
     const billDiscipline = this.calculateBillDiscipline();
+    const taxDisciplineBonus = this.calculateTaxDisciplineBonus(input.taxPayments || []);
 
     // Temel skor
     const baseScore = this.calculateBaseScore(
@@ -272,6 +301,8 @@ export class ScoringEngine {
 
     // Final skor hesaplaması
     let finalScore = baseScore * confidenceScore;
+
+    finalScore += taxDisciplineBonus;
 
     if (criticalRisks.isCritical) {
       finalScore = Math.min(CRISIS_THRESHOLD, finalScore);

@@ -1,6 +1,5 @@
 import { supabase } from '../supabase/adapter';
 import { AssistantContextCache, AccountSummary, TransactionTrend } from '@/types';
-import crypto from 'crypto';
 
 export async function buildUserContext(userId: string): Promise<AssistantContextCache> {
   const [accounts, transactions, findeks, debts, installments] = await Promise.all([
@@ -162,5 +161,13 @@ function generateContextHash(
     findeksScore: findeks,
   });
 
-  return crypto.createHash('sha256').update(hashInput).digest('hex');
+  const encoder = new TextEncoder();
+  const data = encoder.encode(hashInput);
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data[i];
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16);
 }
