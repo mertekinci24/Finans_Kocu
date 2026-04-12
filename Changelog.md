@@ -1,6 +1,33 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 15:15
+- Görev No: 31 — WhatsApp Tarzı AI Asistan (Faz 2 Sprint 1)
+- Modül: Natural Language / RAG Context / Chat UI / Transaction Auto-Parsing
+- Yapılan İş:
+  * supabase/migrations: chat_sessions + chat_messages + assistant_context_cache tabloları (RLS + indexes)
+  * src/types/index.ts — ChatSession, ChatMessage, SuggestedTransaction, AssistantContextCache interfaces
+  * src/services/supabase/repositories/ChatRepository.ts — createSession, getMessages, addMessage, getUserSessions
+  * src/services/assistant/ragContextBuilder.ts — buildUserContext (accounts, trends, alerts, Findeks score caching)
+  * src/services/assistant/assistantService.ts — Claude Sonnet 4.6 integration + transaction auto-parsing
+  * src/components/assistant/ChatInterface.tsx — WhatsApp-style chat UI (messages, voice input, "yazıyor..." animation)
+  * src/components/assistant/ChatBubble.tsx — Markdown-rendered message bubbles (user/assistant roles)
+  * src/components/assistant/TransactionSuggestion.tsx — AI-suggested transaction card (accept/reject)
+  * src/pages/Assistant.tsx — Session management + RAG context flow + transaction save
+  * src/constants/index.ts — ASSISTANT route
+  * src/components/layout/Sidebar.tsx — "AI Asistan" menüsü
+  * src/App.tsx — /assistant route entegrasyonu
+  * react-markdown v10 eklendi (message formatting)
+  * Hata Düzeltmeleri: Unused variable cleanup, TypeScript strict mode compliance
+- Asistan Yetenekleri:
+  - Doğal dil sohbet (Türkçe, "koç" tonu)
+  - Kullanıcı verilerine dayalı RAG context (hesaplar, Findeks, trend, alerts)
+  - İşlem auto-parsing ("500 TL market harcadım" → JSON öneri)
+  - Sesli mesaj altyapısı (speech-to-text hazır)
+  - Sohbet geçmişi + context caching (5 min TTL)
+- Build: Başarılı — 823 KB (239 KB gzip), 586+ modül, 0 hata (bundle +133 KB from Task 30)
+- Faz 2 Status: Sprint 1 → 2/? DONE (30, 31)
+
 ## 2026-04-12 14:45
 - Görev No: 30 — Findeks OCR & AI Analiz Motoru (Faz 2 Sprint 1)
 - Modül: OCR / PDF Parsing / AI Analysis / Findeks Integration

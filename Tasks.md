@@ -45,7 +45,7 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 
 ## Faz 2 (MVP Sonrası — Sprint 1: Derinlik & AI)
 30. [DONE] Findeks OCR + AI analizi
-31. [TODO] WhatsApp tarzı AI asistan
+31. [DONE] WhatsApp tarzı AI asistan
 32. [TODO] SGK/Vergi hatırlatıcı sistemi
 33. [TODO] Widget altyapısı (drag-drop)
 34. [TODO] Gelişmiş temalar (custom color schemes)

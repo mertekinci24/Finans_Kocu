@@ -133,3 +133,56 @@ export interface FindeksScoreHistory {
   previousScore?: number;
   scoreChange?: number;
 }
+
+export interface ChatSession {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ChatMessage {
+  id: string;
+  sessionId: string;
+  userId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  suggestedTransaction?: SuggestedTransaction;
+  tokensUsed: number;
+  createdAt: Date;
+}
+
+export interface SuggestedTransaction {
+  amount: number;
+  category: string;
+  description: string;
+  date: Date;
+  type: 'gelir' | 'gider';
+  confidence: number;
+}
+
+export interface AssistantContextCache {
+  userId: string;
+  contextHash: string;
+  accountsSummary: AccountSummary[];
+  findeksScore?: number;
+  transactionsTrend: TransactionTrend;
+  alerts: string[];
+  cachedAt: Date;
+  expiresAt: Date;
+}
+
+export interface AccountSummary {
+  name: string;
+  type: 'nakit' | 'banka' | 'kredi_kartı';
+  balance: number;
+  cardLimit?: number;
+}
+
+export interface TransactionTrend {
+  avgMonthlyExpense: number;
+  avgMonthlyIncome: number;
+  topCategories: Array<{ name: string; amount: number }>;
+  savingsRate: number;
+}

@@ -3,6 +3,39 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (Faz 2 Sprint 1 — Görev 31: AI Asistan)
+- Kaynak Görev: 31 (WhatsApp Tarzı AI Asistan + Claude)
+- Borç Tanımı 1: Claude API anahtarı client-side .env'de saklanıyor (critical security issue); rate limiting yok
+- Etki: Kötü niyetli kullanıcı API key'i sızdırabilir; token maliyeti kontrol edilemez; malicious queries abuse riski
+- Öncelik: YÜKSEK (Security & Cost Control)
+- Çözüm Planı:
+  * API key'i Supabase Edge Function'a taşı (backend security)
+  * Frontend → Edge Function (chat message), Edge Function → Claude, Edge Function → Client
+  * Rate limiting + quota tracking per user (e.g., 100 queries/day)
+  * Token cost estimation + user balance check
+- Hedef Tarih: Faz 2 Adım 2 — Backend Security & Cost Control
+- Durum: Açık
+
+- Borç Tanımı 2: RAG context builder her sohbette tam veri çeker (N accounts + M transactions + 1 findeks)
+- Etki: 100+ user'da yükün artması (sohbetler × context fetches); db query explosion risk
+- Öncelik: Orta (Performance)
+- Çözüm Planı:
+  * Context caching zaten 5 min TTL'de, ama hash validation weak — strengthen hash
+  * Lazy load: Sadece gerekli fields çek (SELECT name, balance FROM accounts — exclude inactive)
+  * Batch trends: 6-month aggregation → cached view veya snapshot
+- Hedef Tarih: Faz 2 Adım 3 — Database Query Optimization
+- Durum: Açık
+
+- Borç Tanımı 3: React-markdown bundle size +40 KB; speech-to-text API hardcoded /api/speech-to-text
+- Etki: Bundle 823 KB / 239 KB gzip (Tesseract + react-markdown + Claude); speech endpoint serverless değil
+- Öncelik: Düşük (Performance & Architecture)
+- Çözüm Planı:
+  * react-markdown → remark (lighter) veya native HTML rendering
+  * Speech-to-text → Web Speech API native (client-side, 0 backend), fallback → Cloud Speech API
+  * Lazy import react-markdown (only in chat page)
+- Hedef Tarih: Faz 2 + 1 — Bundle Optimization Sprint
+- Durum: Açık
+
 ## 2026-04-12 (Faz 2 Sprint 1 — Görev 30: Findeks OCR & AI)
 - Kaynak Görev: 30 (Findeks OCR + Claude Sonnet)
 - Borç Tanımı: Tesseract.js v5 bundle boyutu ~34 KB; client-side OCR çalışması bazen yavaş (50+ sayfalı PDF'ler)

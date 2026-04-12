@@ -7,6 +7,9 @@ import type {
   FinancialScore,
   FindeksReport,
   ActionStep,
+  ChatSession,
+  ChatMessage,
+  SuggestedTransaction,
 } from '@types';
 
 export interface IUserRepository {
@@ -77,6 +80,21 @@ export interface IFindeksRepository {
   ): Promise<FindeksReport>;
 }
 
+export interface IChatRepository {
+  createSession(userId: string, title: string): Promise<ChatSession>;
+  getSession(sessionId: string): Promise<ChatSession | null>;
+  getUserSessions(userId: string): Promise<ChatSession[]>;
+  getMessages(sessionId: string): Promise<ChatMessage[]>;
+  addMessage(
+    sessionId: string,
+    userId: string,
+    role: 'user' | 'assistant',
+    content: string,
+    suggestedTransaction?: SuggestedTransaction,
+    tokensUsed?: number
+  ): Promise<ChatMessage>;
+}
+
 export interface IDataSourceAdapter {
   user: IUserRepository;
   account: IAccountRepository;
@@ -85,4 +103,5 @@ export interface IDataSourceAdapter {
   installment: IInstallmentRepository;
   financialScore: IFinancialScoreRepository;
   findeks: IFindeksRepository;
+  chat: IChatRepository;
 }

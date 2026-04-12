@@ -8,6 +8,7 @@ import Installments from '@/pages/Installments';
 import Debts from '@/pages/Debts';
 import Categories from '@/pages/Categories';
 import Findeks from '@/pages/Findeks';
+import Assistant from '@/pages/Assistant';
 import SignIn from '@/pages/SignIn';
 import SignUp from '@/pages/SignUp';
 import { ROUTES } from '@/constants';
@@ -49,6 +50,7 @@ export default function App(): JSX.Element {
           <Route path={ROUTES.DEBTS} element={<Debts />} />
           <Route path={ROUTES.CATEGORIES} element={<Categories />} />
           <Route path={ROUTES.FINDEKS} element={<Findeks />} />
+          <Route path={ROUTES.ASSISTANT} element={<Assistant />} />
         </Route>
       </Routes>
     </Router>

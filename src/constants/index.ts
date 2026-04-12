@@ -12,6 +12,7 @@ export const ROUTES = {
   INSTALLMENTS: '/installments',
   CATEGORIES: '/categories',
   FINDEKS: '/findeks',
+  ASSISTANT: '/assistant',
   SETTINGS: '/settings',
 } as const;
 
