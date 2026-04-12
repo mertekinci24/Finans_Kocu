@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { dataSourceAdapter } from '@/services/supabase/adapter';
 import QuickInput from '@/components/transactions/QuickInput';
 import TransactionRow from '@/components/transactions/TransactionRow';
+import ImportPreview from '@/components/transactions/ImportPreview';
 import type { Transaction, Account } from '@/types';
 
 type FilterType = 'all' | 'gelir' | 'gider';
@@ -16,6 +17,7 @@ export default function Transactions(): JSX.Element {
   const [filter, setFilter] = useState<FilterType>('all');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -94,14 +96,37 @@ export default function Transactions(): JSX.Element {
   const formatCurrency = (amount: number) =>
     `${CURRENCY_SYMBOL}${amount.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+  const handleImportComplete = (imported: Transaction[]) => {
+    setTransactions((prev) => [...imported, ...prev]);
+  };
+
   return (
     <div className="space-y-6">
+      {showImport && (
+        <ImportPreview
+          accounts={accounts}
+          existingTransactions={transactions}
+          onImportComplete={handleImportComplete}
+          onClose={() => setShowImport(false)}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900">İşlemler</h1>
           <p className="text-neutral-600 mt-1 text-sm">Tıklayarak inline düzenleyebilirsin</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            disabled={accounts.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <svg className="w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Ekstreyi İçe Aktar
+          </button>
           <button
             onClick={prevMonth}
             className="p-2 hover:bg-neutral-100 rounded-lg transition-colors text-neutral-600"

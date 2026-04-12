@@ -1,6 +1,20 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 12:00
+- Görev No: 25 — İşlem Import Preview Ekranı (Sprint 3 Part 2)
+- Modül: Data Import / Transaction Automation
+- Yapılan İş:
+  * src/services/types.ts — ITransactionRepository: createMany() eklendi
+  * src/services/supabase/repositories/TransactionRepository.ts — createMany() bulk insert
+  * src/components/transactions/ImportPreview.tsx — 3-adım import modal
+    - Drag & drop + file input (CSV/TXT)
+    - Smart Mapping: otomatik kategori, tür değiştirme
+    - Duplicate Check: aynı tarih + tutar + tür kontrolü
+    - Bulk Insert: seçili işlemleri tek seferde Supabase'e yazma
+  * src/pages/Transactions.tsx — "Ekstreyi İçe Aktar" butonu entegrasyonu
+- Build: Başarılı — 487 KB, 130 modül, 0 hata
+
 ## 2026-04-12 11:15
 - Görev No: 22-24 — Unit Tests + Bank Parser + Enflasyon Modu (Sprint 3 Part 1)
 - Modül: Testing Framework + Data Import + Real Value Analysis

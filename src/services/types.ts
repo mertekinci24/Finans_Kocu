@@ -34,6 +34,7 @@ export interface ITransactionRepository {
     endDate: Date
   ): Promise<Transaction[]>;
   create(transaction: Omit<Transaction, 'id' | 'createdAt'>): Promise<Transaction>;
+  createMany(transactions: Omit<Transaction, 'id' | 'createdAt'>[]): Promise<Transaction[]>;
   update(id: string, transaction: Partial<Transaction>): Promise<Transaction>;
   delete(id: string): Promise<void>;
 }

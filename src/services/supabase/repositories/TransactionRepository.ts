@@ -62,6 +62,28 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
     return this.mapToTransaction(data);
   }
 
+  async createMany(transactions: Omit<Transaction, 'id' | 'createdAt'>[]): Promise<Transaction[]> {
+    if (transactions.length === 0) return [];
+
+    const rows = transactions.map((t) => ({
+      account_id: t.accountId,
+      amount: t.amount,
+      description: t.description,
+      category: t.category,
+      date: t.date.toISOString().split('T')[0],
+      type: t.type,
+      note: t.note || null,
+    }));
+
+    const { data, error } = await this.client
+      .from('transactions')
+      .insert(rows)
+      .select();
+
+    if (error) throw error;
+    return (data || []).map(this.mapToTransaction);
+  }
+
   async update(id: string, transaction: Partial<Transaction>): Promise<Transaction> {
     const { data, error } = await this.client
       .from('transactions')

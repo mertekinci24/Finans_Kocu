@@ -3,6 +3,21 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (Sprint 3 Part 2 — Görev 25: Import Preview)
+- Kaynak Görev: 25 (Transaction Import Preview)
+- Borç Tanımı: Parser sadece CSV/TXT destekliyor; Garanti/İş/YKB PDF ekstresi desteği yok
+- Etki: Kullanıcı PDF ekstrelerini manuel CSV'ye dönüştürmek zorunda; sürtüşme artar
+- Öncelik: Yüksek (Master Plan P1 MVP'de "PDF Parsing" var)
+- Çözüm Planı:
+  * Faz 2: Tesseract.js veya pdfjs-dist ile PDF text extraction
+  * Her bankanın ekstresi farklı format — banka spesifik parser modülleri yazılacak
+  * Garanti: "TARİH AÇIKLAMA TUTAR" kolonlu format
+  * İş Bankası: hesap hareketi tablosu farklı encoding
+  * YKB: kredi kartı dökümü ayrı parse mantığı gerektirir
+  * Long-term: Cloud Vision API OCR entegrasyonu (taranmış PDF için)
+- Hedef Tarih: Faz 2 — Banka Entegrasyon Sprint
+- Durum: Açık
+
 ## 2026-04-12 (Sprint 3 Part 1 — Görev 22-24)
 - Kaynak Görev: 22-24 (Tests + Parser + Inflation)
 - Borç Tanımı: Vitest mock data type uyumsuzluğu; test dosyaları silindi

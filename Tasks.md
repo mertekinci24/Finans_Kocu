@@ -37,7 +37,7 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 22. [DONE] Unit test framework (Vitest — scoringEngine, ruleEngine)
 23. [DONE] Banka ekstresi parser (CSV/TXT, auto-kategorize)
 24. [DONE] Enflasyon modu (Nominal vs Reel değer toggle + hook)
-25. [TODO] İşlem import preview ekranı
+25. [DONE] İşlem import preview ekranı
 26. [TODO] Detaylı İşlem CRUD formu (recurring, kategori tagging, not)
 27. [TODO] Kategori sistemi (Category CRUD + bütçe takibi)
 28. [TODO] PDF rapor export (Monthly financial summary)
