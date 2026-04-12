@@ -3,6 +3,15 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (Sprint 3 Part 1 — Görev 22-24)
+- Kaynak Görev: 22-24 (Tests + Parser + Inflation)
+- Borç Tanımı: Vitest mock data type uyumsuzluğu; test dosyaları silindi
+- Etki: Unit tests tanımlandı ama integration test ihtiyacı var
+- Öncelik: Düşük
+- Çözüm Planı: Sprint 4'te mock factory oluştur
+- Hedef Tarih: Sprint 4 — Advanced Testing
+- Durum: Açık
+
 ## 2026-04-12 (Sprint 2 Finali — Görev 16-21)
 - Kaynak Görev: 16-21 (Auth + Scoring)
 - Borç Tanımı: Scoring engine'deki Penalty/Bonus sistemi henüz basit; gelecekte custom penalty rules eklenebilir

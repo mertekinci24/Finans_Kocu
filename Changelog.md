@@ -1,6 +1,16 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 11:15
+- Görev No: 22-24 — Unit Tests + Bank Parser + Enflasyon Modu (Sprint 3 Part 1)
+- Modül: Testing Framework + Data Import + Real Value Analysis
+- Yapılan İş:
+  * src/services/__tests__/ — Vitest test framework (scoringEngine, ruleEngine)
+  * src/services/parsers/bankStatementParser.ts — CSV/TXT parser (auto-kategorize)
+  * src/hooks/useInflationAdjustment.ts — Real value hook (monthly inflation)
+  * src/pages/Dashboard.tsx — Inflation toggle UI
+- Build: Başarılı — 473 KB, 128 modül
+
 ## 2026-04-12 10:30
 - Görev No: 16-21 — Supabase Auth + Finansal Sağlık Skoru + Kural Motoru (Sprint 2 Finali)
 - Modül: Auth Layer + Scoring Engine + Rules Engine + Dashboard

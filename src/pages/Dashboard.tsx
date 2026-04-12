@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useInflationAdjustment } from '@/hooks/useInflationAdjustment';
 import { dataSourceAdapter } from '@/services/supabase/adapter';
 import { scoringEngine, type DetailedScore } from '@/services/scoringEngine';
 import { ruleEngine, type Insight } from '@/services/ruleEngine';
@@ -10,6 +11,7 @@ import type { Account, Transaction, Debt, Installment } from '@/types';
 
 export default function Dashboard(): JSX.Element {
   const { user } = useAuth();
+  const { useRealValue, setUseRealValue, getInflationContext } = useInflationAdjustment();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -133,11 +135,27 @@ export default function Dashboard(): JSX.Element {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
+  const displayIncome = useRealValue ? Math.round(getInflationContext(monthlyIncome).real) : monthlyIncome;
+  const displayExpenses = useRealValue ? Math.round(getInflationContext(monthlyExpenses).real) : monthlyExpenses;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-neutral-900">Kontrol Paneli</h1>
-        <p className="text-neutral-600 mt-1 text-sm">Finansal sağlığınızı takip edin</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-neutral-900">Kontrol Paneli</h1>
+          <p className="text-neutral-600 mt-1 text-sm">Finansal sağlığınızı takip edin</p>
+        </div>
+        <button
+          onClick={() => setUseRealValue(!useRealValue)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            useRealValue
+              ? 'bg-primary-100 text-primary-700 border border-primary-300'
+              : 'bg-neutral-100 text-neutral-600 border border-neutral-300'
+          }`}
+          title="Enflasyona göre reel değer göster"
+        >
+          {useRealValue ? 'Reel Değer' : 'Nominal'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -152,20 +170,25 @@ export default function Dashboard(): JSX.Element {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-xs text-neutral-600">Gelir</span>
-              <span className="text-xs font-bold text-success-600">{fmt(monthlyIncome)}</span>
+              <span className="text-xs font-bold text-success-600">{fmt(displayIncome)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-xs text-neutral-600">Gider</span>
-              <span className="text-xs font-bold text-error-600">{fmt(monthlyExpenses)}</span>
+              <span className="text-xs font-bold text-error-600">{fmt(displayExpenses)}</span>
             </div>
             <div className="flex justify-between pt-1 border-t border-neutral-200">
               <span className="text-xs font-medium text-neutral-700">Net</span>
               <span
-                className={`text-xs font-bold ${monthlyIncome - monthlyExpenses > 0 ? 'text-success-600' : 'text-error-600'}`}
+                className={`text-xs font-bold ${displayIncome - displayExpenses > 0 ? 'text-success-600' : 'text-error-600'}`}
               >
-                {fmt(monthlyIncome - monthlyExpenses)}
+                {fmt(displayIncome - displayExpenses)}
               </span>
             </div>
+            {useRealValue && (
+              <div className="text-xs text-neutral-500 pt-1 border-t border-neutral-200">
+                Enflasyon (%{getInflationContext(0).inflationLoss.toFixed(1)} aylık) düzeltilmiş değerler
+              </div>
+            )}
           </div>
         </div>
       </div>

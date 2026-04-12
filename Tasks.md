@@ -33,15 +33,15 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 20. [DONE] Koç Önerileri paneli (Dashboard'a FinancialScoreCard + CoachInsights entegrasyonu)
 21. [DONE] TEMP_USER_ID → auth.uid() migration (Accounts, Transactions, Debts, Installments)
 
-## Faz 1 — MVP (Sprint 3: Finansal Derinleştirme)
-22. [TODO] Detaylı İşlem CRUD formu (recurring, kategori tagging, not)
-23. [TODO] Kategori sistemi (Category CRUD + bütçe takibi)
-24. [TODO] PDF rapor export (Monthly financial summary)
-25. [TODO] Enflasyon modu (Real vs nominal comparison with TCMB API)
-26. [TODO] Light/Dark/AMOLED tema sistemi
-27. [TODO] Onboarding akışı (4-step wizard with confetti)
-28. [TODO] Testler
-29. [TODO] Release build
+## Faz 1 — MVP (Sprint 3: Otomasyon & Doğrulama)
+22. [DONE] Unit test framework (Vitest — scoringEngine, ruleEngine)
+23. [DONE] Banka ekstresi parser (CSV/TXT, auto-kategorize)
+24. [DONE] Enflasyon modu (Nominal vs Reel değer toggle + hook)
+25. [TODO] İşlem import preview ekranı
+26. [TODO] Detaylı İşlem CRUD formu (recurring, kategori tagging, not)
+27. [TODO] Kategori sistemi (Category CRUD + bütçe takibi)
+28. [TODO] PDF rapor export (Monthly financial summary)
+29. [TODO] Light/Dark/AMOLED tema sistemi
 
 ## Faz 2 (MVP Sonrası)
 30. [TODO] Findeks OCR + AI analizi
