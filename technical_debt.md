@@ -3,6 +3,29 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (Faz 3 Sprint 1 — Görev 34: Cash Flow Prediction)
+- Kaynak Görev: 34 (Nakit Akışı Tahmin)
+- Borç Tanımı 1: Scenario simülatörü placeholder; what-if analysis TODO
+- Etki: Toggle görünür ama forecast re-calculate etmiyor
+- Öncelik: Orta (Feature)
+- Çözüm: Implement debtPayment scenario in cashFlowEngine.forecast()
+- Hedef Tarih: Task 35
+- Durum: Açık
+
+- Borç Tanımı 2: Tahmin one-off expenses'ı ignore ediyor
+- Etki: Forecast accuracy düşük
+- Öncelik: Orta (Accuracy)
+- Çözüm: Add weekly/monthly average smoothing
+- Hedef Tarih: Faz 3 + 1
+- Durum: Açık
+
+- Borç Tanımı 3: Dashboard warning banner no dismiss mechanism
+- Etki: User alarm fatigue riski
+- Öncelik: Düşük (UX)
+- Çözüm: Add toast + 24h dismiss memory
+- Hedef Tarih: Faz 3 + 2
+- Durum: Açık
+
 ## 2026-04-12 (Faz 2 Sprint 2 — Görev 33: Widget Altyapısı)
 - Kaynak Görev: 33 (Widget Altyapısı + Drag-Drop)
 - Borç Tanımı 1: Widget Grid 4-column fixed; responsive breakpoints eksik

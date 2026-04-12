@@ -12,8 +12,10 @@ import WidgetGrid from '@/components/dashboard/WidgetGrid';
 import FinancialScoreWidget from '@/components/dashboard/widgets/FinancialScoreWidget';
 import MonthlySummaryWidget from '@/components/dashboard/widgets/MonthlySummaryWidget';
 import AccountBalanceWidget from '@/components/dashboard/widgets/AccountBalanceWidget';
+import CashFlowForecastWidget from '@/components/dashboard/widgets/CashFlowForecastWidget';
 import { DashboardLayout } from '@/types/widgets';
 import { SupabaseDashboardLayoutRepository } from '@/services/supabase/repositories/DashboardLayoutRepository';
+import { cashFlowEngine, type CashFlowForecast } from '@/services/cashFlowEngine';
 import type { Account, Transaction, Debt, Installment } from '@/types';
 
 export default function Dashboard(): JSX.Element {
@@ -25,6 +27,7 @@ export default function Dashboard(): JSX.Element {
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [scoreData, setScoreData] = useState<DetailedScore | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
+  const [cashFlowForecast, setCashFlowForecast] = useState<CashFlowForecast | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDragMode, setIsDragMode] = useState(false);
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
@@ -106,6 +109,15 @@ export default function Dashboard(): JSX.Element {
       });
       setScoreData(detailedScore);
 
+      // Generate cash flow forecast
+      const forecast = cashFlowEngine.forecast(
+        accountsData,
+        allTransactions,
+        debtsData,
+        installmentsData
+      );
+      setCashFlowForecast(forecast);
+
       // Execute rules
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -181,6 +193,30 @@ export default function Dashboard(): JSX.Element {
 
   return (
     <div className="space-y-6">
+      {cashFlowForecast?.hasCashTightness && (
+        <div
+          className={`p-4 rounded-lg border-l-4 ${
+            cashFlowForecast.tightnessSeverity === 'critical'
+              ? 'bg-red-50 border-red-500 text-red-900'
+              : 'bg-yellow-50 border-yellow-500 text-yellow-900'
+          }`}
+        >
+          <div className="flex items-start gap-2">
+            <span className="text-xl">⚠</span>
+            <div>
+              <p className="font-semibold text-sm">
+                {cashFlowForecast.tightnessSeverity === 'critical'
+                  ? 'Kritik: 30 gün içinde nakit sorunu'
+                  : 'Uyarı: Nakit tamponu düşük'}
+              </p>
+              <p className="text-xs mt-1">
+                {cashFlowForecast.recommendations[0]}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900">Kontrol Paneli</h1>
@@ -260,6 +296,13 @@ export default function Dashboard(): JSX.Element {
             ),
             'balance-1': (
               <AccountBalanceWidget accounts={accounts} isLoading={loading} />
+            ),
+            'cashflow-1': (
+              <CashFlowForecastWidget
+                forecast={cashFlowForecast}
+                currentBalance={totalBalance}
+                isLoading={loading}
+              />
             ),
           }}
           onReorder={(reorderedWidgets) => {

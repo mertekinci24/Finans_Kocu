@@ -1,6 +1,30 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 18:45
+- Görev No: 34 — Nakit Akışı Tahmin Motoru (Faz 3 Sprint 1)
+- Modül: Cash Flow Prediction / 30-Day Forecast / Risk Alerts
+- Yapılan İş:
+  * src/services/cashFlowEngine.ts — CashFlowForecast engine
+  * identifyRecurringItems() — Recurring transaction analysis
+  * forecast() — 30-day daily balance projection
+  * calculateCashBufferScore() — FinancialScore subscore integration
+  * CashFlowForecastWidget.tsx — SVG chart + scenario UI
+  * Dashboard integration — Top warning banner for cash tightness
+  * Default layout — cashflow-1 widget at position 1 (2x1 size)
+  * Recommendations engine — Auto-generated advice based on forecast
+- Tahmin Algoritması:
+  - Recurring detection: description + type grouping
+  - Daily projection: transactions + installments on day-of-month
+  - Severity: critical (minBalance < 0), warning (< 10% buffer)
+  - Recommendations: 3-4 suggestions per state
+- Dashboard Uyarı Sistemi:
+  - Top banner: critical (red) / warning (yellow) styling
+  - Icon + first recommendation display
+  - State-dependent persistence
+- Performans: 770 modüller, 885 KB JS (260 KB gzip), 0 TS hatası
+- Faz 3 Status: Sprint 1 → 1/? DONE
+
 ## 2026-04-12 17:30
 - Görev No: 33 — Widget Altyapısı & Modüler Dashboard (Faz 2 Sprint 2)
 - Modül: dnd-kit Drag-Drop / Supabase Layout Persistence / Skeleton Screens / Widget System

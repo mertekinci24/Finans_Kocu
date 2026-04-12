@@ -38,11 +38,19 @@ export const DEFAULT_DASHBOARD_LAYOUT: Widget[] = [
     enabled: true,
   },
   {
+    id: 'cashflow-1',
+    type: 'expense_breakdown',
+    title: '30 Günlük Nakit Akışı',
+    size: '2x1',
+    position: 1,
+    enabled: true,
+  },
+  {
     id: 'summary-1',
     type: 'monthly_summary',
     title: 'Bu Ay Özeti',
     size: '1x1',
-    position: 2,
+    position: 3,
     enabled: true,
   },
   {
@@ -50,7 +58,7 @@ export const DEFAULT_DASHBOARD_LAYOUT: Widget[] = [
     type: 'account_balance',
     title: 'Hesap Bakiyeleri',
     size: '1x1',
-    position: 3,
+    position: 4,
     enabled: true,
   },
   {
