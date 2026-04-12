@@ -9,24 +9,26 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 - DONE
 
 ## Faz 1 — MVP
-1. [TODO] Repo kurulumu, klasör yapısı, lint, formatter
-2. [TODO] Tauri + React + TypeScript başlangıç
-3. [TODO] Tasarım sistemi (renkler, typography, spacing)
-4. [TODO] SQLite şema kurulumu
-5. [TODO] Hesap yönetimi modülü
-6. [TODO] Gelir/Gider CRUD
-7. [TODO] Hızlı işlem kutusu
-8. [TODO] Kategori sistemi
-9. [TODO] Borç modülü
-10. [TODO] Taksit merkezi
-11. [TODO] Dashboard
-12. [TODO] Multi-layer Scoring Engine Defined
-13. [TODO] Multi-layer Scoring Engine Defined
-14. [TODO] PDF rapor export
-15. [TODO] Light/Dark tema
-16. [TODO] Onboarding akışı
-17. [TODO] Testler
-18. [TODO] Release build
+1. [DONE] Repo kurulumu, klasör yapısı, lint, formatter
+2. [DONE] Tauri + React + TypeScript başlangıç
+3. [DONE] Tasarım sistemi (renkler, typography, spacing)
+4. [DONE] Supabase + Service Layer (Database-agnostic)
+5. [DONE] Zustand Store (UI state management)
+6. [DONE] React Router + Layout Shell
+7. [DONE] Dashboard skeleton
+8. [TODO] SQLite şema kurulumu
+9. [TODO] Hesap yönetimi modülü
+10. [TODO] Gelir/Gider CRUD
+11. [TODO] Hızlı işlem kutusu
+12. [TODO] Kategori sistemi
+13. [TODO] Borç modülü
+14. [TODO] Taksit merkezi
+15. [TODO] Multi-layer Scoring Engine Implementation
+16. [TODO] PDF rapor export
+17. [TODO] Light/Dark tema
+18. [TODO] Onboarding akışı
+19. [TODO] Testler
+20. [TODO] Release build
 
 ## Faz 2
 19. [TODO] Banka ekstresi parser
