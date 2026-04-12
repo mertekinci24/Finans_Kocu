@@ -20,8 +20,8 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 9. [TODO] Borç modülü
 10. [TODO] Taksit merkezi
 11. [TODO] Dashboard
-12. [TODO] Finansal sağlık skoru motoru
-13. [TODO] 8 kurallı analiz motoru
+12. [TODO] Multi-layer Scoring Engine Defined
+13. [TODO] Multi-layer Scoring Engine Defined
 14. [TODO] PDF rapor export
 15. [TODO] Light/Dark tema
 16. [TODO] Onboarding akışı
