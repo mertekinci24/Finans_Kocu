@@ -13,12 +13,12 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
     const { data, error } = await this.client
       .from('transactions')
       .select('*')
-      .eq('accountId', accountId)
+      .eq('account_id', accountId)
       .order('date', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(this.mapToTransaction);
   }
 
   async getByDateRange(
@@ -26,43 +26,79 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
     startDate: Date,
     endDate: Date
   ): Promise<Transaction[]> {
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = endDate.toISOString().split('T')[0];
+
     const { data, error } = await this.client
       .from('transactions')
       .select('*')
-      .eq('accountId', accountId)
-      .gte('date', startDate.toISOString())
-      .lte('date', endDate.toISOString())
+      .eq('account_id', accountId)
+      .gte('date', startStr)
+      .lte('date', endStr)
       .order('date', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(this.mapToTransaction);
   }
 
   async create(transaction: Omit<Transaction, 'id' | 'createdAt'>): Promise<Transaction> {
     const { data, error } = await this.client
       .from('transactions')
-      .insert([transaction])
+      .insert([
+        {
+          account_id: transaction.accountId,
+          amount: transaction.amount,
+          description: transaction.description,
+          category: transaction.category,
+          date: transaction.date.toISOString().split('T')[0],
+          type: transaction.type,
+          note: transaction.note || null,
+        },
+      ])
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return this.mapToTransaction(data);
   }
 
   async update(id: string, transaction: Partial<Transaction>): Promise<Transaction> {
     const { data, error } = await this.client
       .from('transactions')
-      .update(transaction)
+      .update({
+        amount: transaction.amount,
+        description: transaction.description,
+        category: transaction.category,
+        date: transaction.date ? transaction.date.toISOString().split('T')[0] : undefined,
+        type: transaction.type,
+        note: transaction.note,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', id)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return this.mapToTransaction(data);
   }
 
   async delete(id: string): Promise<void> {
     const { error } = await this.client.from('transactions').delete().eq('id', id);
     if (error) throw error;
+  }
+
+  private mapToTransaction(row: any): Transaction {
+    return {
+      id: row.id,
+      accountId: row.account_id,
+      amount: row.amount,
+      description: row.description,
+      category: row.category,
+      date: new Date(row.date),
+      type: row.type,
+      note: row.note,
+      createdAt: new Date(row.created_at),
+      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
+    };
   }
 }

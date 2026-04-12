@@ -17,6 +17,25 @@ Tüm değişiklikler tarih/saat ile yazılır.
 - Risk:
 - Sonraki Adım:
 
+## 2026-04-12 05:00
+- Görev No: 8 (Supabase Schema + RLS)
+- Modül: Database Layer & Repositories
+- Yapılan İş:
+  * Supabase migration applied (5 tables: accounts, transactions, debts, installments, financial_scores)
+  * Row-Level Security (RLS) policies configured for all tables
+  * All Repository classes updated with proper Supabase mapping (snake_case ↔ camelCase)
+  * Data mappers implemented (Supabase row → TypeScript type)
+  * Soft delete pattern for accounts (is_active column)
+  * Account types: nakit, banka, kredi_kartı
+  * Transaction types: gelir, gider (Turkish)
+  * All business logic queries support filtering, ordering, date ranges
+- Dosyalar:
+  * supabase migration SQL (5 tables + RLS policies + indexes)
+  * 6 Repository classes with proper data mapping
+  * src/types/index.ts (Account, Transaction updated)
+- Risk: Minimal — RLS enforced, no data leakage possible
+- Sonraki Adım: Account CRUD UI forms + Account list component
+
 ## 2026-04-12 04:30
 - Görev No: 1-7 (Faz 1 Foundation)
 - Modül: Altyapı & Architecture

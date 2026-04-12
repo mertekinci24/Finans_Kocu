@@ -9,11 +9,11 @@ export class SupabaseFinancialScoreRepository implements IFinancialScoreReposito
     const { data, error } = await this.client
       .from('financial_scores')
       .select('*')
-      .eq('userId', userId)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+    return data ? this.mapToFinancialScore(data) : null;
   }
 
   async create(
@@ -22,23 +22,53 @@ export class SupabaseFinancialScoreRepository implements IFinancialScoreReposito
   ): Promise<FinancialScore> {
     const { data, error } = await this.client
       .from('financial_scores')
-      .insert([{ userId, ...score }])
+      .insert([
+        {
+          user_id: userId,
+          overall_score: score.overallScore,
+          confidence_score: score.confidenceScore,
+          debt_to_income_ratio: score.debtToIncomeRatio,
+          cash_buffer_months: score.cashBufferMonths,
+          savings_rate: score.savingsRate,
+          installment_burden_ratio: score.installmentBurdenRatio,
+        },
+      ])
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return this.mapToFinancialScore(data);
   }
 
   async update(userId: string, score: Partial<FinancialScore>): Promise<FinancialScore> {
     const { data, error } = await this.client
       .from('financial_scores')
-      .update(score)
-      .eq('userId', userId)
+      .update({
+        overall_score: score.overallScore,
+        confidence_score: score.confidenceScore,
+        debt_to_income_ratio: score.debtToIncomeRatio,
+        cash_buffer_months: score.cashBufferMonths,
+        savings_rate: score.savingsRate,
+        installment_burden_ratio: score.installmentBurdenRatio,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return this.mapToFinancialScore(data);
+  }
+
+  private mapToFinancialScore(row: any): FinancialScore {
+    return {
+      overallScore: row.overall_score,
+      confidenceScore: row.confidence_score,
+      debtToIncomeRatio: row.debt_to_income_ratio,
+      cashBufferMonths: row.cash_buffer_months,
+      savingsRate: row.savings_rate,
+      installmentBurdenRatio: row.installment_burden_ratio,
+      lastCalculatedAt: new Date(row.last_calculated_at),
+    };
   }
 }

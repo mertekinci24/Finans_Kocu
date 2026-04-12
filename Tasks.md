@@ -16,8 +16,8 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 5. [DONE] Zustand Store (UI state management)
 6. [DONE] React Router + Layout Shell
 7. [DONE] Dashboard skeleton
-8. [TODO] Supabase schema + RLS (users, accounts, transactions, debts, installments, scores)
-9. [TODO] Hesap yönetimi modülü (CRUD forms)
+8. [DONE] Supabase schema + RLS (users, accounts, transactions, debts, installments, scores)
+9. [IN_PROGRESS] Hesap yönetimi modülü (CRUD forms + Account list)
 10. [TODO] Gelir/Gider CRUD
 11. [TODO] Hızlı işlem kutusu
 12. [TODO] Kategori sistemi
