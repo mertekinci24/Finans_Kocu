@@ -22,8 +22,8 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 11. [TODO] Gelir/Gider İşlem Formu — detaylı (recurring, note, hesap seçimi, tam CRUD)
 12. [DONE] Hızlı işlem kutusu (QuickInput — Enter ile kayıt + otomatik kategori önerisi)
 13. [TODO] Kategori sistemi (Category CRUD + bütçe takibi)
-14. [TODO] Taksit merkezi — temel (Basic installment list + load indicator)
-15. [TODO] Borç merkezi — temel (Basic debt list)
+14. [DONE] Taksit merkezi — temel (Envanter + Kapasite Hesaplayıcı + 12 Aylık Taksit Takvimi + %30 uyarı)
+15. [DONE] Borç merkezi — temel (Borç listesi + Borç/Gelir risk analizi + renk kodlama + tahmini kapanış)
 
 ## Faz 1 — MVP (Sprint 2: Finansal Hareket)
 16. [TODO] Banka ekstresi parser (PDF upload + auto-categorization)

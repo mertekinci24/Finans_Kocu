@@ -39,6 +39,7 @@ export interface Debt {
   creditorName: string;
   amount: number;
   remainingAmount: number;
+  monthlyPayment: number;
   interestRate: number;
   dueDate: Date;
   status: 'active' | 'paid_off' | 'overdue';

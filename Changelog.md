@@ -1,6 +1,38 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 09:00
+- Görev No: 14, 15 — Taksit Merkezi + Borç Merkezi (Sprint 1 Finali)
+- Modül: Frontend / UI Layer — Installment, Debt modules + DB migration
+- Yapılan İş:
+  * supabase/migrations/add_monthly_payment_to_debts.sql — monthly_payment kolonu eklendi (non-destructive)
+  * src/types/index.ts — Debt interface'e monthlyPayment: number alanı eklendi
+  * src/services/supabase/repositories/DebtRepository.ts — create/update/map metodları güncellendi
+  * src/components/installments/InstallmentCard.tsx — inline düzenleme, ilerleme çubuğu, 5sn undo, bitiş tarihi
+  * src/components/installments/InstallmentForm.tsx — taksit ekleme formu (lenderName, monthly, total/remaining months, principal, faiz, sonraki tarih)
+  * src/components/installments/PaymentCalendar.tsx — 12 aylık görsel takvim, bar chart, biten taksitler vurgulu
+  * src/pages/Installments.tsx — Kapasite Hesaplayıcı (aylık yük / gelir), %30 taksit yükü uyarısı (Koç tonu), toplam kalan ödeme özeti, inline gelir girişi
+  * src/components/debts/DebtCard.tsx — inline düzenleme, Borç/Gelir risk rozeti, tahmini kapanış tarihi, 5sn undo
+  * src/components/debts/DebtForm.tsx — borç formu (alacaklı, tutar, kalan, aylık ödeme, faiz, vade), tahmini kapanış önizleme
+  * src/pages/Debts.tsx — risk analizi (Borç/Gelir > %35 → kırmızı/yeşil), Koç uyarı banner, durum filtresi (aktif/gecikmiş/kapandı)
+  * src/App.tsx — /installments ve /debts rotaları eklendi
+- Uygulanmış Master Plan & Logic Specs Özellikleri:
+  * Taksit Envanteri: kart, mağaza, tutar, kalan taksit sayısı, aylık yük (2.1)
+  * Kapasite Hesaplayıcı: aylık yük / gelir oranı inline (2.1)
+  * Taksit Yükü Uyarısı: %30 aşınca Koç tonunda mesaj (3.2 + 2.1)
+  * 12 Aylık Taksit Takvimi: bar chart, biten taksitler yeşil rozet (2.1)
+  * Borç/Gelir Oranı: logic_specs_v2 'Borç/Gelir > %35' kuralı — Yeşil/Kırmızı (3.3)
+  * Tahmini Kapanış Tarihi: kalan / aylık ödeme hesaplaması (2.2)
+  * 5sn Undo: Tüm sil işlemlerinde (6.2)
+  * Database-agnostic: Tüm veri katmanı IRepository interface üzerinden (7.1)
+- QuickInput Doğrulaması:
+  * '3500 market' → type:gider, category:Market ✓
+  * '12500 maaş' → type:gelir, category:Gelir ✓
+  * Enter tuşu → handleSave() tetiklenir ✓
+  * 'Kaydet ↵' butonu çalışıyor ✓
+- Risk: Minimal — Build passed (451.44 KB, 118 modules)
+- Sonraki Adım: Sprint 2 — Finansal Sağlık Skoru detaylı + Kural Motoru
+
 ## 2026-04-12 07:30
 - Görev No: 9, 10, 12 — Hesap Yönetimi + İşlem Listesi + Hızlı Giriş (Sprint 1)
 - Modül: Frontend / UI Layer — Account, Transaction, Utility modules
