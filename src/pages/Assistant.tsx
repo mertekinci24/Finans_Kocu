@@ -70,7 +70,16 @@ export default function Assistant() {
       const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
 
       if (!apiKey) {
-        throw new Error('Claude API key not configured');
+        const fallbackMsg = await dataSourceAdapter.chat.addMessage(
+          activeSession.id,
+          user.id,
+          'assistant',
+          'Claude API anahtarı henüz yapılandırılmamış. Ayarlar → API Anahtarları\'ndan kendi API anahtarınızı ekleyin veya yöneticiye başvurun.',
+          undefined,
+          0
+        );
+        setMessages((prev) => [...prev, fallbackMsg]);
+        return;
       }
 
       const response = await sendAssistantMessage(text, context, messages, apiKey);
@@ -85,7 +94,18 @@ export default function Assistant() {
       );
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (error) {
-      console.error('Assistant error:', error);
+      const msg = error instanceof Error ? error.message : 'Asistan hatası';
+      if (activeSession) {
+        const errorMsg = await dataSourceAdapter.chat.addMessage(
+          activeSession.id,
+          user.id,
+          'assistant',
+          `Hata: ${msg}`,
+          undefined,
+          0
+        );
+        setMessages((prev) => [...prev, errorMsg]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +140,6 @@ export default function Assistant() {
 
       alert('İşlem kaydedildi!');
     } catch (error) {
-      console.error('Transaction save error:', error);
       alert('İşlem kaydedilirken hata oluştu');
     }
   };

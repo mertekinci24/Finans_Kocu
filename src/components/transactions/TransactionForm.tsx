@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/services/supabase/adapter';
-import { dataSourceAdapter } from '@/services/supabase/adapter';
+import { dataSourceAdapter, supabase } from '@/services/supabase/adapter';
 import { CURRENCY_SYMBOL } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import type { Transaction, Account, Category } from '@/types';

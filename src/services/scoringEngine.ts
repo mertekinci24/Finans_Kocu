@@ -299,10 +299,8 @@ export class ScoringEngine {
       input.debts
     );
 
-    // Final skor hesaplaması
-    let finalScore = baseScore * confidenceScore;
-
-    finalScore += taxDisciplineBonus;
+    // Final skor hesaplaması (logic_specs_v2: S_final = (S_base - P + B) × C)
+    let finalScore = (baseScore + taxDisciplineBonus) * confidenceScore;
 
     if (criticalRisks.isCritical) {
       finalScore = Math.min(CRISIS_THRESHOLD, finalScore);

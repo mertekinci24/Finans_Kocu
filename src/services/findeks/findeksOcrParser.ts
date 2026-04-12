@@ -24,10 +24,7 @@ export async function extractTextFromPDF(pdfFile: File): Promise<string> {
   try {
     const { data } = await Tesseract.recognize(
       pdfFile,
-      'tur',
-      {
-        logger: (m) => console.log('OCR Progress:', m.status, m.progress),
-      }
+      'tur'
     );
     return data.text;
   } catch (error) {

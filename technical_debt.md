@@ -3,6 +3,35 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (FSIA — Tam Sistem Bütünlüğü Denetimi)
+- Borç Tanımı 1 [RESOLVED]: authService env variable naming (VITE_SUPABASE_SUPABASE_ANON_KEY)
+  - Çözüm: VITE_SUPABASE_ANON_KEY'e düzeltildi ✅
+  - Durum: Kapalı
+
+- Borç Tanımı 2 [RESOLVED]: BYOK fallback mekanizması eksik
+  - Çözüm: Assistant.tsx — API key missing → graceful fallback message ✅
+  - Durum: Kapalı
+
+- Borç Tanımı 3 [RESOLVED]: Scoring formula mismatch (logic_specs_v2)
+  - Çözüm: scoringEngine.ts — (baseScore + bonus) * confidence ✅
+  - Durum: Kapalı
+
+- Borç Tanımı 4 [NEW]: Penalty mechanism ($P) not implemented
+  - Etki: Formüldeki ceza sistemi eksik (gecikmiş fatura, bütçe aşımı, vb.)
+  - Öncelik: Orta (Mathematical completeness)
+  - Hedef: Faz 3 + 2
+  - Durum: Açık
+
+- Borç Tanımı 5 [NEW]: Any types (19+ instance)
+  - Etki: Type safety weak (Findeks, Categories, repositories)
+  - Öncelik: Orta (Code quality)
+  - Hedef: Faz 3 + 1 (refactor)
+  - Durum: Açık
+
+- Borç Tanımı 6 [RESOLVED]: console.error & console.log debugging
+  - Çözüm: 17 instance temizlendi ✅
+  - Durum: Kapalı
+
 ## 2026-04-12 (Faz 3 Sprint 1 — Görev 34: Cash Flow Prediction)
 - Kaynak Görev: 34 (Nakit Akışı Tahmin)
 - Borç Tanımı 1: Scenario simülatörü placeholder; what-if analysis TODO
