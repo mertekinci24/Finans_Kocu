@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { CURRENCY_SYMBOL } from '@/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { dataSourceAdapter } from '@/services/supabase/adapter';
 import InstallmentCard from '@/components/installments/InstallmentCard';
 import InstallmentForm from '@/components/installments/InstallmentForm';
 import PaymentCalendar from '@/components/installments/PaymentCalendar';
 import type { Installment } from '@/types';
 
-const TEMP_USER_ID = 'temp-user-id';
-
 const WARNING_THRESHOLD = 30;
 
 export default function Installments(): JSX.Element {
+  const { user } = useAuth();
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -19,15 +19,17 @@ export default function Installments(): JSX.Element {
   const [incomeInput, setIncomeInput] = useState('');
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user?.id) {
+      loadData(user.id);
+    }
+  }, [user?.id]);
 
-  const loadData = async () => {
+  const loadData = async (userId: string) => {
     try {
       setLoading(true);
       const [data, accounts] = await Promise.all([
-        dataSourceAdapter.installment.getByUserId(TEMP_USER_ID),
-        dataSourceAdapter.account.getByUserId(TEMP_USER_ID),
+        dataSourceAdapter.installment.getByUserId(userId),
+        dataSourceAdapter.account.getByUserId(userId),
       ]);
       setInstallments(data);
 
@@ -49,7 +51,9 @@ export default function Installments(): JSX.Element {
   };
 
   const handleCreate = async (data: Omit<Installment, 'id' | 'createdAt'>) => {
-    const created = await dataSourceAdapter.installment.create(data);
+    if (!user?.id) return;
+    const payload = { ...data, userId: user.id };
+    const created = await dataSourceAdapter.installment.create(payload);
     setInstallments((prev) => [created, ...prev]);
     setShowForm(false);
   };

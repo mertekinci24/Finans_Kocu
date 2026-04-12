@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { CURRENCY_SYMBOL } from '@/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { dataSourceAdapter } from '@/services/supabase/adapter';
 import QuickInput from '@/components/transactions/QuickInput';
 import TransactionRow from '@/components/transactions/TransactionRow';
 import type { Transaction, Account } from '@/types';
 
-const TEMP_USER_ID = 'temp-user-id';
-
 type FilterType = 'all' | 'gelir' | 'gider';
 
 export default function Transactions(): JSX.Element {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,13 +18,15 @@ export default function Transactions(): JSX.Element {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
-    loadData();
-  }, [currentMonth]);
+    if (user?.id) {
+      loadData(user.id);
+    }
+  }, [currentMonth, user?.id]);
 
-  const loadData = async () => {
+  const loadData = async (userId: string) => {
     try {
       setLoading(true);
-      const accs = await dataSourceAdapter.account.getByUserId(TEMP_USER_ID);
+      const accs = await dataSourceAdapter.account.getByUserId(userId);
       setAccounts(accs);
 
       if (accs.length === 0) {

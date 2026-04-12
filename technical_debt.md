@@ -3,6 +3,15 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-12 (Sprint 2 Finali — Görev 16-21)
+- Kaynak Görev: 16-21 (Auth + Scoring)
+- Borç Tanımı: Scoring engine'deki Penalty/Bonus sistemi henüz basit; gelecekte custom penalty rules eklenebilir
+- Etki: Çok katmanlı scoring formülü şu an sabit; business logic değişiklikleri kod değişikliği gerektirir
+- Öncelik: Düşük
+- Çözüm Planı: Penalty weights'i konfigüre edilebilir hale getir (Sprint 4+)
+- Hedef Tarih: Sprint 4 — Advanced Scoring Customization
+- Durum: Açık
+
 ## 2026-04-12 (Sprint 1 Finali — Görev 14, 15)
 - Kaynak Görev: 14 & 15 (Taksit + Borç Merkezi)
 - Borç Tanımı: monthlyIncome state'i oturum kaybında sıfırlanıyor

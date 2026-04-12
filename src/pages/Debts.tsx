@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { CURRENCY_SYMBOL } from '@/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { dataSourceAdapter } from '@/services/supabase/adapter';
 import DebtCard from '@/components/debts/DebtCard';
 import DebtForm from '@/components/debts/DebtForm';
 import type { Debt } from '@/types';
-
-const TEMP_USER_ID = 'temp-user-id';
 const RISK_THRESHOLD = 35;
 
 export default function Debts(): JSX.Element {
+  const { user } = useAuth();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -18,15 +18,17 @@ export default function Debts(): JSX.Element {
   const [statusFilter, setStatusFilter] = useState<'all' | Debt['status']>('all');
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user?.id) {
+      loadData(user.id);
+    }
+  }, [user?.id]);
 
-  const loadData = async () => {
+  const loadData = async (userId: string) => {
     try {
       setLoading(true);
       const [data, accounts] = await Promise.all([
-        dataSourceAdapter.debt.getByUserId(TEMP_USER_ID),
-        dataSourceAdapter.account.getByUserId(TEMP_USER_ID),
+        dataSourceAdapter.debt.getByUserId(userId),
+        dataSourceAdapter.account.getByUserId(userId),
       ]);
       setDebts(data);
 
@@ -48,7 +50,9 @@ export default function Debts(): JSX.Element {
   };
 
   const handleCreate = async (data: Omit<Debt, 'id' | 'createdAt'>) => {
-    const created = await dataSourceAdapter.debt.create(data);
+    if (!user?.id) return;
+    const payload = { ...data, userId: user.id };
+    const created = await dataSourceAdapter.debt.create(payload);
     setDebts((prev) => [created, ...prev]);
     setShowForm(false);
   };

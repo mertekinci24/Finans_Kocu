@@ -25,17 +25,17 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 14. [DONE] Taksit merkezi — temel (Envanter + Kapasite Hesaplayıcı + 12 Aylık Taksit Takvimi + %30 uyarı)
 15. [DONE] Borç merkezi — temel (Borç listesi + Borç/Gelir risk analizi + renk kodlama + tahmini kapanış)
 
-## Faz 1 — MVP (Sprint 2: Finansal Hareket)
-16. [TODO] Banka ekstresi parser (PDF upload + auto-categorization)
-17. [TODO] Gelir/Gider CRUD formu — detaylı (with recurring options)
-18. [TODO] Taksit merkezi — detaylı (Installment calendar + early payoff calc)
-19. [TODO] Borç merkezi — detaylı (Debt management + status tracking)
-20. [TODO] Bütçe hedefleri sistemi (Category budgets + tracking)
-21. [TODO] İşlem düzenleme/silme (Inline editing + Undo)
+## Faz 1 — MVP (Sprint 2: Zeka & Güvenlik Katmanı)
+16. [DONE] Supabase Auth entegrasyonu (Sign-up, Sign-in, Session management, Protected routes)
+17. [DONE] RLS politikaları auth.uid() ile güncelleme
+18. [DONE] Finansal Sağlık Skoru motorası (7 sub-scores + Confidence Score C + Penalty/Bonus)
+19. [DONE] Kural Motoru (8 deterministik kural + Insights prioritization)
+20. [DONE] Koç Önerileri paneli (Dashboard'a FinancialScoreCard + CoachInsights entegrasyonu)
+21. [DONE] TEMP_USER_ID → auth.uid() migration (Accounts, Transactions, Debts, Installments)
 
-## Faz 1 — MVP (Sprint 3: Akıllı Koç)
-22. [TODO] Finansal Sağlık Skoru — detaylı (7 sub-scores + improvements)
-23. [TODO] Kural Motoru — 8 temel kural (Rule-based alerts)
+## Faz 1 — MVP (Sprint 3: Finansal Derinleştirme)
+22. [TODO] Detaylı İşlem CRUD formu (recurring, kategori tagging, not)
+23. [TODO] Kategori sistemi (Category CRUD + bütçe takibi)
 24. [TODO] PDF rapor export (Monthly financial summary)
 25. [TODO] Enflasyon modu (Real vs nominal comparison with TCMB API)
 26. [TODO] Light/Dark/AMOLED tema sistemi

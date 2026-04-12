@@ -1,25 +1,27 @@
 import { useState, useEffect } from 'react';
 import { CURRENCY_SYMBOL } from '@/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { dataSourceAdapter } from '@/services/supabase/adapter';
 import AccountCard from '@/components/accounts/AccountCard';
 import AccountForm from '@/components/accounts/AccountForm';
 import type { Account } from '@/types';
 
-const TEMP_USER_ID = 'temp-user-id';
-
 export default function Accounts(): JSX.Element {
+  const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    loadAccounts();
-  }, []);
+    if (user?.id) {
+      loadAccounts(user.id);
+    }
+  }, [user?.id]);
 
-  const loadAccounts = async () => {
+  const loadAccounts = async (userId: string) => {
     try {
       setLoading(true);
-      const data = await dataSourceAdapter.account.getByUserId(TEMP_USER_ID);
+      const data = await dataSourceAdapter.account.getByUserId(userId);
       setAccounts(data);
     } catch (err) {
       console.error('Hesaplar yüklenemedi:', err);
@@ -29,7 +31,8 @@ export default function Accounts(): JSX.Element {
   };
 
   const handleCreate = async (data: Omit<Account, 'id' | 'createdAt' | 'updatedAt' | 'isActive'>) => {
-    const created = await dataSourceAdapter.account.create({ ...data, isActive: true });
+    if (!user?.id) return;
+    const created = await dataSourceAdapter.account.create({ ...data, userId: user.id, isActive: true });
     setAccounts((prev) => [created, ...prev]);
     setShowForm(false);
   };

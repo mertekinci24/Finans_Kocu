@@ -1,6 +1,26 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
 
+## 2026-04-12 10:30
+- Görev No: 16-21 — Supabase Auth + Finansal Sağlık Skoru + Kural Motoru (Sprint 2 Finali)
+- Modül: Auth Layer + Scoring Engine + Rules Engine + Dashboard
+- Yapılan İş:
+  * src/stores/authStore.ts — Zustand auth state store
+  * src/services/authService.ts — Supabase auth servis (signUp, signIn, signOut, session management)
+  * src/hooks/useAuth.ts — useAuth hook (protected route integration)
+  * src/pages/SignUp.tsx, SignIn.tsx — Auth ekranları (Türkçe tema uyumlu)
+  * src/App.tsx — Protected route wrapper + /signin, /signup rotaları
+  * supabase/migrations/update_rls_policies_for_auth.sql — RLS migration (auth.uid() ile)
+  * src/services/scoringEngine.ts — 7 sub-skor + Confidence Score C + Risk flags
+  * src/services/ruleEngine.ts — 8 deterministik kural + insights motor
+  * src/components/insights/FinancialScoreCard.tsx — Sağlık skoru kartı
+  * src/components/insights/CoachInsights.tsx — Koç önerileri paneli
+  * src/pages/Dashboard.tsx — Tamamen yeniden yazıldı (scoring + rules entegrasyonu)
+  * Tüm sayfalar (Accounts, Transactions, Installments, Debts) — useAuth() + auth.uid()
+- Uygulanmış Standartlar: logic_specs_v2, Master Plan, Talimat.md
+- Build: Başarılı — 472 KB, 127 modül, 0 hata
+- Risk: TEMP_USER_ID teknik borcu kapatıldı ✓
+
 ## 2026-04-12 09:00
 - Görev No: 14, 15 — Taksit Merkezi + Borç Merkezi (Sprint 1 Finali)
 - Modül: Frontend / UI Layer — Installment, Debt modules + DB migration
