@@ -10,10 +10,14 @@ export interface Account {
   id: string;
   userId: string;
   name: string;
-  type: 'checking' | 'savings' | 'investment';
+  type: 'nakit' | 'banka' | 'kredi_kartı';
   balance: number;
   currency: 'TRY';
+  bankName?: string;
+  cardLimit?: number;
+  isActive: boolean;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface Transaction {
@@ -23,8 +27,10 @@ export interface Transaction {
   description: string;
   category: string;
   date: Date;
-  type: 'income' | 'expense';
+  type: 'gelir' | 'gider';
+  note?: string;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface Debt {

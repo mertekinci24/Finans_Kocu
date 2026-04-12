@@ -10,14 +10,14 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 
 ## Faz 1 — MVP
 1. [DONE] Repo kurulumu, klasör yapısı, lint, formatter
-2. [DONE] Tauri + React + TypeScript başlangıç
+2. [IN_PROGRESS] React + TypeScript setup (web done, Tauri pending)
 3. [DONE] Tasarım sistemi (renkler, typography, spacing)
 4. [DONE] Supabase + Service Layer (Database-agnostic)
 5. [DONE] Zustand Store (UI state management)
 6. [DONE] React Router + Layout Shell
 7. [DONE] Dashboard skeleton
-8. [TODO] SQLite şema kurulumu
-9. [TODO] Hesap yönetimi modülü
+8. [TODO] Supabase schema + RLS (users, accounts, transactions, debts, installments, scores)
+9. [TODO] Hesap yönetimi modülü (CRUD forms)
 10. [TODO] Gelir/Gider CRUD
 11. [TODO] Hızlı işlem kutusu
 12. [TODO] Kategori sistemi
