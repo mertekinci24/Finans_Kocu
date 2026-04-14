@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { IFinancialScoreRepository } from '../../types';
 import type { FinancialScore } from '@types';
+import type { FinancialScoreRow } from '@/types/database';
 
 export class SupabaseFinancialScoreRepository implements IFinancialScoreRepository {
   constructor(private client: SupabaseClient) {}
@@ -60,7 +61,7 @@ export class SupabaseFinancialScoreRepository implements IFinancialScoreReposito
     return this.mapToFinancialScore(data);
   }
 
-  private mapToFinancialScore(row: any): FinancialScore {
+  private mapToFinancialScore(row: FinancialScoreRow): FinancialScore {
     return {
       overallScore: row.overall_score,
       confidenceScore: row.confidence_score,

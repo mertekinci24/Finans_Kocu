@@ -1,5 +1,6 @@
 import { supabase } from '../adapter';
 import { FindeksReport, FindeksScoreHistory, ActionStep } from '@/types';
+import type { FindeksReportRow, FindeksScoreHistoryRow } from '@/types/database';
 
 export interface IFindeksRepository {
   createReport(report: Omit<FindeksReport, 'id' | 'createdAt' | 'updatedAt'>): Promise<FindeksReport>;
@@ -100,7 +101,7 @@ export class SupabaseFindeksRepository implements IFindeksRepository {
     return this.mapToReport(data);
   }
 
-  private mapToReport(row: any): FindeksReport {
+  private mapToReport(row: FindeksReportRow): FindeksReport {
     return {
       id: row.id,
       userId: row.user_id,
@@ -123,7 +124,7 @@ export class SupabaseFindeksRepository implements IFindeksRepository {
     };
   }
 
-  private mapToScoreHistory(row: any): FindeksScoreHistory {
+  private mapToScoreHistory(row: FindeksScoreHistoryRow): FindeksScoreHistory {
     return {
       id: row.id,
       userId: row.user_id,

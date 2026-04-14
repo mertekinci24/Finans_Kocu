@@ -1,5 +1,6 @@
 import { supabase } from '../adapter';
 import { TaxObligation, TaxPaymentHistory, BaskurProfile } from '@/types';
+import type { TaxObligationRow, BaskurProfileRow } from '@/types/database';
 
 export interface ITaxRepository {
   getTaxObligations(userId?: string): Promise<TaxObligation[]>;
@@ -106,7 +107,7 @@ export class SupabaseTaxRepository implements ITaxRepository {
     return this.mapToBaskurProfile(data);
   }
 
-  private mapToObligation(row: any): TaxObligation {
+  private mapToObligation(row: TaxObligationRow): TaxObligation {
     return {
       id: row.id,
       userId: row.user_id,
@@ -121,7 +122,7 @@ export class SupabaseTaxRepository implements ITaxRepository {
     };
   }
 
-  private mapToBaskurProfile(row: any): BaskurProfile {
+  private mapToBaskurProfile(row: BaskurProfileRow): BaskurProfile {
     return {
       id: row.id,
       userId: row.user_id,

@@ -7,6 +7,14 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+// Environment Guard: Semantic Validation
+if (!supabaseKey.startsWith('eyJ')) {
+  throw new Error(
+    "Geçersiz Supabase Anon Key. Lütfen .env dosyasındaki VITE_SUPABASE_ANON_KEY değerine " +
+    "Supabase Dashboard'dan aldığınız gerçek anahtarı (JWT formatında, 'eyJ' ile başlayan) girin."
+  );
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export interface SignUpPayload {

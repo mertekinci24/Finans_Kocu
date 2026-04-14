@@ -57,7 +57,7 @@ export default function TransactionForm({
       .order('name');
     if (data) {
       setCategories(
-        data.map((c: any) => ({
+        data.map((c: Record<string, unknown>) => ({
           id: c.id,
           userId: c.user_id,
           name: c.name,

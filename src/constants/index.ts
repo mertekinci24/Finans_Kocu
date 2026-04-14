@@ -13,6 +13,9 @@ export const ROUTES = {
   CATEGORIES: '/categories',
   FINDEKS: '/findeks',
   ASSISTANT: '/assistant',
+  SCENARIO: '/scenario',
+  GOALS: '/goals',
+  UPGRADE: '/upgrade',
   SETTINGS: '/settings',
 } as const;
 

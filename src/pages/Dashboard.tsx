@@ -13,9 +13,12 @@ import FinancialScoreWidget from '@/components/dashboard/widgets/FinancialScoreW
 import MonthlySummaryWidget from '@/components/dashboard/widgets/MonthlySummaryWidget';
 import AccountBalanceWidget from '@/components/dashboard/widgets/AccountBalanceWidget';
 import CashFlowForecastWidget from '@/components/dashboard/widgets/CashFlowForecastWidget';
+import GoalTrackerWidget from '@/components/dashboard/widgets/GoalTrackerWidget';
 import { DashboardLayout } from '@/types/widgets';
 import { SupabaseDashboardLayoutRepository } from '@/services/supabase/repositories/DashboardLayoutRepository';
 import { cashFlowEngine, type CashFlowForecast } from '@/services/cashFlowEngine';
+import { scenarioSimulator, type ScenarioResult, type ScenarioType, type Scenario, SCENARIO_LABELS } from '@/services/scenarioSimulator';
+import { goalEngine, type GoalProjection } from '@/services/goalService';
 import type { Account, Transaction, Debt, Installment } from '@/types';
 
 export default function Dashboard(): JSX.Element {
@@ -28,6 +31,8 @@ export default function Dashboard(): JSX.Element {
   const [scoreData, setScoreData] = useState<DetailedScore | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [cashFlowForecast, setCashFlowForecast] = useState<CashFlowForecast | null>(null);
+  const [scenarioResult, setScenarioResult] = useState<ScenarioResult | null>(null);
+  const [goalProjections, setGoalProjections] = useState<GoalProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDragMode, setIsDragMode] = useState(false);
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
@@ -145,6 +150,20 @@ export default function Dashboard(): JSX.Element {
         monthlyInstallmentsTotal
       );
       setInsights(generatedInsights);
+
+      // Load goals and projections
+      try {
+        const { SupabaseGoalRepository } = await import('@/services/supabase/repositories/GoalRepository');
+        const goalRepo = new SupabaseGoalRepository();
+        const goalsData = await goalRepo.getActiveByUserId(userId);
+        const monthlySavings = goalEngine.calculateCurrentMonthlySavings(allTransactions);
+        const goalProj = goalEngine.projectAllGoals(goalsData, monthlySavings);
+        setGoalProjections(goalProj);
+      } catch (goalErr) {
+        // Goal table might not exist yet — graceful fallback
+        console.warn('Goals load skipped:', goalErr);
+        setGoalProjections([]);
+      }
     } catch (err) {
       console.error('Dashboard load error:', err);
     } finally {
@@ -302,6 +321,28 @@ export default function Dashboard(): JSX.Element {
                 forecast={cashFlowForecast}
                 currentBalance={totalBalance}
                 isLoading={loading}
+                scenarioResult={scenarioResult}
+                onRunScenario={(type: ScenarioType, params: Record<string, number>) => {
+                  const scenario: Scenario = {
+                    type,
+                    label: SCENARIO_LABELS[type].title,
+                    params: type === 'debt_payoff'
+                      ? { paymentAmount: params.amount, paymentDate: new Date() }
+                      : type === 'big_purchase'
+                        ? { purchaseAmount: params.amount, installmentMonths: 12, interestRate: 2.5 }
+                        : { monthlyAmount: params.amount, durationMonths: 6, startDate: new Date() },
+                  };
+                  const result = scenarioSimulator.simulate(scenario, accounts, transactions, debts, installments);
+                  setScenarioResult(result);
+                }}
+                onNavigateToSimulator={() => window.location.href = '/scenario'}
+              />
+            ),
+            'goals-1': (
+              <GoalTrackerWidget
+                projections={goalProjections}
+                isLoading={loading}
+                onNavigateToGoals={() => window.location.href = '/goals'}
               />
             ),
           }}

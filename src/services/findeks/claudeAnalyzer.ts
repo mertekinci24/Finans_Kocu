@@ -1,7 +1,8 @@
 import { RawFindeksData, determineRiskLevel, calculateScoreImprovementPotential } from './findeksOcrParser';
 import { ActionStep } from '@/types';
 
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+// Claude API çağrıları Edge Function üzerinden yapılır — API key sunucuda
+const AI_PROXY_URL = '/api/ai/claude';
 
 export interface FindeksAnalysisResult {
   aiAnalysis: string;
@@ -12,7 +13,7 @@ export interface FindeksAnalysisResult {
 
 export async function analyzeFindeksWithClaude(
   data: RawFindeksData,
-  apiKey: string
+  _apiKey?: string // Legacy param — Edge Function üzerinden gider
 ): Promise<FindeksAnalysisResult> {
   const riskLevel = determineRiskLevel(data.creditScore, data.limitUsageRatio, data.delayMonths);
   const improvementPotential = calculateScoreImprovementPotential(
@@ -45,12 +46,10 @@ Tone Guidelines:
 Bu kullanıcıya kişiselleştirilmiş finansal tavsiye ver. Skorunu kaç puana çıkarabileceği potansiyelini vurgu. 3 adımlık bir aksiyon planı sun.`;
 
   try {
-    const response = await fetch(CLAUDE_API_URL, {
+    const response = await fetch(AI_PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',

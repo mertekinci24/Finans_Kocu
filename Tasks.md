@@ -51,13 +51,15 @@ Bu dosyadaki tüm görevler tamamlandığında MVP ve planlanan kapsam tamamlanm
 
 ## Faz 3 (Öngörü & Senaryo — Sprint 1: Cash Flow Prediction)
 34. [DONE] Nakit Akışı Tahmin Motoru (30 gün forecast + risk alerts)
-35. [TODO] Senaryo Simülatörü (What-if analysis)
-36. [TODO] Hedef Sistemi (Saving goals + timeline)
+35. [DONE] Senaryo Simülatörü (What-if analysis)
+36. [DONE] Hedef Sistemi (Saving goals + timeline)
 
-## Faz 3+
+## Faz 4 (Monetizasyon & Ödeme)
+39. [DONE] Ödeme sistemi (İyzico adapter + checkout flow)
+40. [DONE] Pro plan yetkilendirme (Paywall + subscriptionGuard + Upgrade sayfası)
+
+## Faz 5+
 37. [TODO] React Native mobil uygulama
 38. [TODO] Open Banking entegrasyonu (BKM)
-39. [TODO] Ödeme sistemi (İyzico)
-40. [TODO] Pro plan yetkilendirme
 41. [TODO] B2B danışman paneli
 42. [TODO] API marketplace

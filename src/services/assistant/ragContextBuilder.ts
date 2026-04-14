@@ -118,8 +118,8 @@ async function fetchInstallments(userId: string): Promise<any[]> {
 
 function generateAlerts(
   accounts: AccountSummary[],
-  debts: any[],
-  installments: any[],
+  debts: { remainingAmount: number; dueDate: Date; status: string }[],
+  installments: { monthlyPayment: number; remainingMonths: number; status: string }[],
   savingsRate: number
 ): string[] {
   const alerts: string[] = [];

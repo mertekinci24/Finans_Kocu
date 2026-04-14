@@ -27,7 +27,7 @@ export default function WidgetGrid({
 
   const enabledWidgets = layout.widgets.filter((w) => w.enabled);
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: import('@dnd-kit/core').DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {

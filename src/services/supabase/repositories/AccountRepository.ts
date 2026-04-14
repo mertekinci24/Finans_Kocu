@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { IAccountRepository } from '../../types';
 import type { Account } from '@types';
+import type { AccountRow } from '@/types/database';
 
 export class SupabaseAccountRepository implements IAccountRepository {
   constructor(private client: SupabaseClient) {}
@@ -79,7 +80,7 @@ export class SupabaseAccountRepository implements IAccountRepository {
     if (error) throw error;
   }
 
-  private mapToAccount(row: any): Account {
+  private mapToAccount(row: AccountRow): Account {
     return {
       id: row.id,
       userId: row.user_id,

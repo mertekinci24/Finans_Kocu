@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { IDebtRepository } from '../../types';
 import type { Debt } from '@types';
+import type { DebtRow } from '@/types/database';
 
 export class SupabaseDebtRepository implements IDebtRepository {
   constructor(private client: SupabaseClient) {}
@@ -75,7 +76,7 @@ export class SupabaseDebtRepository implements IDebtRepository {
     if (error) throw error;
   }
 
-  private mapToDebt(row: any): Debt {
+  private mapToDebt(row: DebtRow): Debt {
     return {
       id: row.id,
       userId: row.user_id,

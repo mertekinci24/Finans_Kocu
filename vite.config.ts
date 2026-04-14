@@ -19,5 +19,16 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    proxy: {
+      // /api/* → Supabase Edge Functions proxy
+      // Development ortamında Edge Function'ları doğrudan çağırır
+      '/api': {
+        target: process.env.VITE_SUPABASE_URL
+          ? `${process.env.VITE_SUPABASE_URL}/functions/v1/api-gateway`
+          : 'http://localhost:54321/functions/v1/api-gateway',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/api/, ''),
+      },
+    },
   },
 });

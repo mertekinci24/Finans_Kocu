@@ -72,7 +72,7 @@ export const cashFlowEngine = {
   },
 
   /**
-   * Generate 30-day cash flow forecast
+   * Generate N-day cash flow forecast (default: 30, scenario: up to 180)
    */
   forecast(
     accounts: Account[],
@@ -83,10 +83,11 @@ export const cashFlowEngine = {
       debtPaymentId?: string;
       paymentAmount?: number;
       paymentDate?: Date;
-    }
+    },
+    forecastDays: number = 30
   ): CashFlowForecast {
     const startDate = new Date();
-    const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const endDate = new Date(startDate.getTime() + forecastDays * 24 * 60 * 60 * 1000);
 
     let currentBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
     const startBalance = currentBalance;
@@ -99,7 +100,7 @@ export const cashFlowEngine = {
     let minBalance = currentBalance;
     let minBalanceDate = startDate;
 
-    for (let day = 0; day <= 30; day++) {
+    for (let day = 0; day <= forecastDays; day++) {
       const currentDate = new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000);
       const dayOfMonth = currentDate.getDate();
       const isMonthStart = dayOfMonth <= 3;
@@ -143,7 +144,7 @@ export const cashFlowEngine = {
 
       dailyBalances.push({
         date: currentDate,
-        balance: Math.max(0, currentBalance),
+        balance: currentBalance,
         netIncome,
         netExpense,
         description: description.trim() || 'Normal spending',

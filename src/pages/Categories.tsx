@@ -63,7 +63,7 @@ export default function Categories(): JSX.Element {
         }
       });
 
-      const catList = (cats ?? []).map((c: any) => {
+      const catList = (cats ?? []).map((c: Record<string, unknown>) => {
         const key = c.name.toLowerCase();
         const spend = spendByCategory[key] ?? 0;
         const budget = c.monthly_budget ?? 0;

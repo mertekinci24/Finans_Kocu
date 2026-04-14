@@ -8,7 +8,8 @@ export type WidgetType =
   | 'debts_overview'
   | 'installments'
   | 'tax_obligations'
-  | 'coach_insights';
+  | 'coach_insights'
+  | 'goal_tracker';
 
 export interface Widget {
   id: string;
@@ -107,6 +108,14 @@ export const DEFAULT_DASHBOARD_LAYOUT: Widget[] = [
     title: 'Koç Tavsiyeleri',
     size: '2x1',
     position: 12,
+    enabled: true,
+  },
+  {
+    id: 'goals-1',
+    type: 'goal_tracker',
+    title: 'Hedeflerim',
+    size: '2x1',
+    position: 14,
     enabled: true,
   },
 ];

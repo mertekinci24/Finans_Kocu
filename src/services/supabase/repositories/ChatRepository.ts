@@ -1,5 +1,6 @@
 import { supabase } from '../adapter';
 import { ChatSession, ChatMessage, SuggestedTransaction } from '@/types';
+import type { ChatSessionRow, ChatMessageRow } from '@/types/database';
 
 export interface IChatRepository {
   createSession(userId: string, title: string): Promise<ChatSession>;
@@ -92,7 +93,7 @@ export class SupabaseChatRepository implements IChatRepository {
     return this.mapToMessage(data);
   }
 
-  private mapToSession(row: any): ChatSession {
+  private mapToSession(row: ChatSessionRow): ChatSession {
     return {
       id: row.id,
       userId: row.user_id,
@@ -102,7 +103,7 @@ export class SupabaseChatRepository implements IChatRepository {
     };
   }
 
-  private mapToMessage(row: any): ChatMessage {
+  private mapToMessage(row: ChatMessageRow): ChatMessage {
     return {
       id: row.id,
       sessionId: row.session_id,

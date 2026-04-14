@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ITransactionRepository } from '../../types';
 import type { Transaction } from '@types';
+import type { TransactionRow } from '@/types/database';
 
 export class SupabaseTransactionRepository implements ITransactionRepository {
   constructor(private client: SupabaseClient) {}
@@ -111,7 +112,7 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
     if (error) throw error;
   }
 
-  private mapToTransaction(row: any): Transaction {
+  private mapToTransaction(row: TransactionRow): Transaction {
     return {
       id: row.id,
       accountId: row.account_id,

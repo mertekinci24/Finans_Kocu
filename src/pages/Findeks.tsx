@@ -277,7 +277,7 @@ export default function Findeks() {
 
             <div className="space-y-4">
               <h3 className="font-bold text-lg">Aksiyon Planı</h3>
-              {analysisResult.actionPlan.map((step: any, idx: number) => (
+              {analysisResult.actionPlan.map((step: { title: string; description: string }, idx: number) => (
                 <ActionPlanCard key={idx} step={step} index={idx} />
               ))}
             </div>

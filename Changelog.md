@@ -1,7 +1,219 @@
 # Changelog.md
 Tüm değişiklikler tarih/saat ile yazılır.
+## 2026-04-13 07:38 — Security Hardening & Edge Function Deployment
+- Görev: Kritik güvenlik borçlarının kapatılması — "Kasa Güvenliği"
+- Yapılan İş:
+  * supabase/functions/api-gateway/index.ts [NEW] — Unified Edge Function
+    - Iyzico Payment Gateway: create-checkout, checkout-result, cancel, status
+    - HMAC-SHA256 Webhook Doğrulama: verifyIyzicoWebhookSignature()
+    - Claude AI Proxy: /ai/claude endpoint (max_tokens: 2048 limit)
+    - Webhook Event Processing: SUBSCRIPTION_ORDER_SUCCESS, FAILURE, CANCEL
+    - Tüm secret key'ler Deno.env üzerinden (IYZICO_*, CLAUDE_API_KEY)
+  * src/services/assistant/assistantService.ts — Claude API proxy'ye taşındı
+    - CLAUDE_API_URL → AI_PROXY_URL (/api/ai/claude)
+    - x-api-key header kaldırıldı (artık sunucuda)
+    - apiKey parametresi legacy (kullanılmıyor)
+  * src/services/findeks/claudeAnalyzer.ts — Claude API proxy'ye taşındı
+    - CLAUDE_API_URL → AI_PROXY_URL (/api/ai/claude)
+    - x-api-key header kaldırıldı
+  * vite.config.ts — /api/* proxy konfigürasyonu
+    - Development: VITE_SUPABASE_URL/functions/v1/api-gateway
+    - Fallback: localhost:54321 (local Supabase)
+- Çözülen Borçlar (5 KRİTİK/YÜKSEK):
+  - [RESOLVED] Iyzico HMAC webhook doğrulaması — Faz 4 Borç #1 (KRİTİK)
+  - [RESOLVED] Iyzico Edge Function eksik — Faz 4 Borç #2 (YÜKSEK)
+  - [RESOLVED] Claude API key client-side exposed — Görev 31 Borç #1 (YÜKSEK)
+  - [RESOLVED] Claude API key Findeks — Görev 30 Borç (YÜKSEK)
+  - [RESOLVED] BYOK vault localStorage — Görev 32 Borç #1 (YÜKSEK)
+- Güvenlik Mimarisi:
+  Frontend → Vite Proxy → Supabase Edge Function → Iyzico/Claude API
+  • API key'ler ASLA client bundle'a dahil edilmez
+  • Webhook imzası HMAC-SHA256 ile doğrulanır
+  • Token limiti 2048 (maliyet kontrolü)
+- Performans: 781 modül, 950 KB JS (277 KB gzip), 0 TS hatası
 
-## 2026-04-12 18:45
+
+- Görev: Teknik Borç Temizliği — Sağlam Zemin prensibi
+- Yapılan İş:
+  * src/types/database.ts [NEW] — 16 DB row tipi (snake_case Supabase satır tipleri)
+    - AccountRow, TransactionRow, DebtRow, InstallmentRow, FinancialScoreRow
+    - FindeksReportRow, FindeksScoreHistoryRow, ChatSessionRow, ChatMessageRow
+    - TaxObligationRow, BaskurProfileRow, SavingGoalRow, UserSubscriptionRow
+    - DashboardLayoutRow, CategoryRow
+  * 8 Repository dosyasında `any` → DB row type dönüşümü:
+    - AccountRepository.ts: any → AccountRow
+    - TransactionRepository.ts: any → TransactionRow
+    - DebtRepository.ts: any → DebtRow
+    - InstallmentRepository.ts: any → InstallmentRow
+    - FinancialScoreRepository.ts: any → FinancialScoreRow
+    - FindeksRepository.ts: any → FindeksReportRow + FindeksScoreHistoryRow
+    - ChatRepository.ts: any → ChatSessionRow + ChatMessageRow
+    - TaxRepository.ts: any → TaxObligationRow + BaskurProfileRow
+  * Component/Page `any` temizliği:
+    - useAuth.ts: any → ReturnType<typeof authService.getCurrentSession>
+    - WidgetGrid.tsx: any → DragEndEvent
+    - Categories.tsx: any → Record<string, unknown>
+    - Findeks.tsx: any → { title: string; description: string }
+    - TransactionForm.tsx: any → Record<string, unknown>
+    - ragContextBuilder.ts: any[] → typed struct arrays
+  * Toplam: 18 `any` instance → %100 type-safe
+- Çözülen Borçlar:
+  - [RESOLVED] Any types (19+ instance) — Faz 2 FSIA Borç #5
+  - [RESOLVED] Deep clone JSON.parse/stringify riski — Faz 3 Sprint 2 Borç #2
+- Performans: 781 modül, 950 KB JS (277 KB gzip), 0 TS hatası
+- Prensip: "Güvenlik, performans ve veri bütünlüğü her zaman özelliklerden önce gelir"
+
+
+- Görev No: 39+40 — Iyzico Ödeme Sistemi + Pro Plan Yetkilendirme (Faz 4 Monetizasyon)
+- Modül: Payment Gateway / Subscription Plans / Paywall / Authorization
+- Yapılan İş:
+  * src/services/payment/subscriptionPlans.ts — Plan tanımları + Paywall Guard
+    - PlanType: 'free' | 'pro'
+    - Free: 3 hesap, 100 işlem/ay, 1 hedef, 5 AI mesaj/gün
+    - Pro: ₺149/ay (₺1490/yıl), sınırsız her şey + Findeks + Senaryo + PDF + Claude
+    - subscriptionGuard.canAccess(): PremiumFeature erişim kontrolü
+    - subscriptionGuard.checkLimit(): Limit kontrolü (hesap sayısı, AI mesaj vb.)
+    - subscriptionGuard.getUpgradeReasons(): Özellik bazlı upgrade metinleri
+    - 7 PremiumFeature: ai_assistant, findeks_analysis, scenario_simulator, pdf_export, 
+      advanced_coaching, unlimited_accounts, unlimited_goals
+  * src/services/payment/iyzicoAdapter.ts — Iyzico Payment Adapter
+    - Mimari: Frontend → Supabase Edge Function → Iyzico API (SECRET KEY sunucuda)
+    - createCheckoutSession(): Checkout başlatma
+    - retrieveCheckoutResult(): Ödeme sonucu sorgulama
+    - cancelSubscription(): Abonelik iptal
+    - getSubscriptionStatus(): Mevcut abonelik durumu
+    - IyzicoWebhookEvent: Webhook event tipleri
+  * src/hooks/useSubscription.ts — Subscription React Hook
+    - planType, isPro, canAccess(), checkLimit()
+    - startCheckout(), cancelSubscription(), refresh()
+    - Graceful fallback: API yoksa Free plan varsayılan
+  * src/components/payment/PaywallModal.tsx — Premium paywall modal
+    - Gradient header, özellik listesi, fiyat, upgrade CTA
+    - Animasyonlu framer-motion modal
+  * src/pages/Upgrade.tsx — Tam ekran plan karşılaştırma sayfası
+    - Aylık/Yıllık toggle (2 ay hediye)
+    - Free vs Pro kartları (feature karşılaştırma)
+    - Checkout başlatma, abonelik iptal
+    - Mevcut plan durumu gösterimi
+  * supabase/migrations/20260413030000_add_subscriptions.sql — DB migration
+    - user_subscriptions tablosu (plan_type, status, iyzico referansları)
+    - payment_events tablosu (webhook audit trail)
+    - RLS politikaları
+  * src/constants/index.ts — UPGRADE route eklendi
+  * src/App.tsx — /upgrade route entegrasyonu
+  * src/components/layout/Sidebar.tsx — "Pro Yükselt" menüsü (✨ ikon)
+- Monetizasyon Özellikleri:
+  - Free / Pro (₺149/ay) 2 plan
+  - 7 premium özellik paywall kontrolü
+  - Iyzico sandbox/production URL desteği
+  - Webhook event logging (audit trail)
+  - Güvenlik: Iyzico SECRET KEY yalnızca Edge Function'da
+  - Checkout → webhook → DB update akışı
+- Performans: 781 modül, 950 KB JS (277 KB gzip), 0 TS hatası
+- Faz 4 Status: 2/2 DONE (39, 40)
+
+
+- Görev No: 36 — Hedef Sistemi / Saving Goals Engine (Faz 3 Sprint 3)
+- Modül: Goal Planning / Timeline Projection / Inflation Adjustment / AI Coach
+- Yapılan İş:
+  * src/services/goalService.ts — Hedef motoru (Goal Engine)
+    - SavingGoal veri yapısı: ad, kategori (8 tip), hedef tutar, biriken, aylık tasarruf, tarih, öncelik
+    - GoalProjection: tahmini tarih, gecikme günü, enflasyon ayarlı reel tutar, öneriler
+    - goalEngine.projectGoal(): Tam timeline hesaplama + enflasyon etkisi
+    - goalEngine.projectAllGoals(): Çoklu hedef öncelik sıralaması
+    - goalEngine.calculateCurrentMonthlySavings(): 3 aylık tasarruf ortalaması
+    - goalEngine.generateGoalRecommendations(): Kural bazlı Türkçe öneriler
+    - goalEngine.buildGoalCoachPrompt(): Claude koç yorumu için prompt
+    - GOAL_CATEGORY_META: 8 kategori (tatil, araç, ev, eğitim, acil_fon, emeklilik, teknoloji, diğer)
+  * src/services/supabase/repositories/GoalRepository.ts — Supabase CRUD
+    - getByUserId(), getActiveByUserId(), getById()
+    - create(), update(), delete()
+    - addFunds(): Hedefe para ekleme + otomatik status güncelleme
+    - snake_case → camelCase mapping
+  * supabase/migrations/20260413020000_add_saving_goals.sql — DB şeması
+    - saving_goals tablosu + RLS politikaları + indexler
+  * src/components/dashboard/widgets/GoalTrackerWidget.tsx — Dashboard widget
+    - En yüksek öncelikli hedef kartı (animasyonlu progress bar)
+    - Durum göstergesi (✅ Hedeftesin / ⏰ Gecikiyorsun)
+    - Diğer hedefler mini progress gösterimi
+    - İlk öneri metni
+    - Boş durum ekranı
+  * src/pages/Goals.tsx — Tam ekran hedef yönetim sayfası
+    - Hedef CRUD formu (8 kategori, 3 öncelik, tarih, not)
+    - Detaylı hedef kartları (progress bar, metrikler, enflasyon uyarısı)
+    - Para ekleme (inline form)
+    - Claude koç yorumu (buton ile tetikleme)
+    - Boş durum ekranı (ilk hedef CTA)
+  * src/constants/index.ts — GOALS route eklendi
+  * src/App.tsx — /goals route entegrasyonu
+  * src/components/layout/Sidebar.tsx — "Hedeflerim" menüsü (✓ badge ikon)
+  * src/types/widgets.ts — goal_tracker widget tipi + varsayılan layout'a eklendi
+  * src/pages/Dashboard.tsx — GoalTrackerWidget entegrasyonu + goal loading
+- Hedef Motoru Özellikleri:
+  - 8 hedef kategorisi (ikon + renk + etiket)
+  - 3 öncelik seviyesi (yüksek/orta/düşük)
+  - Enflasyon ayarlı reel değer hesaplama (logic_specs_v2 Katman 4.2)
+  - Timeline hesaplama: aylık tasarruf → tahmini tamamlanma tarihi
+  - Gecikme analizi: hedef tarih vs tahmini tarih delta (gün/ay)
+  - Kural bazlı öneriler (enflasyon uyarısı, tasarruf gap, ilerleme)
+  - Claude koç rehberliği (samimi Türkçe ton + aksiyon odaklı)
+  - GoalRepository code-split (lazy load, 2.36 KB ayrı chunk)
+  - Graceful fallback: saving_goals tablosu yoksa dashboard çökmez
+- Performans: 777 modül, 940 KB JS (274 KB gzip), 0 TS hatası
+- Faz 3 Status: Sprint 3 → 3/? DONE (34, 35, 36)
+
+
+- Görev No: 35 — Senaryo Simülatörü / What-if Engine (Faz 3 Sprint 2)
+- Modül: Scenario Simulation / Side-by-Side Forecast / AI Coach Commentary
+- Yapılan İş:
+  * src/services/scenarioSimulator.ts — What-if engine çekirdeği (3 senaryo tipi)
+    - Senaryo A: Borç Kapatma (paymentAmount ile en yüksek faizli borç otomatik seçimi)
+    - Senaryo B: Büyük Alım (sanal taksit oluşturma, faiz hesaplaması)
+    - Senaryo C: Ek Gelir (sanal gelir işlemleri, recurring pattern)
+    - simulate(): 180 günlük forecast + scoring + risk assessment + öneriler
+    - buildSimulatedData(): Deep clone ile orijinal veri koruma
+    - findCashTightnessDate(): Nakit tıkanıklığı tarih tespiti
+    - findBreakEvenMonth(): Baseline vs senaryo kâra geçiş ayı
+    - assessRisk(): safe/moderate/risky 3 seviye risk değerlendirme
+    - generateRecommendations(): Kural bazlı Türkçe öneriler (sıfır API maliyeti)
+    - calculateMonthlySavingsDelta(): Senaryo sonrası aylık tasarruf farkı
+  * src/services/cashFlowEngine.ts — forecastDays parametresi (30→180 gün desteği)
+  * src/services/assistant/assistantService.ts — analyzeScenario() fonksiyonu
+    - Claude Sonnet 4.6 ile senaryo koç yorumu (samimi Türkçe ton)
+    - generateFallbackScenarioAnalysis(): API key yoksa kural bazlı yorum
+  * src/components/dashboard/widgets/CashFlowForecastWidget.tsx — Tamamen yeniden yazıldı
+    - Side-by-side SVG grafik (Yeşil düz baseline + Turuncu kesikli senaryo)
+    - 3 senaryo tipi seçici (sekme UI)
+    - Parametre giriş formu (tutar input + Hesapla butonu)
+    - Skor karşılaştırma kartı (baseline → senaryo, delta, risk rozeti)
+    - Detaylı simülatöre yönlendirme butonu
+  * src/pages/ScenarioSimulator.tsx — Tam ekran simülatör sayfası
+    - 3 senaryo kartı (hover animasyonları, framer-motion)
+    - Parametre formları (DebtPayoffForm, BigPurchaseForm, ExtraIncomeForm)
+    - 6 aylık SVG grafik (800x200, ay etiketleri, sıfır çizgisi)
+    - Skor karşılaştırma paneli (animasyonlu gauge, spring animasyonu)
+    - Koç yorumu alanı (Claude + fallback)
+    - Detay kartları (6 ay sonu bakiye, nakit riski, kâra geçiş)
+    - Motor önerileri listesi
+  * src/constants/index.ts — SCENARIO route eklendi
+  * src/App.tsx — /scenario route entegrasyonu
+  * src/components/layout/Sidebar.tsx — "Senaryo Simülatörü" menüsü (💡 ikon)
+  * src/pages/Dashboard.tsx — CashFlowForecastWidget'a senaryo callback'leri bağlandı
+- Senaryo Motoru Özellikleri:
+  - 3 senaryo tipi: Borç Kapatma, Büyük Alım, Ek Gelir
+  - 180 günlük (6 ay) forecast desteği
+  - Side-by-side grafik: Mavi baseline vs Turuncu senaryo
+  - Skor karşılaştırma: Mevcut vs Senaryo delta (+/- puan gösterimi)
+  - Nakit tıkanıklığı tarih tespiti
+  - Kâra geçiş (break-even) ay hesaplaması
+  - 3 seviye risk değerlendirme (safe/moderate/risky)
+  - Claude koç yorumu + kural bazlı fallback
+  - Gerçek DB'ye dokunmaz — tamamen sanal hesaplama
+- Technical Debt: technical_debt.md'ye recursive calculation notu eklendi
+- Performans: 772 modüller, 915 KB JS (268 KB gzip), 0 TS hatası
+- Faz 3 Status: Sprint 2 → 2/? DONE (34, 35)
+
+
 - Görev No: 34 — Nakit Akışı Tahmin Motoru (Faz 3 Sprint 1)
 - Modül: Cash Flow Prediction / 30-Day Forecast / Risk Alerts
 - Yapılan İş:

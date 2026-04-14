@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { IInstallmentRepository } from '../../types';
 import type { Installment } from '@types';
+import type { InstallmentRow } from '@/types/database';
 
 export class SupabaseInstallmentRepository implements IInstallmentRepository {
   constructor(private client: SupabaseClient) {}
@@ -79,7 +80,7 @@ export class SupabaseInstallmentRepository implements IInstallmentRepository {
     if (error) throw error;
   }
 
-  private mapToInstallment(row: any): Installment {
+  private mapToInstallment(row: InstallmentRow): Installment {
     return {
       id: row.id,
       userId: row.user_id,

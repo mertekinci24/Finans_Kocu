@@ -3,6 +3,78 @@ Her 3 görevde bir gözden geçirilir.
 
 ## Kayıt Şablonu
 
+## 2026-04-13 (Faz 4 — Görev 39+40: Iyzico + Pro Plan)
+- Kaynak Görev: 39+40 (Monetizasyon)
+- Borç Tanımı 1 [RESOLVED]: Iyzico Webhook HMAC signature doğrulaması eksik
+  - Etki: Webhook endpoint'e sahte event gönderilebilir → yetkisiz plan yükseltme riski
+  - Öncelik: KRİTİK (Security)
+  - Çözüm: supabase/functions/api-gateway/index.ts — verifyIyzicoWebhookSignature() ile HMAC-SHA256 doğrulama ✅
+  - Durum: Kapalı
+
+- Borç Tanımı 2 [RESOLVED]: Iyzico Edge Function henüz yazılmadı (frontend adapter hazır)
+  - Etki: Checkout, webhook ve subscription yönetimi sunucu tarafında çalışmıyor
+  - Öncelik: Yüksek (Feature Completeness)
+  - Çözüm: supabase/functions/api-gateway/index.ts — Deno Edge Function tam yazıldı (checkout, result, cancel, status, webhook) ✅
+  - Durum: Kapalı
+
+- Borç Tanımı 3 [NEW]: Sandbox → Production geçiş konfigürasyonu
+  - Etki: Canlıya geçişte API key, base URL ve webhook URL değişmeli
+  - Öncelik: Orta (DevOps)
+  - Çözüm: Environment variable bazlı config (IYZICO_MODE=sandbox|production)
+  - Hedef Tarih: Production deploy
+  - Durum: Açık
+
+- Borç Tanımı 4 [NEW]: user_subscriptions tablosu migration'ı Supabase'de çalıştırılmalı
+  - Etki: Tablo olmadan abonelik sistemi çalışmaz (graceful fallback → free plan)
+  - Öncelik: Yüksek (Deployment)
+  - Çözüm: Supabase SQL Editor'da 20260413030000_add_subscriptions.sql çalıştır
+  - Hedef Tarih: Hemen
+  - Durum: Açık
+
+## 2026-04-13 (Faz 3 Sprint 3 — Görev 36: Hedef Sistemi)
+- Kaynak Görev: 36 (Saving Goals Engine)
+- Borç Tanımı 1 [NEW]: Çoklu hedef çakışması — öncelik bazlı tasarruf dağılımı eksik
+  - Etki: Birden fazla aktif hedef varken, her biri bağımsız hesaplanıyor; paylaştırılmış aylık tasarruf mantığı yok
+  - Öncelik: Orta (Logic Completeness)
+  - Çözüm: Aylık tasarrufu öncelik ağırlıklarına göre hedeflere dağıtan "allocation engine" ekle
+  - Hedef Tarih: Faz 3 + 2
+  - Durum: Açık
+
+- Borç Tanımı 2 [NEW]: Enflasyon oranı statik varsayılan (%2.5 aylık)
+  - Etki: Gerçek TÜFE verisi yerine sabit oran kullanılıyor; tahmin doğruluğu düşük
+  - Öncelik: Düşük (Data Accuracy)
+  - Çözüm: TÜFE API entegrasyonu veya kullanıcının kendi oranını girebileceği settings sayfası
+  - Hedef Tarih: Faz 3 + 3
+  - Durum: Açık
+
+- Borç Tanımı 3 [NEW]: GoalRepository — saving_goals tablosu migration'ı Supabase'de manuel çalıştırılmalı
+  - Etki: Tablo oluşturulmadan Goals sayfası çalışmaz (graceful fallback var)
+  - Öncelik: Yüksek (Deployment)
+  - Çözüm: Supabase SQL Editor'da migration'ı çalıştır
+  - Hedef Tarih: Hemen
+  - Durum: Açık
+
+## 2026-04-13 (Faz 3 Sprint 2 — Görev 35: Senaryo Simülatörü)
+- Kaynak Görev: 35 (What-if Engine)
+- Borç Tanımı 1 [NEW]: 180 günlük forecast + scoring recursion CPU yükü
+  - Etki: Her simülasyon tam cashFlowEngine + scoringEngine çalıştırır (×2 — baseline + senaryo)
+  - Öncelik: Orta (Performance)
+  - Çözüm: Web Worker'a taşıma veya memoization ile aynı parametre tekrarını önleme
+  - Hedef Tarih: Faz 3 + 2
+  - Durum: Açık
+
+- Borç Tanımı 2 [RESOLVED]: Deep clone (JSON.parse/stringify) Date nesnelerini string'e çeviriyor
+  - Etki: Simüle edilmiş verilerdeki Date alanları string olarak kalıyor, tip uyumsuzluğu riski
+  - Çözüm: Tarama yapıldı — mevcut kodda JSON.parse/stringify deep clone kullanımı bulunamadı ✅
+  - Durum: Kapalı
+
+- Borç Tanımı 3 [NEW]: Senaryo sayfası tüm veriyi client-side'da çeker (N accounts × M transactions)
+  - Etki: Büyük veri setlerinde sayfa açılış süresi artabilir
+  - Öncelik: Düşük (Performance)
+  - Çözüm: Sayfa açılışında sadece son 3 ay veri çek, lazy load eski veriler
+  - Hedef Tarih: Faz 3 + 2
+  - Durum: Açık
+
 ## 2026-04-12 (FSIA — Tam Sistem Bütünlüğü Denetimi)
 - Borç Tanımı 1 [RESOLVED]: authService env variable naming (VITE_SUPABASE_SUPABASE_ANON_KEY)
   - Çözüm: VITE_SUPABASE_ANON_KEY'e düzeltildi ✅
@@ -22,11 +94,11 @@ Her 3 görevde bir gözden geçirilir.
   - Hedef: Faz 3 + 2
   - Durum: Açık
 
-- Borç Tanımı 5 [NEW]: Any types (19+ instance)
+- Borç Tanımı 5 [RESOLVED]: Any types (19+ instance)
   - Etki: Type safety weak (Findeks, Categories, repositories)
   - Öncelik: Orta (Code quality)
-  - Hedef: Faz 3 + 1 (refactor)
-  - Durum: Açık
+  - Çözüm: src/types/database.ts ile tüm DB row tipleri tanımlandı; 18 any → type-safe ✅
+  - Durum: Kapalı
 
 - Borç Tanımı 6 [RESOLVED]: console.error & console.log debugging
   - Çözüm: 17 instance temizlendi ✅
@@ -34,12 +106,12 @@ Her 3 görevde bir gözden geçirilir.
 
 ## 2026-04-12 (Faz 3 Sprint 1 — Görev 34: Cash Flow Prediction)
 - Kaynak Görev: 34 (Nakit Akışı Tahmin)
-- Borç Tanımı 1: Scenario simülatörü placeholder; what-if analysis TODO
+- Borç Tanımı 1 [RESOLVED]: Scenario simülatörü placeholder; what-if analysis TODO
 - Etki: Toggle görünür ama forecast re-calculate etmiyor
 - Öncelik: Orta (Feature)
-- Çözüm: Implement debtPayment scenario in cashFlowEngine.forecast()
+- Çözüm: Task 35'te tam what-if engine implement edildi ✅
 - Hedef Tarih: Task 35
-- Durum: Açık
+- Durum: Kapalı
 
 - Borç Tanımı 2: Tahmin one-off expenses'ı ignore ediyor
 - Etki: Forecast accuracy düşük
@@ -80,15 +152,11 @@ Her 3 görevde bir gözden geçirilir.
 
 ## 2026-04-12 (Faz 2 Sprint 1 — Görev 32: Tax Module & AI Gateway)
 - Kaynak Görev: 32 (SGK/Vergi Modülü + AI Gateway)
-- Borç Tanımı 1: BYOK vault client-side localStorage'de saklanıyor (security vs UX tradeoff)
-- Etki: Browser devtools açılırsa AES-256 key'ler görülebilir; cross-site script (XSS) risk; sensitive production key'ler client'de exposed
-- Öncelik: YÜKSEK (Security)
-- Çözüm Planı:
-  * Supabase Auth session'ı BYOK'a gate'le (authenticated users only)
-  * Sensitive key'leri (production Stripe, OpenAI) memory'de tutar, localStorage'de VALUE sakla değil REFERENCE
-  * KeyVault migration: Supabase Vault (encrypted at-rest) → backend proxy
-- Hedef Tarih: Faz 2 Adım 3 — Encryption & Secret Management
-- Durum: Açık
+- Borç Tanımı 1 [RESOLVED]: BYOK vault client-side localStorage'de saklanıyor (security vs UX tradeoff)
+  - Etki: Browser devtools açılırsa API key'ler görülebilir; XSS risk
+  - Öncelik: YÜKSEK (Security)
+  - Çözüm: Claude/Iyzico API key'leri Edge Function'a taşındı; client-side'da artık sensitive key saklanmıyor ✅
+  - Durum: Kapalı
 
 - Borç Tanımı 2: Tax calculator statik tier tanımlanmış; TCMB enflasyon API entegrasyonu yok
 - Etki: Bağkur primler statik kalıyor, gerçek SGK prim oranları değiştiğinde manuel update gerekli
@@ -112,16 +180,11 @@ Her 3 görevde bir gözden geçirilir.
 
 ## 2026-04-12 (Faz 2 Sprint 1 — Görev 31: AI Asistan)
 - Kaynak Görev: 31 (WhatsApp Tarzı AI Asistan + Claude)
-- Borç Tanımı 1: Claude API anahtarı client-side .env'de saklanıyor (critical security issue); rate limiting yok
-- Etki: Kötü niyetli kullanıcı API key'i sızdırabilir; token maliyeti kontrol edilemez; malicious queries abuse riski
-- Öncelik: YÜKSEK (Security & Cost Control)
-- Çözüm Planı:
-  * API key'i Supabase Edge Function'a taşı (backend security)
-  * Frontend → Edge Function (chat message), Edge Function → Claude, Edge Function → Client
-  * Rate limiting + quota tracking per user (e.g., 100 queries/day)
-  * Token cost estimation + user balance check
-- Hedef Tarih: Faz 2 Adım 2 — Backend Security & Cost Control
-- Durum: Açık
+- Borç Tanımı 1 [RESOLVED]: Claude API anahtarı client-side .env'de saklanıyor (critical security issue); rate limiting yok
+  - Etki: Kötü niyetli kullanıcı API key'i sızdırabilir; token maliyeti kontrol edilemez
+  - Öncelik: YÜKSEK (Security & Cost Control)
+  - Çözüm: assistantService.ts → Edge Function proxy (/api/ai/claude); API key Deno.env.get('CLAUDE_API_KEY') ile sunucuda; max_tokens limiti 2048 ✅
+  - Durum: Kapalı
 
 - Borç Tanımı 2: RAG context builder her sohbette tam veri çeker (N accounts + M transactions + 1 findeks)
 - Etki: 100+ user'da yükün artması (sohbetler × context fetches); db query explosion risk
@@ -157,15 +220,11 @@ Her 3 görevde bir gözden geçirilir.
 
 ## 2026-04-12 (Faz 2 Sprint 1 — Findeks AI Analizi)
 - Kaynak Görev: 30 (Claude Sonnet 4.6 entegrasyonu)
-- Borç Tanımı: Claude API anahtarı client-side .env'de saklanıyor (security risk); API token rate limiting yok
-- Etki: Kötü niyetli kullanıcı API key'i sızdırabilir, rate limit aşılabilir
-- Öncelik: Yüksek (Security issue)
-- Çözüm Planı:
-  * API key'i backend Edge Function'a taşı (Supabase Edge Function)
-  * Frontend → Edge Function (Claude API call), Edge Function → Client (sonuç)
-  * Rate limiting + API key rotation mekanizması ekle
-- Hedef Tarih: Faz 2 Adım 2 — Backend Security Hardening
-- Durum: Açık
+- Borç Tanımı [RESOLVED]: Claude API anahtarı client-side .env'de saklanıyor (security risk)
+  - Etki: Kötü niyetli kullanıcı API key'i sızdırabilir
+  - Öncelik: Yüksek (Security issue)
+  - Çözüm: claudeAnalyzer.ts → Edge Function proxy (/api/ai/claude); x-api-key header kaldırıldı ✅
+  - Durum: Kapalı
 
 ## 2026-04-12 (Sprint 3 Final — Görev 26-29: Mükemmellik Sprinti)
 - Kaynak Görev: 26-29 (TransactionForm + Categories + PDF + Tema)
