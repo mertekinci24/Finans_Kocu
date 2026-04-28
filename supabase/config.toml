@@ -1,0 +1,2 @@
+[functions.api-gateway]
+verify_jwt = false # Geliştirme aşamasında kolaylık için
