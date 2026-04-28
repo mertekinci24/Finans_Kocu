@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ import {
   type GoalPriority,
   GOAL_CATEGORY_META,
 } from '@/services/goalService';
+import { cashFlowEngine } from '@/services/cashFlowEngine';
 import { analyzeScenario, type ScenarioAnalysisInput } from '@/services/assistant/assistantService';
 import type { Transaction } from '@/types';
 
@@ -31,6 +32,7 @@ export default function GoalsPage(): JSX.Element {
   const [activeCoachGoalId, setActiveCoachGoalId] = useState<string | null>(null);
   const [addFundsId, setAddFundsId] = useState<string | null>(null);
   const [addFundsAmount, setAddFundsAmount] = useState<number>(0);
+  const [capacityData, setCapacityData] = useState({ income: 0, mre: 0 });
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -41,6 +43,16 @@ export default function GoalsPage(): JSX.Element {
   const [formTargetDate, setFormTargetDate] = useState('');
   const [formPriority, setFormPriority] = useState<GoalPriority>('medium');
   const [formNote, setFormNote] = useState('');
+
+  const monthlyCapacity = useMemo(() => {
+    return goalEngine.calculateCurrentMonthlySavings(capacityData.income, capacityData.mre);
+  }, [capacityData]);
+
+  const recommendedSaving = useMemo(() => {
+    if (monthlyCapacity <= 0) return 0;
+    const factor = formPriority === 'high' ? 0.4 : formPriority === 'medium' ? 0.2 : 0.1;
+    return Math.round(monthlyCapacity * factor);
+  }, [monthlyCapacity, formPriority]);
 
   useEffect(() => {
     if (user?.id) loadData(user.id);
@@ -65,9 +77,24 @@ export default function GoalsPage(): JSX.Element {
       }
       setTransactions(allTx);
 
+      // MRE ve Gelir hesapla (Smart UI için)
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const recentTx = allTx.filter((t) => new Date(t.date) >= thirtyDaysAgo);
+      const mIncome = recentTx.filter(t => t.type === 'gelir').reduce((sum, t) => sum + t.amount, 0);
+      
+      const installments = await dataSourceAdapter.installment.getByUserId(userId);
+      const debts = await dataSourceAdapter.debt.getByUserId(userId);
+      const recurringFlows = await dataSourceAdapter.recurringFlow.getByUserId(userId);
+      
+      const { cashFlowEngine } = await import('@/services/cashFlowEngine');
+      const mMRE = cashFlowEngine.calculateMonthlyRequiredExpenses(allTx, installments, debts, recurringFlows);
+      
+      setCapacityData({ income: mIncome, mre: mMRE });
+
       // Projeksiyon hesapla
       const monthlyRate = inflationData.monthlyRate;
-      const monthlySavings = goalEngine.calculateCurrentMonthlySavings(allTx);
+      const monthlySavings = goalEngine.calculateCurrentMonthlySavings(mIncome, mMRE);
       const projData = goalEngine.projectAllGoals(goalsData, monthlySavings, monthlyRate);
       setProjections(projData);
     } catch (err) {
@@ -236,6 +263,31 @@ export default function GoalsPage(): JSX.Element {
               {editingGoal ? '✏️ Hedefi Düzenle' : '✨ Yeni Hedef Oluştur'}
             </h2>
 
+            {/* Kapasite Banner */}
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className={`mb-5 p-3 rounded-lg border flex items-center gap-3 ${
+                monthlyCapacity > 0 
+                  ? 'bg-blue-50 border-blue-100 text-blue-800' 
+                  : 'bg-red-50 border-red-100 text-red-800'
+              }`}
+            >
+              <span className="text-xl">{monthlyCapacity > 0 ? '💡' : '⚠️'}</span>
+              <div className="flex-1">
+                <p className="text-xs font-bold">
+                  {monthlyCapacity > 0 
+                    ? `Mevcut Aylık Tasarruf Kapasiteniz: ${fmt(monthlyCapacity)}`
+                    : 'Tasarruf Kapasiteniz Yetersiz'}
+                </p>
+                <p className="text-[10px] opacity-80">
+                  {monthlyCapacity > 0 
+                    ? 'Gelir ve zorunlu giderleriniz (MRE) baz alınarak hesaplanmıştır.'
+                    : 'Lütfen önce giderlerinizi optimize edin veya gelirinizi artırın.'}
+                </p>
+              </div>
+            </motion.div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-neutral-700 mb-1">Hedef Adı</label>
@@ -297,10 +349,32 @@ export default function GoalsPage(): JSX.Element {
                   type="number"
                   value={formMonthlySaving}
                   onChange={(e) => setFormMonthlySaving(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    formMonthlySaving > monthlyCapacity && monthlyCapacity > 0 
+                      ? 'border-red-500 bg-red-50' 
+                      : 'border-neutral-300'
+                  }`}
                   min={0}
                   step={500}
                 />
+                {monthlyCapacity > 0 && (
+                  <div className="mt-1.5 flex flex-col gap-1">
+                    <button
+                      onClick={() => setFormMonthlySaving(recommendedSaving)}
+                      className="text-left text-[10px] text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                    >
+                      ✨ Sistem Önerisi: <span className="underline decoration-dotted">{fmt(recommendedSaving)}</span> 
+                      <span className="text-neutral-400 font-normal ml-1">
+                        (Kapasitenizin %{formPriority === 'high' ? '40' : formPriority === 'medium' ? '20' : '10'}'ı)
+                      </span>
+                    </button>
+                    {formMonthlySaving > monthlyCapacity && (
+                      <p className="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                        ❌ Kapasitenizi aşıyorsunuz!
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -351,7 +425,7 @@ export default function GoalsPage(): JSX.Element {
             <div className="flex gap-2 mt-5">
               <button
                 onClick={handleSaveGoal}
-                disabled={!formName || formTargetAmount <= 0}
+                disabled={!formName || formTargetAmount <= 0 || monthlyCapacity <= 0}
                 className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-sm rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {editingGoal ? 'Güncelle' : 'Hedef Oluştur'}

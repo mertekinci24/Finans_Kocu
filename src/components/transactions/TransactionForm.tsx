@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { dataSourceAdapter, supabase } from '@/services/supabase/adapter';
 import { CURRENCY_SYMBOL } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
+import { useTimeStore } from '@/stores/timeStore';
 import type { Transaction, Account, Category } from '@/types';
 
 const RECURRING_OPTIONS = [
@@ -27,10 +28,11 @@ export default function TransactionForm({
   onClose,
 }: TransactionFormProps): JSX.Element {
   const { user } = useAuth();
+  const { systemDate } = useTimeStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const today = new Date().toISOString().split('T')[0];
+  const defaultDate = new Date(systemDate).toISOString().split('T')[0];
 
   const [form, setForm] = useState({
     accountId: transaction?.accountId ?? accounts[0]?.id ?? '',
@@ -39,7 +41,7 @@ export default function TransactionForm({
     category: transaction?.category ?? 'Diğer',
     date: transaction?.date
       ? new Date(transaction.date).toISOString().split('T')[0]
-      : today,
+      : defaultDate,
     type: transaction?.type ?? ('gider' as 'gelir' | 'gider'),
     note: transaction?.note ?? '',
     recurring: (transaction?.recurring ?? 'none') as 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly',
@@ -56,19 +58,23 @@ export default function TransactionForm({
       .eq('user_id', userId)
       .order('name');
     if (data) {
-      setCategories(
-        data.map((c: Record<string, unknown>) => ({
-          id: c.id,
-          userId: c.user_id,
-          name: c.name,
-          color: c.color,
-          icon: c.icon,
-          monthlyBudget: c.monthly_budget,
-          type: c.type,
-          isDefault: c.is_default,
-          createdAt: new Date(c.created_at),
-        }))
-      );
+      const uniqueMap = new Map();
+      data.forEach((c: any) => {
+        if (!uniqueMap.has(c.name)) {
+          uniqueMap.set(c.name, {
+            id: c.id,
+            userId: c.user_id,
+            name: c.name,
+            color: c.color,
+            icon: c.icon,
+            monthlyBudget: c.monthly_budget,
+            type: c.type,
+            isDefault: c.is_default,
+            createdAt: new Date(c.created_at),
+          });
+        }
+      });
+      setCategories(Array.from(uniqueMap.values()));
     }
   };
 
@@ -191,7 +197,6 @@ export default function TransactionForm({
                   <input
                     type="date"
                     value={form.date}
-                    max={today}
                     onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                     className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
                   />

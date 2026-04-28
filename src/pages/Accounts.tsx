@@ -47,6 +47,17 @@ export default function Accounts(): JSX.Element {
     setAccounts((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const handleRecalibrate = async (id: string) => {
+    try {
+      const updated = await dataSourceAdapter.account.recalibrateBalance(id);
+      setAccounts((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      alert(`${updated.name} kasası işlem geçmişine göre eşitlendi (v7.0).`);
+    } catch (err) {
+      console.error('Recalibration failed:', err);
+      alert('Kasa eşitlenirken bir hata oluştu.');
+    }
+  };
+
   const totalBalance = accounts
     .filter((a) => a.type !== 'kredi_kartı')
     .reduce((sum, a) => sum + a.balance, 0);
@@ -124,15 +135,54 @@ export default function Accounts(): JSX.Element {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {accounts.map((account) => (
-            <AccountCard
-              key={account.id}
-              account={account}
-              onUpdate={handleUpdate}
-              onDelete={handleDelete}
-            />
-          ))}
+        <div className="space-y-12">
+          {/* Section 1: Financial Assets */}
+          {accounts.filter(a => a.type !== 'kredi_kartı').length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-lg">💰</span>
+                <h2 className="text-lg font-black text-neutral-800 dark:text-white uppercase tracking-tight">Finansal Varlıklar</h2>
+                <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800 ml-2" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {accounts
+                  .filter((a) => a.type !== 'kredi_kartı')
+                  .map((account) => (
+                    <AccountCard
+                      key={account.id}
+                      account={account}
+                      onUpdate={handleUpdate}
+                      onDelete={handleDelete}
+                      onRecalibrate={handleRecalibrate}
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 2: Credit Cards & Liabilities */}
+          {accounts.filter(a => a.type === 'kredi_kartı').length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-lg">💳</span>
+                <h2 className="text-lg font-black text-neutral-800 dark:text-white uppercase tracking-tight">Kredi Kartları ve Borçlar</h2>
+                <div className="h-px flex-1 bg-neutral-100 dark:bg-neutral-800 ml-2" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {accounts
+                  .filter((a) => a.type === 'kredi_kartı')
+                  .map((account) => (
+                    <AccountCard
+                      key={account.id}
+                      account={account}
+                      onUpdate={handleUpdate}
+                      onDelete={handleDelete}
+                      onRecalibrate={handleRecalibrate}
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

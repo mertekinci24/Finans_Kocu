@@ -26,7 +26,7 @@ export default function AccountBalanceWidget({
     );
   }
 
-  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalBalance = accounts.reduce((sum, a) => sum + (a.type === 'kredi_kartı' ? -a.balance : a.balance), 0);
 
   return (
     <div className="space-y-3">

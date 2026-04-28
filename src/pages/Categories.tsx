@@ -82,7 +82,16 @@ export default function Categories(): JSX.Element {
         } as CategoryWithSpend;
       });
 
-      setCategories(catList);
+      // Deduplicate by name (case-insensitive) to prevent double rendering
+      const seenNames = new Set<string>();
+      const uniqueCats = catList.filter(c => {
+        const lowerName = c.name.toLowerCase().trim();
+        if (seenNames.has(lowerName)) return false;
+        seenNames.add(lowerName);
+        return true;
+      });
+
+      setCategories(uniqueCats);
 
       if (catList.length === 0) {
         await seedDefaults(userId);

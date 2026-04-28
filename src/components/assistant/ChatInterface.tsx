@@ -100,7 +100,7 @@ export default function ChatInterface({
           )}
 
           {messages.map((msg, idx) => (
-            <div key={msg.id}>
+            <div key={msg.id ?? `msg-${idx}-${msg.createdAt ?? Date.now()}`}>
               <ChatBubble message={msg} />
               {msg.suggestedTransaction && idx === messages.length - 1 && (
                 <TransactionSuggestion

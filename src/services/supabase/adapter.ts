@@ -9,6 +9,7 @@ import { SupabaseFinancialScoreRepository } from './repositories/FinancialScoreR
 import { SupabaseFindeksRepository } from './repositories/FindeksRepository';
 import { SupabaseChatRepository } from './repositories/ChatRepository';
 import { SupabaseTaxRepository } from './repositories/TaxRepository';
+import { SupabaseRecurringFlowRepository } from './repositories/RecurringFlowRepository';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -33,6 +34,7 @@ export const dataSourceAdapter: IDataSourceAdapter = {
   transaction: new SupabaseTransactionRepository(supabase),
   debt: new SupabaseDebtRepository(supabase),
   installment: new SupabaseInstallmentRepository(supabase),
+  recurringFlow: new SupabaseRecurringFlowRepository(supabase),
   financialScore: new SupabaseFinancialScoreRepository(supabase),
   findeks: new SupabaseFindeksRepository(),
   chat: new SupabaseChatRepository(),

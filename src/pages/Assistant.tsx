@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { dataSourceAdapter } from '@/services/supabase/adapter';
 import { buildUserContext } from '@/services/assistant/ragContextBuilder';
@@ -6,12 +7,38 @@ import { sendAssistantMessage } from '@/services/assistant/assistantService';
 import ChatInterface from '@/components/assistant/ChatInterface';
 import { ChatSession, ChatMessage, SuggestedTransaction } from '@/types';
 
+type AssistantEntryMode = "findeks_bridge" | "general_finance";
+
+const getFieldValue = (field: any) => {
+  if (field && typeof field === "object" && "value" in field) {
+    return field.value ?? "bulunamadı";
+  }
+  return field ?? "bulunamadı";
+};
+
+const buildDefaultFindeksQuery = (data: any) => {
+  const score = getFieldValue(data?.creditScore);
+  const docType = data?.documentType || data?.scope || "unknown";
+  return `Findeks raporumu analiz eder misin? Kredi notum ${score}. Bu rapor tipi: ${docType}. Eksik alanları sıfır kabul etmeden ve varsayım yapmadan değerlendir.`;
+};
+
 export default function Assistant() {
   const { user } = useAuth();
+  const location = useLocation();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const hasTriggeredRef = useRef(false);
+  const pendingBridgeRef = useRef<{
+    mode: AssistantEntryMode;
+    findeksData?: any;
+    initialQuery?: string;
+  } | null>(null);
+
+  const entryMode: AssistantEntryMode =
+    location.state?.findeksData ? "findeks_bridge" : "general_finance";
 
   useEffect(() => {
     if (user) {
@@ -20,10 +47,60 @@ export default function Assistant() {
   }, [user]);
 
   useEffect(() => {
+    if (location.state?.findeksData && !hasTriggeredRef.current) {
+      pendingBridgeRef.current = {
+        mode: "findeks_bridge",
+        findeksData: location.state.findeksData,
+        initialQuery: location.state.initialQuery,
+      };
+
+      console.log("[ASSISTANT_BRIDGE_CAPTURED]", {
+        documentType: location.state.findeksData?.documentType,
+        parserVersion: location.state.findeksData?.parserVersion,
+        missingFields: location.state.findeksData?.missingFields,
+      });
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     if (activeSession) {
       loadMessages();
     }
   }, [activeSession]);
+
+  useEffect(() => {
+    const payload = pendingBridgeRef.current;
+
+    if (
+      activeSession &&
+      !hasTriggeredRef.current &&
+      !isLoading &&
+      payload?.mode === "findeks_bridge"
+    ) {
+      const initialQuery =
+        payload.initialQuery || buildDefaultFindeksQuery(payload.findeksData);
+
+      const timer = setTimeout(() => {
+        if (hasTriggeredRef.current) return;
+
+        hasTriggeredRef.current = true;
+
+        handleSendMessage(initialQuery, {
+          findeksOverride: payload.findeksData,
+          entryMode: "findeks_bridge",
+        });
+
+        pendingBridgeRef.current = null;
+
+        console.log("[ASSISTANT_BRIDGE_SENT]", {
+          documentType: payload.findeksData?.documentType,
+          missingFields: payload.findeksData?.missingFields,
+        });
+      }, 800);
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeSession, isLoading]);
 
   const loadSessions = async () => {
     if (!user) return;
@@ -50,7 +127,13 @@ export default function Assistant() {
     setMessages([]);
   };
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = async (
+    text: string,
+    options?: {
+      findeksOverride?: any;
+      entryMode?: AssistantEntryMode;
+    }
+  ) => {
     if (!user || !activeSession) return;
 
     setIsLoading(true);
@@ -67,22 +150,14 @@ export default function Assistant() {
       setMessages((prev) => [...prev, userMsg]);
 
       const context = await buildUserContext(user.id);
-      const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
+      
+      const enrichedContext = {
+        ...context,
+        findeksData: options?.findeksOverride ?? context.findeksData,
+        assistantEntryMode: options?.entryMode ?? entryMode,
+      };
 
-      if (!apiKey) {
-        const fallbackMsg = await dataSourceAdapter.chat.addMessage(
-          activeSession.id,
-          user.id,
-          'assistant',
-          'Claude API anahtarı henüz yapılandırılmamış. Ayarlar → API Anahtarları\'ndan kendi API anahtarınızı ekleyin veya yöneticiye başvurun.',
-          undefined,
-          0
-        );
-        setMessages((prev) => [...prev, fallbackMsg]);
-        return;
-      }
-
-      const response = await sendAssistantMessage(text, context, messages, apiKey);
+      const response = await sendAssistantMessage(text, enrichedContext, messages);
 
       const assistantMsg = await dataSourceAdapter.chat.addMessage(
         activeSession.id,

@@ -14,6 +14,8 @@ export interface AccountRow {
   currency: string;
   bank_name: string | null;
   card_limit: number | null;
+  statement_date: number | null;
+  due_date: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -53,14 +55,18 @@ export interface DebtRow {
 export interface InstallmentRow {
   id: string;
   user_id: string;
+  account_id: string | null;
   lender_name: string;
+  type: string;
   principal: number;
   monthly_payment: number;
   remaining_months: number;
   total_months: number;
   interest_rate: number;
   next_payment_date: string;
+  first_payment_date: string;
   status: string;
+  payment_history: Record<string, any>;
   created_at: string;
   updated_at: string;
 }
@@ -215,4 +221,18 @@ export interface CategoryRow {
   type: string;
   is_default: boolean;
   created_at: string;
+}
+
+export interface RecurringFlowRow {
+  id: string;
+  user_id: string;
+  type: string;
+  amount: number;
+  day_of_month: number;
+  category: string;
+  description: string;
+  is_fixed: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }

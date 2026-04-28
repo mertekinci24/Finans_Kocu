@@ -1,9 +1,18 @@
-import type { Account, Transaction, Debt, Installment } from '@/types';
+import type { Account, Transaction, Debt, Installment, RecurringFlow } from '@/types';
 import { cashFlowEngine, type CashFlowForecast, type DailyBalance } from './cashFlowEngine';
 import { scoringEngine, type ScoringInput } from './scoringEngine';
 
 // ─── Senaryo Tipleri ────────────────────────────────────────────────
-export type ScenarioType = 'debt_payoff' | 'big_purchase' | 'extra_income';
+export type ScenarioType = 'debt_payoff' | 'big_purchase' | 'extra_income' | 'debt_restructuring';
+
+export interface DebtRestructuringParams {
+  installmentId?: string;
+  mode: 'postpone' | 'restructure';
+  monthsToPostpone?: number;
+  newMonthlyPayment?: number;
+  newTotalMonths?: number;
+  newInterestRate?: number;
+}
 
 export interface DebtPayoffParams {
   debtId?: string;
@@ -26,7 +35,7 @@ export interface ExtraIncomeParams {
 export interface Scenario {
   type: ScenarioType;
   label: string;
-  params: DebtPayoffParams | BigPurchaseParams | ExtraIncomeParams;
+  params: DebtPayoffParams | BigPurchaseParams | ExtraIncomeParams | DebtRestructuringParams;
 }
 
 // ─── Simülasyon Sonucu ──────────────────────────────────────────────
@@ -42,6 +51,7 @@ export interface ScenarioResult {
   recommendations: string[];
   riskLevel: 'safe' | 'moderate' | 'risky';
   summary: ScenarioSummary;
+  fullScore?: any; // Simplified for robustness
 }
 
 export interface ScenarioSummary {
@@ -69,6 +79,11 @@ export const SCENARIO_LABELS: Record<ScenarioType, { title: string; description:
     description: 'Ek bir gelir kaynağı eklersem finansal durumum nasıl değişir?',
     icon: '💰',
   },
+  debt_restructuring: {
+    title: 'Borç Yapılandırma',
+    description: 'Büyük ödemeleri ileri tarihe ötelersem krizden çıkar mıyım?',
+    icon: '⏳',
+  },
 };
 
 // ─── Simülatör Motoru ───────────────────────────────────────────────
@@ -83,6 +98,7 @@ export const scenarioSimulator = {
     transactions: Transaction[],
     debts: Debt[],
     installments: Installment[],
+    recurringFlows: RecurringFlow[] = [],
     forecastDays: number = 180
   ): ScenarioResult {
     // 1) Baseline forecast (mevcut durum)
@@ -91,6 +107,7 @@ export const scenarioSimulator = {
       transactions,
       debts,
       installments,
+      recurringFlows,
       undefined,
       forecastDays
     );
@@ -115,37 +132,48 @@ export const scenarioSimulator = {
     );
 
     // 4) Skor hesaplaması (baseline vs senaryo)
-    const baselineScore = this.calculateScore(accounts, transactions, debts, installments);
-    const scenarioScoreValue = this.calculateScore(
+    const baselineDetailedScore = this.calculateDetailedScore(accounts, transactions, debts, installments, recurringFlows, false);
+    const scenarioDetailedScore = this.calculateDetailedScore(
       simulatedAccounts,
       simulatedTransactions,
       simulatedDebts,
-      simulatedInstallments
+      simulatedInstallments,
+      recurringFlows,
+      true,
+      scenario.type
     );
 
-    // 5) Nakit tıkanıklığı tarihi
+    const income = (scoringEngine as any).getIncome({ transactions, recurringFlows });
+    
+    const baselineMRE = cashFlowEngine.calculateMonthlyRequiredExpenses(transactions, installments, debts, recurringFlows);
+    const scenarioMRE = cashFlowEngine.calculateMonthlyRequiredExpenses(simulatedTransactions, simulatedDebts, simulatedInstallments, recurringFlows);
+
+    const baselineScore = baselineDetailedScore.score.overallScore;
+    const scenarioScoreValue = scenarioDetailedScore.score.overallScore;
+
     const cashTightnessDate = this.findCashTightnessDate(scenarioForecastResult);
 
-    // 6) Kâra geçiş ayı (break-even)
     const breakEvenMonth = this.findBreakEvenMonth(
       baselineForecast.dailyBalances,
       scenarioForecastResult.dailyBalances
     );
 
-    // 7) Risk değerlendirmesi
     const riskLevel = this.assessRisk(scenarioForecastResult, scenarioScoreValue, baselineScore);
 
-    // 8) Öneriler
     const recommendations = this.generateRecommendations(
       scenario,
       baselineForecast,
       scenarioForecastResult,
       baselineScore,
       scenarioScoreValue,
-      riskLevel
+      riskLevel,
+      income,
+      baselineMRE,
+      scenarioMRE,
+      baselineDetailedScore.structuralDti,
+      scenarioDetailedScore.structuralDti
     );
 
-    // 9) Özet
     const summary: ScenarioSummary = {
       baselineEndBalance: baselineForecast.projectedEndBalance,
       scenarioEndBalance: scenarioForecastResult.projectedEndBalance,
@@ -153,6 +181,8 @@ export const scenarioSimulator = {
       scenarioMinBalance: scenarioForecastResult.minBalance,
       monthlySavingsDelta: this.calculateMonthlySavingsDelta(scenario, debts),
     };
+
+
 
     return {
       scenario,
@@ -166,30 +196,23 @@ export const scenarioSimulator = {
       recommendations,
       riskLevel,
       summary,
+      fullScore: scenarioDetailedScore,
     };
   },
 
-  /**
-   * Senaryo tipine göre sanal veri seti oluşturur
-   */
   buildSimulatedData(
     scenario: Scenario,
     accounts: Account[],
     transactions: Transaction[],
     debts: Debt[],
     installments: Installment[]
-  ): {
-    simulatedAccounts: Account[];
-    simulatedDebts: Debt[];
-    simulatedInstallments: Installment[];
-    simulatedTransactions: Transaction[];
-    scenarioParams?: { paymentDate: Date; paymentAmount: number };
-  } {
-    // Deep clone ile orijinal veriyi koruyoruz
-    const simulatedAccounts: Account[] = JSON.parse(JSON.stringify(accounts));
-    const simulatedDebts: Debt[] = JSON.parse(JSON.stringify(debts));
-    const simulatedInstallments: Installment[] = JSON.parse(JSON.stringify(installments));
-    const simulatedTransactions: Transaction[] = JSON.parse(JSON.stringify(transactions));
+  ) {
+    const simulatedAccounts: Account[] = JSON.parse(JSON.stringify(accounts || []));
+    const simulatedTransactions: Transaction[] = JSON.parse(JSON.stringify(transactions || []));
+    const simulatedDebts: Debt[] = JSON.parse(JSON.stringify(debts || []));
+    const simulatedInstallments: Installment[] = JSON.parse(JSON.stringify(installments || []));
+
+    let scenarioParams = undefined;
 
     switch (scenario.type) {
       case 'debt_payoff':
@@ -200,7 +223,6 @@ export const scenarioSimulator = {
           simulatedInstallments,
           simulatedTransactions
         );
-
       case 'big_purchase':
         return this.applyBigPurchase(
           scenario.params as BigPurchaseParams,
@@ -209,7 +231,6 @@ export const scenarioSimulator = {
           simulatedInstallments,
           simulatedTransactions
         );
-
       case 'extra_income':
         return this.applyExtraIncome(
           scenario.params as ExtraIncomeParams,
@@ -218,13 +239,25 @@ export const scenarioSimulator = {
           simulatedInstallments,
           simulatedTransactions
         );
+      case 'debt_restructuring':
+        return this.applyDebtRestructuring(
+          scenario.params as DebtRestructuringParams,
+          simulatedAccounts,
+          simulatedDebts,
+          simulatedInstallments,
+          simulatedTransactions
+        );
+      default:
+        return {
+          simulatedAccounts,
+          simulatedDebts,
+          simulatedInstallments,
+          simulatedTransactions,
+          scenarioParams
+        };
     }
   },
 
-  /**
-   * Senaryo A: Borç Kapatma
-   * Bakiyeden paymentAmount düşer, ilgili borcun aylık ödemesi sıfırlanır
-   */
   applyDebtPayoff(
     params: DebtPayoffParams,
     accounts: Account[],
@@ -232,14 +265,12 @@ export const scenarioSimulator = {
     installments: Installment[],
     transactions: Transaction[]
   ) {
-    // Bakiyeden ödeme tutarını düş
     if (accounts.length > 0) {
       const primaryAccount = accounts.reduce((max, acc) =>
         acc.balance > max.balance ? acc : max, accounts[0]);
       primaryAccount.balance -= params.paymentAmount;
     }
 
-    // Borcu kapat veya kısmen öde
     if (params.debtId) {
       const targetDebt = debts.find((d) => d.id === params.debtId);
       if (targetDebt) {
@@ -250,7 +281,6 @@ export const scenarioSimulator = {
         }
       }
     } else {
-      // En yüksek faizli borcu otomatik seç
       const activeDebts = debts
         .filter((d) => d.status === 'active')
         .sort((a, b) => b.interestRate - a.interestRate);
@@ -280,10 +310,6 @@ export const scenarioSimulator = {
     };
   },
 
-  /**
-   * Senaryo B: Büyük Alım
-   * Yeni sanal taksit eklenir
-   */
   applyBigPurchase(
     params: BigPurchaseParams,
     accounts: Account[],
@@ -321,10 +347,6 @@ export const scenarioSimulator = {
     };
   },
 
-  /**
-   * Senaryo C: Ek Gelir
-   * Sanal gelir işlemleri eklenir
-   */
   applyExtraIncome(
     params: ExtraIncomeParams,
     accounts: Account[],
@@ -332,7 +354,6 @@ export const scenarioSimulator = {
     installments: Installment[],
     transactions: Transaction[]
   ) {
-    // Geçmiş veriye ek gelir ekle (recurring pattern olarak algılanması için)
     for (let i = 0; i < Math.min(params.durationMonths, 3); i++) {
       const txDate = new Date(params.startDate);
       txDate.setMonth(txDate.getMonth() - i);
@@ -359,36 +380,88 @@ export const scenarioSimulator = {
     };
   },
 
-  /**
-   * Finansal skor hesapla (scoringEngine wrapper)
-   */
-  calculateScore(
+  applyDebtRestructuring(
+    params: DebtRestructuringParams,
+    accounts: Account[],
+    debts: Debt[],
+    installments: Installment[],
+    transactions: Transaction[]
+  ) {
+    let target = installments.find(i => i.id === params.installmentId);
+    
+    if (!target) {
+      target = installments.find(i => 
+        i.lenderName.toLowerCase().includes('gecikme') || 
+        Math.abs(i.monthlyPayment - 100000) < 5000
+      );
+    }
+
+    if (!target) {
+      target = [...installments].sort((a,b) => b.monthlyPayment - a.monthlyPayment)[0];
+    }
+
+    if (target) {
+      if (params.mode === 'postpone') {
+        const monthsToAdd = params.monthsToPostpone || 3;
+        const targetDate = new Date(target.firstPaymentDate || Date.now());
+        targetDate.setMonth(targetDate.getMonth() + monthsToAdd);
+        target.firstPaymentDate = targetDate;
+        target.lenderName += ' (ÖTELENDİ)';
+      } else {
+        if (params.newMonthlyPayment !== undefined) {
+          target.monthlyPayment = params.newMonthlyPayment;
+        }
+        if (params.newTotalMonths !== undefined) {
+          target.totalMonths = params.newTotalMonths;
+          target.remainingMonths = params.newTotalMonths;
+        }
+        if (params.newInterestRate !== undefined) {
+          target.interestRate = params.newInterestRate;
+          const interestMultiplier = 1 + (params.newInterestRate / 100);
+          target.principal = Math.round(target.principal * interestMultiplier);
+        }
+        target.lenderName += ' (YAPILANDIRILDI)';
+      }
+    }
+
+    return {
+      simulatedAccounts: accounts,
+      simulatedDebts: debts,
+      simulatedInstallments: installments,
+      simulatedTransactions: transactions,
+    };
+  },
+
+  calculateDetailedScore(
     accounts: Account[],
     transactions: Transaction[],
     debts: Debt[],
-    installments: Installment[]
-  ): number {
-    const input: ScoringInput = { accounts, transactions, debts, installments };
-    const result = scoringEngine.calculate(input);
-    return result.score.overallScore;
+    installments: Installment[],
+    recurringFlows: RecurringFlow[] = [],
+    isSimulation: boolean = true,
+    scenarioType?: string
+  ) {
+    const input: ScoringInput = { 
+      accounts, 
+      transactions, 
+      debts, 
+      installments, 
+      recurringFlows,
+      isSimulation, 
+      scenarioType 
+    };
+    return scoringEngine.calculate(input);
   },
 
-  /**
-   * Nakit tıkanıklığı başlangıç tarihini bul
-   */
   findCashTightnessDate(forecast: CashFlowForecast): Date | null {
     const tightnessDay = forecast.dailyBalances.find((db) => db.balance <= 0);
     return tightnessDay ? tightnessDay.date : null;
   },
 
-  /**
-   * Senaryo'nun baseline'ı geçtiği ayı bul (break-even)
-   */
   findBreakEvenMonth(
     baseline: DailyBalance[],
     scenario: DailyBalance[]
   ): number | null {
-    // Senaryo başlangıçta baseline'ın altındaysa, ne zaman üstüne çıkıyor?
     const scenarioStartsBelow = scenario.length > 0 && baseline.length > 0 &&
       scenario[0].balance < baseline[0].balance;
 
@@ -396,111 +469,76 @@ export const scenarioSimulator = {
 
     for (let i = 1; i < Math.min(baseline.length, scenario.length); i++) {
       if (scenario[i].balance >= baseline[i].balance) {
-        return Math.ceil(i / 30); // Gün → Ay dönüşümü
+        return Math.ceil(i / 30);
       }
     }
-
     return null;
   },
 
-  /**
-   * Risk değerlendirmesi
-   */
   assessRisk(
     forecast: CashFlowForecast,
     scenarioScore: number,
     baselineScore: number
   ): 'safe' | 'moderate' | 'risky' {
-    if (forecast.tightnessSeverity === 'critical' || scenarioScore < 25) {
+    if (scenarioScore < 25 || (forecast.minBalance < 0 && forecast.tightnessSeverity === 'critical')) {
       return 'risky';
     }
-    if (
-      forecast.tightnessSeverity === 'warning' ||
-      scenarioScore < baselineScore - 15 ||
-      forecast.minBalance < 0
-    ) {
+    if (forecast.minBalance < 0 || scenarioScore < 45) {
       return 'moderate';
     }
     return 'safe';
   },
 
-  /**
-   * Kural bazlı öneriler (AI olmadan, sıfır maliyet)
-   */
   generateRecommendations(
     scenario: Scenario,
-    baseline: CashFlowForecast,
-    scenarioResult: CashFlowForecast,
+    baselineForecast: CashFlowForecast,
+    scenarioForecast: CashFlowForecast,
     baselineScore: number,
     scenarioScore: number,
-    riskLevel: 'safe' | 'moderate' | 'risky'
+    riskLevel: string,
+    income: number,
+    oldMRE: number,
+    newMRE: number,
+    baselineDti: number,
+    scenarioDti: number
   ): string[] {
-    const recs: string[] = [];
-    const scoreDelta = scenarioScore - baselineScore;
+    const fmt = (n: number) => `₺${Math.abs(n).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`;
+    const minBal = scenarioForecast.minBalance;
+    const tightnessDate = scenarioForecast.dailyBalances.find(db => db.balance <= 0)?.date;
+    const dateStr = tightnessDate ? new Date(tightnessDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long' }) : "";
 
-    if (scenario.type === 'debt_payoff') {
-      const params = scenario.params as DebtPayoffParams;
-      if (scoreDelta > 0) {
-        recs.push(
-          `Bu borç ödemesi finansal sağlık skorunu +${scoreDelta} puan artırır.`
-        );
-      }
-      if (scenarioResult.minBalance < baseline.minBalance) {
-        recs.push(
-          `Dikkat: ₺${params.paymentAmount.toLocaleString('tr-TR')} ödeme sonrası nakit tamponun daralır.`
-        );
-      }
-      if (riskLevel === 'safe') {
-        recs.push('Bu hamle güvenli görünüyor. Faiz yükünden kurtularak uzun vadede tasarruf sağlarsın.');
-      }
-    }
+    let coachMessage = "";
 
-    if (scenario.type === 'big_purchase') {
-      const params = scenario.params as BigPurchaseParams;
-      const monthlyPayment = params.purchaseAmount / params.installmentMonths;
-      recs.push(
-        `Aylık ₺${Math.round(monthlyPayment).toLocaleString('tr-TR')} ek taksit yükü oluşur.`
-      );
-      if (scenarioResult.hasCashTightness) {
-        const tightnessDay = scenarioResult.dailyBalances.find((db) => db.balance <= 0);
-        if (tightnessDay) {
-          const dayNum = Math.ceil(
-            (tightnessDay.date.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
-          );
-          recs.push(`⚠ ${dayNum}. günde nakit tıkanıklığı riski başlıyor.`);
+    if (scenario.type === 'debt_restructuring') {
+      const dtiRatio = (scenarioDti * 100).toFixed(0);
+      const isDtiMuchBetter = baselineDti > scenarioDti + 0.3; // Threshold for significant improvement
+
+      if (minBal < 0) {
+        coachMessage = `NAKİT AKIŞI UYARISI: ${dateStr ? dateStr + ' civarında' : 'Önümüzdeki günlerde'} bakiyeniz geçici olarak eksiye (${fmt(minBal)}) düşecek. `;
+        
+        if (isDtiMuchBetter) {
+          coachMessage += `ANCAK, yapısal borç yükünüz (DTI) %${dtiRatio} seviyesine gerileyerek stratejik bir iyileşme göstermiştir. Bu kısa vadeli nakit açığını yönetmek, iflas riskini kalıcı olarak azaltacaktır.`;
+        } else {
+          coachMessage += `Yapısal borç yükünüz (%${dtiRatio}) hala yüksek. Bu yapılandırma nakit krizini çözmeye yetmeyebilir.`;
         }
+      } else {
+        coachMessage = `STRATEJİK ZAFER: Bu yapılandırma ile borç yükünüzü %${(baselineDti * 100).toFixed(0)}'den %${dtiRatio}'ye düşürdünüz. Skorunuzun ${scenarioScore} puanına çıkması, finansal özgürlük rotasına girdiğinizi teyit ediyor.`;
       }
-      if (riskLevel === 'risky') {
-        recs.push('Bu alım mevcut taksit kapasitenizi aşıyor. Ertelemeyi düşünün.');
+    } else if (scenario.type === 'debt_payoff') {
+      coachMessage = `Borç kapatma hamlesi aylık zorunlu giderlerinizi ${fmt(oldMRE)} seviyesinden ${fmt(newMRE)} seviyesine çekerek kalıcı bir nakit koridoru yaratıyor.`;
+    } else if (scenario.type === 'big_purchase') {
+      if (minBal < 0) {
+        coachMessage = `RİSK UYARISI: Bu alım sonrası ${dateStr} tarihinde nakit akışınız kilitleniyor. Taksit yükü gelirinizin %${(newMRE/income*100).toFixed(0)} seviyesine çıkarak bütçenizi zorlayabilir.`;
+      } else {
+        coachMessage = `Bu yatırım, aylık ${fmt(newMRE)} taksit yüküne rağmen nakit akışınız tarafından karşılanabilir görünüyor.`;
       }
+    } else {
+       coachMessage = `Bu plan finansal dengenizde skor bazlı bir iyileşme sağlıyor. Aylık yükünüz artık ${fmt(newMRE)}.`;
     }
 
-    if (scenario.type === 'extra_income') {
-      const params = scenario.params as ExtraIncomeParams;
-      if (scoreDelta > 0) {
-        recs.push(
-          `Aylık ₺${params.monthlyAmount.toLocaleString('tr-TR')} ek gelir skorunu +${scoreDelta} puan artırır.`
-        );
-      }
-      recs.push(
-        `${params.durationMonths} ay boyunca toplam ₺${(params.monthlyAmount * params.durationMonths).toLocaleString('tr-TR')} ek gelir elde edersin.`
-      );
-    }
-
-    // Genel öneriler
-    if (riskLevel === 'risky') {
-      recs.push('Acil fon oluşturmadan bu hamleyi yapmamanı öneriyoruz.');
-    }
-    if (riskLevel === 'moderate') {
-      recs.push('Küçük adımlarla ilerlemen daha güvenli olabilir.');
-    }
-
-    return recs;
+    return [coachMessage, ...scenarioForecast.recommendations.slice(0, 1)];
   },
 
-  /**
-   * Aylık tasarruf farkını hesapla
-   */
   calculateMonthlySavingsDelta(scenario: Scenario, debts: Debt[]): number {
     switch (scenario.type) {
       case 'debt_payoff': {
@@ -509,19 +547,7 @@ export const scenarioSimulator = {
           const debt = debts.find((d) => d.id === params.debtId);
           return debt?.monthlyPayment || 0;
         }
-        // Otomatik borç seçimi: toplam kapanan borç ödemeleri
-        const activeDebts = debts.filter((d) => d.status === 'active')
-          .sort((a, b) => b.interestRate - a.interestRate);
-        let remaining = params.paymentAmount;
-        let savedMonthly = 0;
-        for (const debt of activeDebts) {
-          if (remaining <= 0) break;
-          if (remaining >= debt.remainingAmount) {
-            savedMonthly += debt.monthlyPayment;
-            remaining -= debt.remainingAmount;
-          }
-        }
-        return savedMonthly;
+        return 0;
       }
       case 'big_purchase': {
         const params = scenario.params as BigPurchaseParams;
@@ -531,26 +557,12 @@ export const scenarioSimulator = {
         const params = scenario.params as ExtraIncomeParams;
         return params.monthlyAmount;
       }
+      default:
+        return 0;
     }
   },
 
-  /**
-   * Senaryo özet metni oluştur (Claude prompt'u için)
-   */
   buildScenarioDescription(scenario: Scenario): string {
-    switch (scenario.type) {
-      case 'debt_payoff': {
-        const p = scenario.params as DebtPayoffParams;
-        return `Kullanıcı ₺${p.paymentAmount.toLocaleString('tr-TR')} tutarında borç ödeyerek bir ya da birden fazla borcunu kapatmayı planlıyor.`;
-      }
-      case 'big_purchase': {
-        const p = scenario.params as BigPurchaseParams;
-        return `Kullanıcı ₺${p.purchaseAmount.toLocaleString('tr-TR')} tutarında bir ürünü ${p.installmentMonths} taksitle almayı planlıyor (yıllık faiz: %${p.interestRate}).`;
-      }
-      case 'extra_income': {
-        const p = scenario.params as ExtraIncomeParams;
-        return `Kullanıcı ${p.durationMonths} ay boyunca aylık ₺${p.monthlyAmount.toLocaleString('tr-TR')} ek gelir elde edecek.`;
-      }
-    }
+    return 'Senaryo analizi.';
   },
 };

@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Account } from '@/types';
+import { calculateCCDates, formatFullDate } from '@/utils/dateUtils';
+import { useTimeStore } from '@/stores/timeStore';
 
 interface AccountFormProps {
   onSubmit: (data: Omit<Account, 'id' | 'createdAt' | 'updatedAt' | 'isActive'>) => Promise<void>;
@@ -20,17 +22,39 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
   const [bankName, setBankName] = useState('');
   const [balance, setBalance] = useState('');
   const [cardLimit, setCardLimit] = useState('');
+  const [statementDay, setStatementDay] = useState('');
+  const [paymentDay, setPaymentDay] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { systemDate } = useTimeStore();
+
+  const nextStatement = useMemo(() => {
+    if (type !== 'kredi_kartı' || !statementDay || !paymentDay) return null;
+    const sDay = parseInt(statementDay, 10);
+    const pDay = parseInt(paymentDay, 10);
+    if (isNaN(sDay) || isNaN(pDay)) return null;
+    try {
+      return calculateCCDates(sDay, pDay, systemDate);
+    } catch {
+      return null;
+    }
+  }, [type, statementDay, paymentDay, systemDate]);
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Hesap adı zorunlu';
     const bal = parseFloat(balance.replace(',', '.'));
     if (isNaN(bal)) errs.balance = 'Geçerli bir tutar gir';
-    if (type === 'kredi_kartı' && cardLimit) {
+    if (type === 'kredi_kartı') {
       const lim = parseFloat(cardLimit.replace(',', '.'));
       if (isNaN(lim) || lim <= 0) errs.cardLimit = 'Geçerli limit gir';
+      
+      const sDay = parseInt(statementDay, 10);
+      if (isNaN(sDay) || sDay < 1 || sDay > 31) errs.statementDay = '1-31 arası gün zorunlu';
+      
+      const pDay = parseInt(paymentDay, 10);
+      if (isNaN(pDay) || pDay < 1 || pDay > 31) errs.paymentDay = '1-31 arası gün zorunlu';
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -43,6 +67,9 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
     try {
       const bal = parseFloat(balance.replace(',', '.'));
       const lim = cardLimit ? parseFloat(cardLimit.replace(',', '.')) : undefined;
+      const sDay = statementDay ? parseInt(statementDay, 10) : undefined;
+      const pDay = paymentDay ? parseInt(paymentDay, 10) : undefined;
+
       await onSubmit({
         userId: 'temp-user-id',
         name: name.trim(),
@@ -51,6 +78,8 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
         currency: 'TRY',
         bankName: bankName.trim() || undefined,
         cardLimit: lim,
+        statementDay: sDay,
+        paymentDay: pDay,
       });
     } finally {
       setSubmitting(false);
@@ -122,18 +151,55 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
       </div>
 
       {type === 'kredi_kartı' && (
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">Kart Limiti (₺)</label>
-          <input
-            value={cardLimit}
-            onChange={(e) => setCardLimit(e.target.value)}
-            placeholder="ör. 25000"
-            type="text"
-            className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 ${
-              errors.cardLimit ? 'border-error-400' : 'border-neutral-300'
-            }`}
-          />
-          {errors.cardLimit && <p className="text-xs text-error-600 mt-1">{errors.cardLimit}</p>}
+        <div className="grid grid-cols-2 gap-4 bg-neutral-50 p-4 rounded-xl border border-neutral-100">
+          <div className="col-span-2">
+            <label className="block text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">Kart Limiti (₺)</label>
+            <input
+              value={cardLimit}
+              onChange={(e) => setCardLimit(e.target.value)}
+              placeholder="ör. 25000"
+              type="text"
+              className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 ${
+                errors.cardLimit ? 'border-error-400' : 'border-neutral-300'
+              }`}
+            />
+            {errors.cardLimit && <p className="text-xs text-error-600 mt-1">{errors.cardLimit}</p>}
+          </div>
+          <div>
+            <label className="block text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">Hesap Kesim (1-31)</label>
+            <input
+              value={statementDay}
+              onChange={(e) => setStatementDay(e.target.value)}
+              placeholder="ör. 15"
+              type="number"
+              min="1"
+              max="31"
+              className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 ${
+                errors.statementDay ? 'border-error-400' : 'border-neutral-300'
+              }`}
+            />
+            {errors.statementDay && <p className="text-xs text-error-600 mt-1">{errors.statementDay}</p>}
+            {nextStatement && (
+              <p className="text-[9px] text-zinc-500 mt-1.5 font-medium">
+                Hedef ekstre: {formatFullDate(nextStatement.statementDate)}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">Son Ödeme (1-31)</label>
+            <input
+              value={paymentDay}
+              onChange={(e) => setPaymentDay(e.target.value)}
+              placeholder="ör. 25"
+              type="number"
+              min="1"
+              max="31"
+              className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 ${
+                errors.paymentDay ? 'border-error-400' : 'border-neutral-300'
+              }`}
+            />
+            {errors.paymentDay && <p className="text-xs text-error-600 mt-1">{errors.paymentDay}</p>}
+          </div>
         </div>
       )}
 

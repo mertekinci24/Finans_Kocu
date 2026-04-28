@@ -16,10 +16,22 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
       .select('*')
       .eq('account_id', accountId)
       .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) throw error;
     return (data || []).map(this.mapToTransaction);
+  }
+
+  async list(limit = 1000): Promise<{ data: Transaction[] }> {
+    const { data, error } = await this.client
+      .from('transactions')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return { data: (data || []).map(this.mapToTransaction) };
   }
 
   async getByDateRange(
@@ -36,7 +48,8 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
       .eq('account_id', accountId)
       .gte('date', startStr)
       .lte('date', endStr)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return (data || []).map(this.mapToTransaction);

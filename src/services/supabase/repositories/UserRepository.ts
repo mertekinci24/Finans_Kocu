@@ -16,7 +16,7 @@ export class SupabaseUserRepository implements IUserRepository {
     return data;
   }
 
-  async create(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+  async create(user: Omit<User, 'createdAt'>): Promise<User> {
     const { data, error } = await this.client
       .from('users')
       .insert([user])

@@ -52,22 +52,11 @@ export const goalEngine = {
   /**
    * Mevcut tasarruf oranından aylık tasarruf hesapla
    */
-  calculateCurrentMonthlySavings(transactions: Transaction[]): number {
-    const now = new Date();
-    const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-
-    const recent = transactions.filter((t) => new Date(t.date) >= threeMonthsAgo);
-
-    const totalIncome = recent
-      .filter((t) => t.type === 'gelir')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalExpense = recent
-      .filter((t) => t.type === 'gider')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const months = Math.max(1, 3);
-    return Math.max(0, (totalIncome - totalExpense) / months);
+  calculateCurrentMonthlySavings(income: number, mre: number): number {
+    // 🚨 ARCHITECTURAL BRIDGE (Task 46.8): Proactive Capacity
+    // Use real-time income and mandatory expenses (MRE) instead of historical averages.
+    // This allows restructuring results to immediately reflect in goal projections.
+    return Math.max(0, income - mre);
   },
 
   /**
@@ -76,7 +65,7 @@ export const goalEngine = {
    */
   projectGoal(
     goal: SavingGoal,
-    currentMonthlySavings: number,
+    allocatedSavings: number,
     monthlyInflationRate: number = 2.5
   ): GoalProjection {
     const remainingAmount = Math.max(0, goal.targetAmount - goal.currentAmount);
@@ -84,8 +73,8 @@ export const goalEngine = {
       ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100)
       : 0;
 
-    // Hedefe ayıracak miktar (tüm tasarrufu buna ayıramayız — varsayım: monthlySaving veya kullanıcının belirlediği)
-    const effectiveMonthlySaving = goal.monthlySaving > 0 ? goal.monthlySaving : currentMonthlySavings;
+    // Hedefe ayıracak miktar (Waterfall'dan gelen tahsisat)
+    const effectiveMonthlySaving = allocatedSavings;
 
     // Tahmini tamamlanma süresi (ay)
     let monthsToComplete: number;
@@ -183,9 +172,14 @@ export const goalEngine = {
       .filter((g) => g.status === 'active')
       .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
-    return sorted.map((goal) =>
-      this.projectGoal(goal, currentMonthlySavings, monthlyInflationRate)
-    );
+    let remainingSavings = currentMonthlySavings;
+    return sorted.map((goal) => {
+      // Hedeflenen aylık tasarruf (eğer belirtilmemişse kalan kapasitenin tamamını almaya çalışır)
+      const desired = goal.monthlySaving > 0 ? goal.monthlySaving : remainingSavings;
+      const allocated = Math.max(0, Math.min(desired, remainingSavings));
+      remainingSavings -= allocated;
+      return this.projectGoal(goal, allocated, monthlyInflationRate);
+    });
   },
 
   /**

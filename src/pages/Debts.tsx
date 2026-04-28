@@ -10,6 +10,7 @@ const RISK_THRESHOLD = 35;
 export default function Debts(): JSX.Element {
   const { user } = useAuth();
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [monthlyIncome, setMonthlyIncome] = useState<number>(0);
@@ -26,22 +27,28 @@ export default function Debts(): JSX.Element {
   const loadData = async (userId: string) => {
     try {
       setLoading(true);
-      const [data, accounts] = await Promise.all([
+      const [data, accountsData, flows] = await Promise.all([
         dataSourceAdapter.debt.getByUserId(userId),
         dataSourceAdapter.account.getByUserId(userId),
+        dataSourceAdapter.recurringFlow.getByUserId(userId),
       ]);
       setDebts(data);
+      setAccounts(accountsData);
 
-      if (accounts.length > 0) {
-        const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const endDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        const txArrays = await Promise.all(
-          accounts.map((a) => dataSourceAdapter.transaction.getByDateRange(a.id, startDate, endDate))
-        );
-        const income = txArrays.flat().filter((t) => t.type === 'gelir').reduce((s, t) => s + t.amount, 0);
-        if (income > 0) setMonthlyIncome(income);
-      }
+      // TASK 47.27: Smart Income Sync for Debt Ratio
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+      
+      const txArrays = await Promise.all(
+        accountsData.map((a) => dataSourceAdapter.transaction.getByDateRange(a.id, startDate, endDate))
+      );
+      
+      const actualIncome = txArrays.flat().filter((t) => t.type === 'gelir').reduce((s, t) => s + t.amount, 0);
+      const fixedIncome = flows.filter(f => f.type === 'gelir' && f.isActive).reduce((s, f) => s + f.amount, 0);
+      
+      const finalIncome = Math.max(actualIncome, fixedIncome);
+      if (finalIncome > 0) setMonthlyIncome(finalIncome);
     } catch (err) {
       console.error('Borçlar yüklenemedi:', err);
     } finally {
@@ -65,6 +72,48 @@ export default function Debts(): JSX.Element {
   const handleDelete = async (id: string) => {
     await dataSourceAdapter.debt.delete(id);
     setDebts((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  const handlePay = async (debtId: string, amount: number, accountId: string) => {
+    const debt = debts.find(d => d.id === debtId);
+    const account = accounts.find(a => a.id === accountId);
+    if (!debt || !account) return;
+
+    try {
+      setLoading(true); // Re-use loading or add isSyncing
+      
+      // 1. Update Account Balance
+      const newBalance = account.balance - amount;
+      await dataSourceAdapter.account.update(accountId, { balance: newBalance });
+      setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, balance: newBalance } : a));
+
+      // 2. Update Debt
+      const newRemaining = Math.max(0, debt.remainingAmount - amount);
+      const newStatus = newRemaining <= 0 ? 'paid_off' : debt.status;
+      const updatedDebt = await dataSourceAdapter.debt.update(debtId, {
+        remainingAmount: newRemaining,
+        status: newStatus
+      });
+      setDebts(prev => prev.map(d => d.id === debtId ? updatedDebt : d));
+
+      // 3. Create Transaction with [DEBT_PAYMENT] tag
+      await dataSourceAdapter.transaction.create({
+        accountId,
+        amount,
+        type: 'gider',
+        category: 'Borç Ödemesi',
+        description: `[DEBT_PAYMENT] [DEBT_ID:${debt.id}] ${debt.creditorName} Ödemesi`,
+        date: new Date(),
+        userId: user!.id
+      });
+
+      console.log(`[DEBT_PAYMENT_SUCCESS] Borç ödemesi tamamlandı: ${amount} TL -> ${debt.creditorName}`);
+    } catch (err) {
+      console.error('Borç ödemesi sırasında hata:', err);
+      alert('Ödeme gerçekleştirilemedi.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const saveIncome = () => {
@@ -123,7 +172,7 @@ export default function Debts(): JSX.Element {
         <div className={`rounded-xl border p-4 ${isHighRisk ? 'bg-error-50 border-error-300' : 'bg-success-50 border-success-200'}`}>
           <div className="flex items-center justify-between">
             <div className={`text-xs font-medium ${isHighRisk ? 'text-error-700' : 'text-success-700'}`}>
-              Borç/Gelir Oranı
+              Aylık Taksit Yükü
             </div>
             <button
               onClick={() => { setIncomeInput(String(monthlyIncome || '')); setEditingIncome(true); }}
@@ -151,7 +200,7 @@ export default function Debts(): JSX.Element {
           )}
           <div className={`text-xs mt-1 ${isHighRisk ? 'text-error-600' : 'text-success-600'}`}>
             {monthlyIncome > 0
-              ? isHighRisk ? 'Risk eşiği aşıldı (%35)' : 'Güvenli bölge (<%35)'
+              ? isHighRisk ? 'Taksit Yükü Kritik (%35+)' : 'Taksit Yükü Güvenli (<%35)'
               : 'Oran için gelir girin'}
           </div>
         </div>
@@ -230,9 +279,11 @@ export default function Debts(): JSX.Element {
             <DebtCard
               key={debt.id}
               debt={debt}
+              accounts={accounts}
               monthlyIncome={monthlyIncome}
               onUpdate={handleUpdate}
               onDelete={handleDelete}
+              onPay={handlePay}
             />
           ))}
         </div>

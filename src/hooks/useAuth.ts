@@ -2,10 +2,15 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { authService } from '@/services/authService';
 
+let isAuthListenerMounted = false;
+
 export function useAuth() {
   const { session, user, loading, error, setSession, setUser, setLoading, setError } = useAuthStore();
 
   useEffect(() => {
+    if (isAuthListenerMounted) return;
+    isAuthListenerMounted = true;
+
     let unsubscribe: ReturnType<typeof authService.onAuthStateChange> | null = null;
 
     (async () => {
@@ -30,6 +35,7 @@ export function useAuth() {
                if (!existingProfile) {
                  console.log('[Trace] Profil bulunamadı, oluşturuluyor...');
                  await dataSourceAdapter.user.create({
+                   id: newSession.user.id,
                    email: newSession.user.email || '',
                    firstName: newSession.user.user_metadata?.first_name || newSession.user.email?.split('@')[0] || 'User',
                    lastName: newSession.user.user_metadata?.last_name || '',
@@ -65,6 +71,7 @@ export function useAuth() {
             if (!existingProfile) {
               console.log('[Trace] Initial load: Profil bulunamadı, oluşturuluyor...');
               await dataSourceAdapter.user.create({
+                id: currentUser.id,
                 email: currentUser.email || '',
                 firstName: currentUser.user_metadata?.first_name || currentUser.email?.split('@')[0] || 'User',
                 lastName: currentUser.user_metadata?.last_name || '',
@@ -86,10 +93,9 @@ export function useAuth() {
           console.log('[Trace] Initial load: currentUser yok.');
         }
       } catch (err) {
-        console.error('[Trace] useAuth try-catch block error:', err);
-        const message = err instanceof Error ? err.message : 'Authentication error';
-        setError(message);
-        setUser(null); // Zorunlu Fallback
+        console.warn('[Trace] useAuth initialization warning (graceful fallback):', err);
+        // We do NOT set error state here to avoid blocking the Login page
+        setUser(null);
         setSession(null);
       } finally {
         console.log('[Trace] useAuth loading tamamlandı (false).');

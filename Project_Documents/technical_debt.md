@@ -1,6 +1,25 @@
 # technical_debt.md
 Her 3 görevde bir gözden geçirilir.
 
+## 2026-04-16 (Faz 5 — Taksit Yönetimi Refactoring)
+- Kaynak Görev: 45.10 - 45.13 (Installment Management)
+- Borç Tanımı 1 [RESOLVED]: PaymentCalendar.tsx dosyasının aşırı büyümesi (~600 satır)
+  - Etki: Takvim gridi, detay listesi ve 3 farklı modal mantığının tek dosyada olması kod okunabilirliğini düşürüyor.
+  - Çözüm: PaymentModals ve PaymentActionList olarak bileşenlere parçalandı. ✅
+  - Durum: Kapalı
+
+- Borç Tanımı 2 [NEW]: MRE Hesaplayıcı'daki kategori eşleştirmeleri hardcoded (Gıda, Ulaşım vb.)
+  - Etki: Kullanıcı kendi "zorunlu" kategorilerini tanımlayamıyor; MRE doğruluğu varsayılan kategorilere bağımlı.
+  - Öncelik: Düşük (Feature flexibility)
+  - Çözüm: Kategoriler sayfasına "Zorunlu Gider (Essential)" ve "Sabit Gider (Fixed)" checkbox'ları ekle ve `calculateMonthlyRequiredExpenses` fonksiyonunu bu dinamik verilere bağla.
+  - Hedef Tarih: Faz 5 + 2
+  - Durum: Açık
+
+- Borç Tanımı 3 [RESOLVED]: MRE Dokümantasyon ve Kod Uyumsuzluğu (Constitution Gap)
+  - Etki: `logic_specs_v2.md` hibrit ortalama modelini (rolling 3-month) şart koşarken, kod hala sadece veri yoksa ortalamaya başvuruyor.
+  - Çözüm: `scoringEngine.ts` ve `cashFlowEngine.ts` v5 standartlarına uyumlu hale getirildi. Layer 1 Override ile mühürlendi. ✅
+  - Durum: Kapalı
+
 ## Kayıt Şablonu
 
 ## 2026-04-13 (Faz 4 — Görev 39+40: Iyzico + Pro Plan)
@@ -74,6 +93,13 @@ Her 3 görevde bir gözden geçirilir.
   - Çözüm: Sayfa açılışında sadece son 3 ay veri çek, lazy load eski veriler
   - Hedef Tarih: Faz 3 + 2
   - Durum: Açık
+
+## Finansal Bütünlük ve Senkronizasyon (P0)
+
+- [DONE] **Atomic Payment Protocol**: Ödeme yapılırken hem bakiye düşümü hem takvim güncellemesi tek blokta yapılmalı.
+- [DONE] **Bi-directional Transaction Sync**: `Transactions.tsx` üzerinden silinen taksit ödemeleri takvime ve bakiyeye geri yansımalı.
+- [DONE] **Debt Erosion Logic**: Ödeme yapıldığında `remainingMonths` doğru şekilde azaltılarak nominal borç Dashboard'da "erimeli".
+  - Durum: Kapalı
 
 ## 2026-04-12 (FSIA — Tam Sistem Bütünlüğü Denetimi)
 - Borç Tanımı 1 [RESOLVED]: authService env variable naming (VITE_SUPABASE_SUPABASE_ANON_KEY)

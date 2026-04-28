@@ -30,6 +30,7 @@ export default function DraggableWidget({
     '2x1': 'col-span-2',
     '2x2': 'col-span-2 row-span-2',
     '3x1': 'col-span-3',
+    '4x1': 'col-span-4',
   };
 
   return (

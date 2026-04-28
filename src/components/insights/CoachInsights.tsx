@@ -1,36 +1,23 @@
 import type { Insight } from '@/services/ruleEngine';
 
 interface CoachInsightsProps {
-  insights: Insight[];
+  recommendations?: string[];
+  explanation?: string;
   title?: string;
 }
 
-const typeIcons: Record<Insight['type'], string> = {
-  warning: '⚠️',
-  opportunity: '💡',
-  info: 'ℹ️',
-};
-
-const typeBgColors: Record<Insight['type'], string> = {
-  warning: 'bg-warning-50 border-warning-300',
-  opportunity: 'bg-success-50 border-success-300',
-  info: 'bg-primary-50 border-primary-300',
-};
-
-const typeTitleColors: Record<Insight['type'], string> = {
-  warning: 'text-warning-700',
-  opportunity: 'text-success-700',
-  info: 'text-primary-700',
-};
-
-const priorityLabels: Record<Insight['priority'], string> = {
+const priorityLabels: Record<string, string> = {
   high: 'Acil',
   medium: 'Normal',
   low: 'Düşük',
 };
 
-export default function CoachInsights({ insights, title = 'Koç Önerileri' }: CoachInsightsProps): JSX.Element {
-  if (insights.length === 0) {
+export default function CoachInsights({ 
+  recommendations = [], 
+  explanation, 
+  title = 'Koç Önerileri' 
+}: CoachInsightsProps): JSX.Element {
+  if (recommendations.length === 0 && !explanation) {
     return (
       <div className="bg-success-50 border border-success-200 rounded-xl p-4 text-center">
         <div className="text-3xl mb-2">🎉</div>
@@ -41,46 +28,30 @@ export default function CoachInsights({ insights, title = 'Koç Önerileri' }: C
   }
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-base font-semibold text-neutral-900">{title}</h3>
-      <div className="space-y-2">
-        {insights.map((insight, idx) => (
-          <div
-            key={idx}
-            className={`border rounded-lg p-3 space-y-1.5 ${typeBgColors[insight.type]}`}
-          >
-            <div className="flex items-start gap-2">
-              <span className="text-lg mt-0.5">{typeIcons[insight.type]}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <h4 className={`font-semibold text-sm ${typeTitleColors[insight.type]}`}>
-                    {insight.title}
-                  </h4>
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                      insight.priority === 'high'
-                        ? 'bg-error-100 text-error-700'
-                        : insight.priority === 'medium'
-                          ? 'bg-warning-100 text-warning-700'
-                          : 'bg-neutral-100 text-neutral-600'
-                    }`}
-                  >
-                    {priorityLabels[insight.priority]}
-                  </span>
-                </div>
-                <p className={`text-xs leading-relaxed ${typeTitleColors[insight.type]} mt-0.5`}>
-                  {insight.message}
-                </p>
-                {insight.actionableHint && (
-                  <p className={`text-xs italic mt-1 ${typeTitleColors[insight.type]}`}>
-                    💬 {insight.actionableHint}
-                  </p>
-                )}
-              </div>
+    <div className="space-y-4">
+      {/* ─── Unified Engine Strategic Insight ─── */}
+      {(explanation || recommendations.length > 0) && (
+        <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-emerald-500/20 transition-all" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm">🧠</span>
+              <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Stratejik Analiz</h4>
             </div>
+            {explanation && (
+              <p className="text-xs font-bold text-white leading-relaxed mb-3">
+                {explanation}
+              </p>
+            )}
+            {recommendations.map((rec, idx) => (
+              <div key={idx} className="flex items-start gap-2 text-[11px] text-zinc-300 font-medium bg-white/5 p-2 rounded-lg border border-white/5 mb-1 last:mb-0">
+                <span className="text-emerald-500 mt-0.5">♦</span>
+                <span>{rec}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

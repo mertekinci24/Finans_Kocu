@@ -139,7 +139,7 @@ function calculateImpactScore(text: string): number {
     'az': 30,
   };
 
-  let score = 50;
+  let score = 0; // v8.9 Honest Math: No default anchor. Impact must be earned by keywords.
   for (const [keyword, value] of Object.entries(keywords)) {
     if (text.toLowerCase().includes(keyword)) {
       score = Math.max(score, value);

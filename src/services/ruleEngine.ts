@@ -64,35 +64,14 @@ export class RuleEngine {
   }
 
   /**
-   * Kural 3: Taksit Yükü Uyarısı
-   * Taksitler gelirin >%40'i → uyarı
+   * Kural 3: Taksit Yükü Uyarısı (DEPRECATED - Moved to scoringEngine)
    */
   private checkInstallmentBurden(
-    monthlyInstallments: number,
-    monthlyIncome: number,
-    insights: Insight[]
+    _monthlyInstallments: number,
+    _monthlyIncome: number,
+    _insights: Insight[]
   ): void {
-    if (monthlyIncome <= 0) return;
-
-    const ratio = (monthlyInstallments / monthlyIncome) * 100;
-
-    if (ratio > 40) {
-      insights.push({
-        type: 'warning',
-        priority: 'high',
-        title: 'Taksit sarmali riski',
-        message: `Taksitlerin gelirin %${ratio.toFixed(0)}'ine ulaştı (Master Plan sınırı: %40).`,
-        actionableHint: 'Yeni taksite gir_me. En kısa taksiti bitirerek alan aç.',
-      });
-    } else if (ratio > 30) {
-      insights.push({
-        type: 'warning',
-        priority: 'medium',
-        title: 'Taksit yükü yüksek',
-        message: `Taksitlerin gelirin %${ratio.toFixed(0)}'i (hedef: <%30).`,
-        actionableHint: 'Erken ödeme yaparak taksitlerini azalt.',
-      });
-    }
+    // Logic moved to scoringEngine for v8.9 Honest Math Protocol
   }
 
   /**

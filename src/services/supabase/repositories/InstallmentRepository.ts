@@ -34,20 +34,28 @@ export class SupabaseInstallmentRepository implements IInstallmentRepository {
       .insert([
         {
           user_id: installment.userId,
+          account_id: installment.accountId || null,
           lender_name: installment.lenderName,
+          type: installment.type,
           principal: installment.principal,
           monthly_payment: installment.monthlyPayment,
           remaining_months: installment.remainingMonths,
           total_months: installment.totalMonths,
           interest_rate: installment.interestRate,
           next_payment_date: installment.nextPaymentDate.toISOString().split('T')[0],
+          first_payment_date: installment.firstPaymentDate.toISOString().split('T')[0],
           status: installment.status,
+          payment_history: installment.paymentHistory || {},
+          note: installment.note || null,
         },
       ])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Creation Error:', error);
+      throw error;
+    }
     return this.mapToInstallment(data);
   }
 
@@ -55,23 +63,37 @@ export class SupabaseInstallmentRepository implements IInstallmentRepository {
     const { data, error } = await this.client
       .from('installments')
       .update({
-        lender_name: installment.lenderName,
-        principal: installment.principal,
-        monthly_payment: installment.monthlyPayment,
-        remaining_months: installment.remainingMonths,
-        total_months: installment.totalMonths,
-        interest_rate: installment.interestRate,
+        ...(installment.accountId !== undefined && { account_id: installment.accountId }),
+        ...(installment.lenderName !== undefined && { lender_name: installment.lenderName }),
+        ...(installment.type !== undefined && { type: installment.type }),
+        ...(installment.principal !== undefined && { principal: installment.principal }),
+        ...(installment.monthlyPayment !== undefined && { monthly_payment: installment.monthlyPayment }),
+        ...(installment.remainingMonths !== undefined && { remaining_months: installment.remainingMonths }),
+        ...(installment.totalMonths !== undefined && { total_months: installment.totalMonths }),
+        ...(installment.interestRate !== undefined && { interest_rate: installment.interestRate }),
         next_payment_date: installment.nextPaymentDate
-          ? installment.nextPaymentDate.toISOString().split('T')[0]
+          ? (typeof installment.nextPaymentDate === 'string' 
+              ? installment.nextPaymentDate 
+              : installment.nextPaymentDate.toISOString().split('T')[0])
           : undefined,
-        status: installment.status,
+        first_payment_date: installment.firstPaymentDate
+          ? (typeof installment.firstPaymentDate === 'string'
+              ? installment.firstPaymentDate
+              : installment.firstPaymentDate.toISOString().split('T')[0])
+          : undefined,
+        ...(installment.status !== undefined && { status: installment.status }),
+        // 🚨 DATA LEGACY POLLUTION FIX: Reset payment history if explicitly provided or as part of a restructuring flag
+        ...(installment.paymentHistory !== undefined && { payment_history: installment.paymentHistory }),
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Update Error:', error);
+      throw error;
+    }
     return this.mapToInstallment(data);
   }
 
@@ -84,14 +106,25 @@ export class SupabaseInstallmentRepository implements IInstallmentRepository {
     return {
       id: row.id,
       userId: row.user_id,
+      accountId: row.account_id || undefined,
       lenderName: row.lender_name,
+      type: row.type as any,
       principal: row.principal,
       monthlyPayment: row.monthly_payment,
       remainingMonths: row.remaining_months,
       totalMonths: row.total_months,
       interestRate: row.interest_rate,
       nextPaymentDate: new Date(row.next_payment_date),
-      status: row.status,
+      firstPaymentDate: row.first_payment_date 
+        ? new Date(row.first_payment_date) 
+        : (() => {
+            const d = new Date(row.next_payment_date);
+            d.setMonth(d.getMonth() - (row.total_months - row.remaining_months));
+            return d;
+          })(),
+      status: row.status as any,
+      paymentHistory: row.payment_history,
+      note: row.note || undefined,
       createdAt: new Date(row.created_at),
     };
   }

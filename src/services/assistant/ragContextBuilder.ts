@@ -5,19 +5,19 @@ export async function buildUserContext(userId: string): Promise<AssistantContext
   const [accounts, transactions, findeks, debts, installments] = await Promise.all([
     fetchUserAccounts(userId),
     fetchTransactionsTrend(userId),
-    fetchFindeksScore(userId),
+    fetchFindeksData(userId),
     fetchDebts(userId),
     fetchInstallments(userId),
   ]);
 
   const alerts = generateAlerts(accounts, debts, installments, transactions.savingsRate);
-  const contextHash = generateContextHash(accounts, transactions, findeks);
+  const contextHash = generateContextHash(accounts, transactions, findeks?.creditScore);
 
   return {
     userId,
     contextHash,
     accountsSummary: accounts,
-    findeksScore: findeks,
+    findeksData: findeks,
     transactionsTrend: transactions,
     alerts,
     cachedAt: new Date(),
@@ -83,17 +83,22 @@ async function fetchTransactionsTrend(userId: string): Promise<TransactionTrend>
   };
 }
 
-async function fetchFindeksScore(userId: string): Promise<number | undefined> {
+async function fetchFindeksData(userId: string): Promise<{ creditScore: number; limitUsageRatio: number } | undefined> {
   const { data, error } = await supabase
     .from('findeks_reports')
-    .select('credit_score')
+    .select('credit_score, limit_usage_ratio')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (error) throw error;
-  return data?.credit_score;
+  if (!data) return undefined;
+  
+  return {
+    creditScore: data.credit_score,
+    limitUsageRatio: data.limit_usage_ratio
+  };
 }
 
 async function fetchDebts(userId: string): Promise<any[]> {

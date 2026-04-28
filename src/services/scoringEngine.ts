@@ -1,4 +1,23 @@
-import type { Account, Transaction, Debt, Installment, FinancialScore, TaxPaymentHistory } from '@/types';
+import type {
+  Account,
+  Transaction,
+  Debt,
+  Installment,
+  FinancialScore,
+  TaxPaymentHistory,
+  RecurringFlow
+} from '@/types';
+
+import { cashFlowEngine } from './cashFlowEngine';
+
+export interface CrisisInfo {
+  level: 'critical' | 'severe' | 'delinquency';
+  title: string;
+  reason: string;
+  action: string;
+  overrideScore: number;
+  affectedLenders?: string[];
+}
 
 export interface ScoringInput {
   accounts: Account[];
@@ -6,415 +25,409 @@ export interface ScoringInput {
   debts: Debt[];
   installments: Installment[];
   taxPayments?: TaxPaymentHistory[];
+  recurringFlows?: RecurringFlow[];
+  isSimulation?: boolean;
+  scenarioType?: string;
 }
 
 export interface DetailedScore {
   score: FinancialScore;
   explanation: string;
-  warnings: string[];
-  recommendations: string[];
+  label: string;
+  color: string;
+  crisis?: CrisisInfo;
+  insights: string[];
+  structuralDti: number;
 }
 
-const CRISIS_THRESHOLD = 24;
-
 export class ScoringEngine {
-  /**
-   * Güven Skoru (C): Girilen veri tamlığını ölçer (0.0 - 1.0)
-   * C = (Girilen Kalemler / Beklenen Temel Kalemler)
-   */
+  // ---------------------------------------------------
+  // CORE HELPERS
+  // ---------------------------------------------------
+
+  private sigmoid(x: number): number {
+    return 1 / (1 + Math.exp(-x));
+  }
+
   private calculateConfidenceScore(input: ScoringInput): number {
-    const expectedItems = 4;
-    let actualItems = 0;
-
-    if (input.accounts.length > 0) actualItems++;
-    if (input.transactions.length > 0) actualItems++;
-    if (input.debts.length > 0) actualItems++;
-    if (input.installments.length > 0) actualItems++;
-
-    return Math.min(1.0, actualItems / expectedItems);
+    // Hesaplar ve işlemler temel zorunluluktur. Taksit ve Borç opsiyoneldir.
+    const hasBasics = input.accounts.length > 0 && input.transactions.length > 0;
+    return hasBasics ? 1.0 : 0.5; // Temel veriler varsa güven %100'dür.
   }
 
-  /**
-   * Borç/Gelir Oranı (0-100)
-   * Ay aylık borç ödemeleri / aylık gelir
-   * Hedef: < %35 (Güvenli)
-   */
-  private calculateDebtToIncomeRatio(
-    monthlyDebtPayments: number,
-    monthlyIncome: number
-  ): { value: number; score: number } {
-    if (monthlyIncome <= 0) return { value: 0, score: 100 };
+  private getIncome(input: ScoringInput): number {
+    // 1. STRICT PRIORITY: Recurring structural flows (Ground Truth for Baseline Income)
+    const flowIncome = (input.recurringFlows ?? [])
+      .filter(f => f.type === 'gelir' && f.isActive)
+      .reduce((sum, f) => sum + f.amount, 0);
 
-    const ratio = (monthlyDebtPayments / monthlyIncome) * 100;
-    let score = 100;
+    if (flowIncome > 0) return flowIncome;
 
-    if (ratio > 50) score = 20;
-    else if (ratio > 40) score = 30;
-    else if (ratio > 35) score = 50;
-    else if (ratio > 25) score = 75;
-    else score = 100;
-
-    return { value: ratio, score };
-  }
-
-  /**
-   * Nakit Tamponu (ay cinsinden)
-   * Acil fon / Aylık giderler
-   * Hedef: 3 ay
-   */
-  private calculateCashBuffer(
-    accounts: Account[],
-    monthlyExpenses: number
-  ): { months: number; score: number } {
-    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
-
-    if (monthlyExpenses <= 0) {
-      return { months: 0, score: 50 };
-    }
-
-    const bufferMonths = totalBalance / monthlyExpenses;
-    let score = 0;
-
-    if (bufferMonths >= 6) score = 100;
-    else if (bufferMonths >= 3) score = 100;
-    else if (bufferMonths >= 1.5) score = 75;
-    else if (bufferMonths > 0) score = 50;
-    else score = 0;
-
-    return { months: bufferMonths, score };
-  }
-
-  /**
-   * Tasarruf Oranı (%)
-   * (Gelir - Gider) / Gelir (son 30 gün)
-   * Hedef: > %20
-   */
-  private calculateSavingsRate(
-    monthlyIncome: number,
-    monthlyExpenses: number
-  ): { rate: number; score: number } {
-    if (monthlyIncome <= 0) {
-      return { rate: 0, score: 0 };
-    }
-
-    const rate = ((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100;
-    let score = 0;
-
-    if (rate >= 30) score = 100;
-    else if (rate >= 20) score = 100;
-    else if (rate >= 10) score = 75;
-    else if (rate > 0) score = 50;
-    else if (rate >= -10) score = 25;
-    else score = 0;
-
-    return { rate: Math.max(0, rate), score };
-  }
-
-  /**
-   * Taksit/Gelir Oranı (%)
-   * Aylık taksit yükü / aylık gelir
-   * Hedef: < %30
-   */
-  private calculateInstallmentBurdenRatio(
-    monthlyInstallments: number,
-    monthlyIncome: number
-  ): { ratio: number; score: number } {
-    if (monthlyIncome <= 0) return { ratio: 0, score: 100 };
-
-    const ratio = (monthlyInstallments / monthlyIncome) * 100;
-    let score = 0;
-
-    if (ratio > 50) score = 0;
-    else if (ratio > 40) score = 20;
-    else if (ratio > 30) score = 50;
-    else if (ratio > 20) score = 75;
-    else score = 100;
-
-    return { ratio, score };
-  }
-
-  /**
-   * Temel Skor Hesaplaması
-   * S_base = (0.25 × Borç/Gelir) + (0.20 × Nakit) + (0.20 × Tasarruf)
-   *          + (0.15 × Taksit/Gelir) + (0.20 × Diğer)
-   */
-  private calculateBaseScore(
-    debtToIncomeScore: number,
-    cashBufferScore: number,
-    savingsScore: number,
-    installmentBurdenScore: number,
-    billDisciplineScore: number
-  ): number {
-    return (
-      0.25 * debtToIncomeScore +
-      0.2 * cashBufferScore +
-      0.2 * savingsScore +
-      0.15 * installmentBurdenScore +
-      0.2 * billDisciplineScore
-    );
-  }
-
-  /**
-   * Fatura Disiplini (%)
-   * Gecikme geçmişi ve ödeme zamanında yapma oranı
-   * Şu an basit: perfect = 100
-   */
-  private calculateBillDiscipline(): number {
-    return 100;
-  }
-
-  /**
-   * Vergi/Prim Disiplini Bonusu
-   * Zamanında ödenen vergiler/primler +5 puan
-   * Gecikmiş ödemeler -10 puan
-   */
-  private calculateTaxDisciplineBonus(taxPayments: TaxPaymentHistory[]): number {
-    if (taxPayments.length === 0) return 0;
-
-    const lastYear = new Date();
-    lastYear.setFullYear(lastYear.getFullYear() - 1);
-
-    const recentPayments = taxPayments.filter((p) => new Date(p.paidDate) >= lastYear);
-
-    if (recentPayments.length === 0) return 0;
-
-    const onTimePayments = recentPayments.filter((p) => p.isOnTime).length;
-    const latePayments = recentPayments.filter((p) => !p.isOnTime).length;
-
-    const onTimeRatio = onTimePayments / recentPayments.length;
-
-    if (onTimeRatio === 1) return 5;
-    if (onTimeRatio >= 0.8) return 3;
-    if (latePayments > 0) return -10;
-
-    return 0;
-  }
-
-  /**
-   * Kritik Risk Kontrolü (Red Flags)
-   * Aşağıdakilerden birinin gerçekleşmesi durumunda skoru max 24'e sabitler
-   */
-  private checkCriticalRisks(
-    monthlyExpenses: number,
-    monthlyDebtPayments: number,
-    monthlyInstallments: number,
-    monthlyIncome: number,
-    accounts: Account[],
-    debts: Debt[]
-  ): { isCritical: boolean; flags: string[] } {
-    const flags: string[] = [];
-
-    // Risk 1: Nakit Tıkanıklığı
-    if (monthlyIncome < monthlyExpenses + monthlyDebtPayments + monthlyInstallments) {
-      flags.push('Nakit Tıkanıklığı');
-    }
-
-    // Risk 2: Taksit Sarmali
-    const installmentRatio = monthlyIncome > 0
-      ? (monthlyInstallments / monthlyIncome) * 100
-      : 0;
-    if (installmentRatio > 40) {
-      flags.push('Taksit Sarmali Risk');
-    }
-
-    // Risk 3: Gecikmiş Borç
-    const hasOverdueDebt = debts.some((d) => d.status === 'overdue');
-    if (hasOverdueDebt) {
-      flags.push('Gecikmiş Borç Var');
-    }
-
-    // Risk 4: Negatif Bakiye
-    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
-    if (totalBalance < 0) {
-      flags.push('Negatif Bakiye');
-    }
-
-    return {
-      isCritical: flags.length > 0,
-      flags,
-    };
-  }
-
-  /**
-   * Ana Hesaplama Fonksiyonu
-   */
-  calculate(input: ScoringInput): DetailedScore {
+    // 2. FALLBACK: Monthly average of consistent 'gelir' transactions (Last 30 days only)
     const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
 
-    // Son 30 gün işlemleri filtrele
-    const recentTransactions = input.transactions.filter(
-      (t) => new Date(t.date) >= thirtyDaysAgo
-    );
-
-    // Aylık gelir ve gider hesapla
-    const monthlyIncome = recentTransactions
-      .filter((t) => t.type === 'gelir')
+    const recentIncome = input.transactions
+      .filter(t => t.type === 'gelir' && new Date(t.date) >= thirtyDaysAgo)
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const monthlyExpenses = recentTransactions
-      .filter((t) => t.type === 'gider')
-      .reduce((sum, t) => sum + t.amount, 0);
+    return recentIncome || 1;
+  }
 
-    // Aylık borç ve taksit ödemeleri
-    const monthlyDebtPayments = input.debts
-      .filter((d) => d.status === 'active')
-      .reduce((sum, d) => sum + d.monthlyPayment, 0);
-
-    const monthlyInstallments = input.installments
-      .filter((i) => i.status === 'active')
+  private getStructuralDebtBurden(input: ScoringInput): number {
+    const currentMonthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+    const installmentLoad = input.installments
+      .filter(i => i.status === 'active' && new Date(i.firstPaymentDate) <= currentMonthEnd)
       .reduce((sum, i) => sum + i.monthlyPayment, 0);
 
-    // Alt skorları hesapla
-    const confidenceScore = this.calculateConfidenceScore(input);
-    const debtToIncome = this.calculateDebtToIncomeRatio(
-      monthlyDebtPayments,
-      monthlyIncome
-    );
-    const cashBuffer = this.calculateCashBuffer(input.accounts, monthlyExpenses);
-    const savingsRate = this.calculateSavingsRate(monthlyIncome, monthlyExpenses);
-    const installmentBurden = this.calculateInstallmentBurdenRatio(
-      monthlyInstallments,
-      monthlyIncome
-    );
-    const billDiscipline = this.calculateBillDiscipline();
-    const taxDisciplineBonus = this.calculateTaxDisciplineBonus(input.taxPayments || []);
+    const debtLoad = input.debts
+      .filter(d => d.status === 'active')
+      .reduce((sum, d) => sum + (d.monthlyPayment || 0), 0);
 
-    // Temel skor
-    const baseScore = this.calculateBaseScore(
-      debtToIncome.score,
-      cashBuffer.score,
-      savingsRate.score,
-      installmentBurden.score,
-      billDiscipline
-    );
+    return installmentLoad + debtLoad;
+  }
 
-    // Kritik risk kontrolü
-    const criticalRisks = this.checkCriticalRisks(
-      monthlyExpenses,
-      monthlyDebtPayments,
-      monthlyInstallments,
-      monthlyIncome,
-      input.accounts,
-      input.debts
+  private getStructuralDTI(input: ScoringInput): number {
+    return this.getStructuralDebtBurden(input) / this.getIncome(input);
+  }
+
+  // ---------------------------------------------------
+  // BASE ENGINE
+  // ---------------------------------------------------
+
+  private calculateBaseScore(
+    wnw: number,
+    mre: number,
+    nt: number,
+    liquidityStress: number,
+    income: number,
+    transactions: Transaction[]
+  ): number {
+    const ratio = Math.max(1, wnw / (mre || 1));
+    const incomeRatio = Math.max(1, income / (mre || 1));
+
+    const vc = Math.min(
+      1,
+      (Math.log10(ratio) / 3 + Math.log10(incomeRatio) / 1.5) / 2
     );
 
-    // Final skor hesaplaması (logic_specs_v2: S_final = (S_base - P + B) × C)
-    let finalScore = (baseScore + taxDisciplineBonus) * confidenceScore;
+    const vcAdj = vc * (1 - Math.exp(-nt / 12));
 
-    if (criticalRisks.isCritical) {
-      finalScore = Math.min(CRISIS_THRESHOLD, finalScore);
+    const smoothPenalty = (30 * Math.exp(-nt)) * (1 - vcAdj);
+
+    const liquidityPenalty =
+      liquidityStress >= 0.3
+        ? 0
+        : 15 * (1 - liquidityStress / 0.3);
+
+    let deathPit = 0;
+
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const monthsFCF = [0, 0, 0];
+
+    transactions
+      .filter(t => new Date(t.date) >= ninetyDaysAgo)
+      .forEach(t => {
+        const diff = Math.floor(
+          (Date.now() - new Date(t.date).getTime()) / 86400000
+        );
+        const idx = Math.floor(diff / 30);
+
+        if (idx >= 0 && idx < 3) {
+          monthsFCF[idx] += t.type === 'gelir' ? t.amount : -t.amount;
+        }
+      });
+
+    if (monthsFCF.every(v => v < 0)) deathPit += 5;
+    if (nt < 0.5) deathPit += 10;
+    if (mre > income * 0.8) deathPit += 5;
+
+    const loadPenalty = Math.min(60, 45 * (mre / income));
+
+    return Math.max(
+      0,
+      100 -
+        smoothPenalty -
+        liquidityPenalty -
+        deathPit -
+        loadPenalty
+    );
+  }
+
+  private applyAnchor(
+    baseScore: number,
+    wnw: number,
+    mre: number,
+    totalDebt: number
+  ): number {
+    let boost = 0;
+
+    if (totalDebt === 0) {
+      boost =
+        10 *
+        this.sigmoid(
+          Math.log10(Math.max(1, wnw / (mre || 1))) - 2
+        );
+    } else {
+      boost =
+        10 *
+        this.sigmoid((wnw / totalDebt) - 2);
     }
+
+    return baseScore + boost;
+  }
+
+  // ---------------------------------------------------
+  // OVERRIDE ENGINE
+  // ---------------------------------------------------
+
+  private checkOverrides(
+    input: ScoringInput,
+    wnw: number,
+    nt: number,
+    disposableCash: number,
+    minBalance: number
+  ): CrisisInfo | null {
+    const structuralDti = this.getStructuralDTI(input);
+
+    // THE TRUE HONEST MATH (Logarithmic Curve)
+    const dynamicCrisisScore = Math.max(12, Math.min(85, Math.round(65 / (structuralDti || 0.1))));
+
+    const isUnlocked = structuralDti < 0.45;
+    const isRecovering = structuralDti < 2.0;
+
+    // --- LAYER 0 ---
+    if (wnw < 0) {
+      if (isUnlocked) return null;
+      return {
+        level: 'severe',
+        title: isRecovering ? 'TEKNİK İFLAS (İyileşme Rotalı)' : 'TEKNİK İFLAS',
+        reason: isRecovering ? 'Likidite ağırlıklı özsermaye negatif, ancak borç yükü rasyonel düşüş trendinde.' : 'Likidite ağırlıklı özsermaye negatif.',
+        action: 'Yapılandırma planına sadık kalın ve acil nakit tamponu oluşturun.',
+        overrideScore: dynamicCrisisScore // NO TERNARY, NO SIMULATION CHECK
+      };
+    }
+
+    // --- LAYER 1A ---
+    if ((disposableCash < 0 || minBalance < 0) && nt < 1) {
+      if (isUnlocked) return null;
+      return {
+        level: 'critical',
+        title: 'LİKİDİTE KRİZİ',
+        reason: '30 günlük nakit akışı zorlanıyor.',
+        action: 'Ödeme günü ve nakit tampon planı yapın.',
+        overrideScore: Math.max(22, dynamicCrisisScore)
+      };
+    }
+
+    // --- TRIGGER C (DELINQUENCY) ---
+    const hasOverdue = input.debts.some(d => d.status === 'overdue' || d.remainingAmount > 0);
+    if (hasOverdue) {
+      return {
+        level: 'delinquency',
+        title: 'TEMERRÜT',
+        reason: 'Gecikmiş borç geçmişi tespit edildi.',
+        action: 'Gecikmiş borçları kapatın.',
+        overrideScore: Math.max(24, dynamicCrisisScore)
+      };
+    }
+
+    return null;
+  }
+
+  // ---------------------------------------------------
+  // MAIN
+  // ---------------------------------------------------
+
+  calculate(input: ScoringInput): DetailedScore {
+    const now = new Date();
+
+    const income = this.getIncome(input);
+
+    const wnw =
+      cashFlowEngine.calculateWeightedNetWorth(
+        input.accounts,
+        input.installments,
+        input.debts
+      );
+
+    const mre =
+      cashFlowEngine.calculateMonthlyRequiredExpenses(
+        input.transactions,
+        input.installments,
+        input.debts,
+        input.recurringFlows || []
+      );
+
+    const liquidAssets = input.accounts
+      .filter(a => a.type !== 'kredi_kartı')
+      .reduce((sum, a) => sum + a.balance, 0);
+
+    const totalAssets = liquidAssets;
+
+    const nt = input.isSimulation
+      ? (liquidAssets + totalAssets * 0.9) / mre
+      : liquidAssets / mre;
+
+    const liquidityStress =
+      totalAssets > 0 ? liquidAssets / totalAssets : 0;
+
+    const forecast = cashFlowEngine.forecast(
+      input.accounts,
+      input.transactions,
+      input.debts,
+      input.installments,
+      input.recurringFlows || []
+    );
+
+    const projectedDisposableCash =
+      forecast.projectedEndBalance - mre;
+
+    const totalDebt =
+      input.installments
+        .filter(i => i.status === 'active')
+        .reduce((s, i) => s + i.principal, 0) +
+      input.debts
+        .filter(d => d.status === 'active')
+        .reduce((s, d) => s + d.amount, 0);
+
+    const crisis = this.checkOverrides(
+      input,
+      wnw,
+      nt,
+      projectedDisposableCash,
+      forecast.minBalance
+    );
+
+    let rawScore = 0;
+
+    if (crisis) {
+      rawScore = crisis.overrideScore;
+    } else {
+      const base = this.calculateBaseScore(
+        wnw,
+        mre,
+        nt,
+        liquidityStress,
+        income,
+        input.transactions
+      );
+
+      rawScore = this.applyAnchor(
+        base,
+        wnw,
+        mre,
+        totalDebt
+      );
+    }
+
+    const confidence = this.calculateConfidenceScore(input);
+
+    let finalScore = rawScore * confidence;
 
     finalScore = Math.max(0, Math.min(100, finalScore));
 
-    // Açıklamalar ve öneriler
-    const { explanation, warnings, recommendations } = this.generateInsights(
-      finalScore,
-      debtToIncome.value,
-      cashBuffer.months,
-      savingsRate.rate,
-      installmentBurden.ratio,
-      monthlyIncome,
-      monthlyExpenses,
-      criticalRisks
-    );
-
     const score: FinancialScore = {
       overallScore: Math.round(finalScore),
-      confidenceScore: Math.round(confidenceScore * 100),
-      debtToIncomeRatio: Math.round(debtToIncome.value * 10) / 10,
-      cashBufferMonths: Math.round(cashBuffer.months * 10) / 10,
-      savingsRate: Math.round(savingsRate.rate * 10) / 10,
-      installmentBurdenRatio: Math.round(installmentBurden.ratio * 10) / 10,
-      lastCalculatedAt: now,
+      confidenceScore: Math.round(confidence * 100),
+      debtToIncomeRatio: Math.round((totalDebt / income) * 10) / 10,
+      cashBufferMonths: Math.round(nt * 10) / 10,
+      savingsRate: Math.round(((income - mre) / income) * 100),
+      installmentBurdenRatio: Math.round((mre / income) * 100),
+      lastCalculatedAt: now
     };
+
+    const structuralDti = this.getStructuralDTI(input);
+    const insights = this.generateInsights(
+      finalScore,
+      nt,
+      crisis,
+      wnw,
+      structuralDti,
+      income,
+      totalDebt,
+      mre
+    );
+
+    const scoreLabel = crisis ? crisis.title : (finalScore >= 85 ? 'Finansal Prestij' : finalScore >= 55 ? 'Güvenli Bölge' : finalScore >= 35 ? 'Baskı Altında' : 'Kritik Risk');
+    const scoreColor = crisis ? (crisis.level === 'severe' ? 'text-red-600' : 'text-orange-500') : (finalScore >= 85 ? 'text-emerald-400' : finalScore >= 55 ? 'text-green-500' : finalScore >= 35 ? 'text-orange-500' : 'text-red-600');
 
     return {
       score,
-      explanation,
-      warnings,
-      recommendations,
+      explanation: insights.explanation,
+      label: scoreLabel,
+      color: scoreColor,
+      crisis: crisis || undefined,
+      insights: insights.recommendations,
+      structuralDti: this.getStructuralDTI(input)
     };
   }
 
-  /**
-   * Koç Açıklamaları ve Önerileri
-   */
+  // ---------------------------------------------------
+  // INSIGHTS
+  // ---------------------------------------------------
+
   private generateInsights(
-    finalScore: number,
-    debtToIncome: number,
-    cashBufferMonths: number,
-    savingsRate: number,
-    installmentBurden: number,
-    monthlyIncome: number,
-    _monthlyExpenses: number,
-    criticalRisks: { isCritical: boolean; flags: string[] }
-  ): { explanation: string; warnings: string[]; recommendations: string[] } {
+    score: number,
+    nt: number,
+    crisis: CrisisInfo | null,
+    wnw: number,
+    structuralDti: number,
+    income: number,
+    totalDebt: number,
+    mre: number
+  ) {
     const warnings: string[] = [];
     const recommendations: string[] = [];
     let explanation = '';
 
-    // Eksiklik tamlığına göre uyarı
-    if (monthlyIncome === 0) {
-      explanation = 'Gelirinizi ekleyin — finansal analiz yapmak için temel veri gerekli.';
-      warnings.push('Eksik veri: Gelir bilgisi yok');
-      return { explanation, warnings, recommendations };
-    }
-
-    // Kritik risk
-    if (criticalRisks.isCritical) {
-      explanation = `KRİZ MODU: ${criticalRisks.flags.join(', ')} — Acil eylem gerekli!`;
-      warnings.push(`Kritik Riskler: ${criticalRisks.flags.join(', ')}`);
-      recommendations.push('Hemen bir finansal danışmanla görüş');
-      recommendations.push('Zorunlu giderleri gözden geçir');
-      recommendations.push('Taksit alma planını durdur');
-      return { explanation, warnings, recommendations };
-    }
-
-    // Borç/Gelir riski
-    if (debtToIncome > 35) {
-      warnings.push(`Borç/Gelir Riski: %${debtToIncome.toFixed(1)} (Eşik: %35)`);
-      recommendations.push(
-        'En yüksek faizli borcu öncelikle kapat'
-      );
-    }
-
-    // Nakit tamponu
-    if (cashBufferMonths < 1) {
-      warnings.push(`Çok düşük nakit tamponu: ${cashBufferMonths.toFixed(1)} ay`);
-      recommendations.push('Acil fon biriktirmeye odaklan — hedef 3 ay');
-    } else if (cashBufferMonths < 3) {
-      warnings.push(`Nakit tamponu yetersiz: ${cashBufferMonths.toFixed(1)} ay`);
-      recommendations.push('Nakit tamponu hedefi 3 aya çıkar');
-    }
-
-    // Tasarruf oranı
-    if (savingsRate < 0) {
-      warnings.push(`Negatif tasarruf: %${savingsRate.toFixed(1)}`);
-      recommendations.push('Giderlerin gelir üstüne çıkması durumu — bütçe gözden geçir');
-    } else if (savingsRate < 10) {
-      warnings.push(`Düşük tasarruf oranı: %${savingsRate.toFixed(1)}`);
-      recommendations.push('Tasarruf hedefi %20+ (gelirin 1/5\'i)');
-    }
-
-    // Taksit yükü
-    if (installmentBurden > 30) {
-      warnings.push(`Yüksek taksit yükü: %${installmentBurden.toFixed(1)}`);
-      recommendations.push('Yeni taksite girme — mevcut taksitleri önce kapat');
-    }
-
-    // Genel duruma göre açıklama
-    if (finalScore >= 80) {
-      explanation = 'Mükemmel! Finansal durumun çok iyi. Bu tempoyu koru.';
-    } else if (finalScore >= 60) {
-      explanation = 'İyi durumdaysın, ama ufak iyileştirmeler yapılabilir.';
-    } else if (finalScore >= 40) {
-      explanation = 'Orta düzeyde risk var. Önerileri uygula.';
-    } else if (finalScore >= 20) {
-      explanation = 'Dikkat! Finansal durumda ciddi sorunlar var.';
+    // 1. DURUM (Sermaye ve Nakit)
+    let statusPart = '';
+    if (wnw < 0) {
+      statusPart = 'Sermaye likiditeniz ekside seyrediyor';
+    } else if (wnw < income * 2) {
+      statusPart = 'Sermaye yapınız henüz kırılgan bir dengede';
     } else {
-      explanation = 'KRİZ! Acil müdahale gerekli.';
+      statusPart = 'Sermaye yapınız ve özkaynak dengeniz güçlü';
+    }
+
+    // 2. SEBEP (Borç ve Gider Dengesi)
+    let reasonPart = '';
+    if (structuralDti > 1.5) {
+      reasonPart = `, ancak mevcut borç yükünüz (DTI: ${structuralDti.toFixed(2)}) gelirinizin çok üzerinde bir baskı yaratıyor`;
+    } else if (structuralDti > 0.7) {
+      reasonPart = ', borç servis yükünüz yönetilebilir olsa da nakit akışınızı daraltıyor';
+    } else if (totalDebt === 0) {
+      reasonPart = ' ve borçsuz olmanın avantajıyla nakit akışınız tamamen kontrolünüzde';
+    } else {
+      reasonPart = ' ve taksit yükünüzü rasyonel seviyelere çekerek finansal hareket alanı kazandınız';
+    }
+
+    // 3. AKSİYON (Radar Tavsiyesi)
+    let actionPart = '';
+    if (nt < 1) {
+      actionPart = '. Acilen nakit tamponu oluşturmaya ve gereksiz harcamaları kısıtlayarak likidite güvenliği sağlamaya odaklanmalısınız';
+    } else if (structuralDti > 0.4 && totalDebt > 0) {
+      actionPart = '. Şimdi oluşan bu mali gücü, en yüksek faizli kalan borçlarınızı eritmeye yönlendirerek "Borç Radarından" çıkış yapmalısınız';
+    } else {
+      actionPart = '. Bu stabil tabloyu koruyarak, birikimlerinizi uzun vadeli hedeflere veya pasif gelir kaynaklarına yönlendirebilirsiniz';
+    }
+
+    // 4. HİBRİT YÖNLENDİRME (CTA)
+    const ctaPart = '. Daha detaylı bir çıkış planı ve senaryo simülasyonu için AI Asistan\'a danışabilirsiniz.';
+
+    explanation = `${statusPart}${reasonPart}${actionPart}${ctaPart}`;
+
+    if (crisis) {
+      warnings.push(crisis.reason);
+      recommendations.push(crisis.action);
+    }
+
+    if (nt < 1) {
+      warnings.push('Nakit tamponu 1 ayın altında.');
+      recommendations.push('Acil durum fonu oluşturun.');
     }
 
     return { explanation, warnings, recommendations };

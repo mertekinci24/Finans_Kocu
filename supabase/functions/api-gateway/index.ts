@@ -361,6 +361,60 @@ async function handleClaudeProxy(body: Record<string, unknown>): Promise<Respons
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GEMINI AI PROXY HANDLERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function handleGeminiProxy(body: Record<string, unknown>): Promise<Response> {
+  const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+  if (!GEMINI_API_KEY) {
+    return errorResponse('Gemini API anahtarı yapılandırılmamış', 500);
+  }
+
+  const { fullPrompt, model, maxTokens } = body as {
+    fullPrompt?: string;
+    model?: string;
+    maxTokens?: number;
+  };
+
+  if (!fullPrompt) {
+    return errorResponse('fullPrompt zorunlu', 400);
+  }
+
+  const targetModel = model || 'gemini-1.5-flash';
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: fullPrompt }],
+            },
+          ],
+          ...(maxTokens ? { generationConfig: { maxOutputTokens: maxTokens } } : {})
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.text();
+      return errorResponse(`Gemini API error: ${response.status} - ${err}`, response.status);
+    }
+
+    const result = await response.json();
+    return jsonResponse(result);
+  } catch (err) {
+    return errorResponse(`Gemini bağlantı hatası: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MAIN ROUTER
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -404,6 +458,12 @@ serve(async (request: Request) => {
     if (path === '/ai/claude' && request.method === 'POST') {
       const body = await request.json();
       return handleClaudeProxy(body);
+    }
+
+    // ── Gemini AI Proxy ─────────────────────────────────────────────
+    if (path === '/ai/gemini' && request.method === 'POST') {
+      const body = await request.json();
+      return handleGeminiProxy(body);
     }
 
     return errorResponse('Route bulunamadı', 404);

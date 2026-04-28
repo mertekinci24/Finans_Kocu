@@ -15,7 +15,7 @@ import {
   type ExtraIncomeParams,
 } from '@/services/scenarioSimulator';
 import { analyzeScenario, type ScenarioAnalysisInput } from '@/services/assistant/assistantService';
-import type { Account, Transaction, Debt, Installment } from '@/types';
+import type { Account, Transaction, Debt, Installment, RecurringFlow } from '@/types';
 import type { DailyBalance } from '@/services/cashFlowEngine';
 
 export default function ScenarioSimulatorPage(): JSX.Element {
@@ -26,6 +26,7 @@ export default function ScenarioSimulatorPage(): JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [installments, setInstallments] = useState<Installment[]>([]);
+  const [recurringFlows, setRecurringFlows] = useState<RecurringFlow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedType, setSelectedType] = useState<ScenarioType>('debt_payoff');
@@ -49,14 +50,16 @@ export default function ScenarioSimulatorPage(): JSX.Element {
   const loadData = async (userId: string) => {
     try {
       setLoading(true);
-      const [acc, dbt, inst] = await Promise.all([
+      const [acc, dbt, inst, flows] = await Promise.all([
         dataSourceAdapter.account.getByUserId(userId),
         dataSourceAdapter.debt.getByUserId(userId),
         dataSourceAdapter.installment.getByUserId(userId),
+        dataSourceAdapter.recurringFlow.getByUserId(userId),
       ]);
       setAccounts(acc);
       setDebts(dbt);
       setInstallments(inst);
+      setRecurringFlows(flows);
 
       const allTx: Transaction[] = [];
       for (const account of acc) {
@@ -123,6 +126,7 @@ export default function ScenarioSimulatorPage(): JSX.Element {
         transactions,
         debts,
         installments,
+        recurringFlows,
         180
       );
 

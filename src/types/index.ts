@@ -15,6 +15,10 @@ export interface Account {
   currency: 'TRY';
   bankName?: string;
   cardLimit?: number;
+  statementDate?: number;
+  statementDay?: number;
+  dueDate?: number;
+  paymentDay?: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt?: Date;
@@ -46,6 +50,7 @@ export interface Category {
   createdAt: Date;
 }
 
+
 export interface Debt {
   id: string;
   userId: string;
@@ -59,17 +64,29 @@ export interface Debt {
   createdAt: Date;
 }
 
+export type InstallmentType = 'kredi_kartı_taksiti' | 'banka_kredisi' | 'kişisel_borç' | 'senet_cek';
+
+
 export interface Installment {
   id: string;
   userId: string;
+  accountId?: string;
   lenderName: string;
+  type: InstallmentType;
   principal: number;
   monthlyPayment: number;
   remainingMonths: number;
   totalMonths: number;
   interestRate: number;
   nextPaymentDate: Date;
+  firstPaymentDate: Date;
   status: 'active' | 'paid_off' | 'overdue';
+  paymentHistory?: Record<string, {
+    status: 'paid' | 'unpaid';
+    amount?: number;
+    note?: string;
+  }>;
+  note?: string;
   createdAt: Date;
 }
 
@@ -166,7 +183,7 @@ export interface AssistantContextCache {
   userId: string;
   contextHash: string;
   accountsSummary: AccountSummary[];
-  findeksScore?: number;
+  findeksData?: { creditScore: number; limitUsageRatio: number };
   transactionsTrend: TransactionTrend;
   alerts: string[];
   cachedAt: Date;
@@ -231,4 +248,18 @@ export interface AIModelConfig {
   provider: 'claude' | 'gemini' | 'gpt4';
   apiKey?: string;
   isDefault: boolean;
+}
+
+export interface RecurringFlow {
+  id: string;
+  userId: string;
+  type: 'gelir' | 'gider';
+  amount: number;
+  dayOfMonth: number;
+  category: string;
+  description: string;
+  isFixed: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }

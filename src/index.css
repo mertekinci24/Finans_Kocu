@@ -167,6 +167,10 @@
   h1 { @apply text-3xl font-bold; }
   h2 { @apply text-2xl font-semibold; }
   h3 { @apply text-lg font-semibold; }
+
+  input, select, textarea {
+    @apply text-neutral-900 bg-white placeholder-neutral-400 dark:text-neutral-100 dark:bg-neutral-800 dark:placeholder-neutral-500 border border-neutral-300 dark:border-neutral-700;
+  }
 }
 
 /* ─── SCROLLBAR THEMING ───────────────────────────────────────────────── */

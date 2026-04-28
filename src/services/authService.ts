@@ -1,21 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-// Environment Guard: Semantic Validation
-if (!supabaseKey.startsWith('eyJ')) {
-  throw new Error(
-    "Geçersiz Supabase Anon Key. Lütfen .env dosyasındaki VITE_SUPABASE_ANON_KEY değerine " +
-    "Supabase Dashboard'dan aldığınız gerçek anahtarı (JWT formatında, 'eyJ' ile başlayan) girin."
-  );
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '@/services/supabase/adapter';
 
 export interface SignUpPayload {
   email: string;
@@ -62,15 +45,23 @@ export const authService = {
   },
 
   async getCurrentSession() {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return data.session;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) return null;
+      return data.session;
+    } catch {
+      return null;
+    }
   },
 
   async getCurrentUser() {
-    const { data, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return data.user;
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) return null;
+      return data.user;
+    } catch {
+      return null;
+    }
   },
 
   onAuthStateChange(callback: (_event: string, _session: unknown) => void) {

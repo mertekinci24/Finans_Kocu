@@ -1,153 +1,399 @@
-import Tesseract from 'tesseract.js';
+import * as pdfjsLib from 'pdfjs-dist';
 import { DelayRecord, BankAccount } from '@/types';
 
+// TASK 47.28: Vite-compatible worker configuration for PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
+
+export type ExtractionStatus =
+  | "found"
+  | "not_found"
+  | "low_confidence"
+  | "rejected";
+
+export interface ExtractedField<T> {
+  value: T | null;
+  status: ExtractionStatus;
+  confidence: number;
+  sourceText?: string;
+  reason?: string;
+  extractionMethod?: "anchor" | "regex" | "table" | "fallback";
+  warnings?: string[];
+}
+
+export interface ScoreComponents {
+  paymentHabits: ExtractedField<number>;
+  currentAccountAndDebtStatus: ExtractedField<number>;
+  creditUsageIntensity: ExtractedField<number>;
+  newCreditOpenings: ExtractedField<number>;
+}
+
+export type FindeksDocumentType =
+  | "findeks_credit_score_only"
+  | "findeks_risk_report_individual"
+  | "findeks_risk_report_commercial"
+  | "bank_pdf"
+  | "unknown";
+
 export interface RawFindeksData {
-  creditScore: number;
-  limitUsageRatio: number;
-  delayMonths: number;
+  documentType: FindeksDocumentType;
+
+  creditScore: ExtractedField<number>;
+  reportDate: ExtractedField<string>;
+  referenceCode: ExtractedField<string>;
+
+  limitUsageRatio: ExtractedField<number>;
+  delayMonths: ExtractedField<number>;
+  bankAccounts: ExtractedField<number>;
+  creditCards: ExtractedField<number>;
+  activeDebts: ExtractedField<number>;
+
+  scoreComponents: ScoreComponents;
+
+  missingFields: string[];
+  warnings: string[];
+  rawTextPreview: string;
+  parserVersion: string;
+
   delayHistory: DelayRecord[];
-  bankAccounts: number;
-  creditCards: number;
-  activeDebts: number;
   banksList: BankAccount[];
 }
 
-const findeksScoreRanges = {
-  kritik: { min: 1, max: 969 },
-  gelişim_açık: { min: 970, max: 1149 },
-  dengeli: { min: 1150, max: 1469 },
-  güvenli: { min: 1470, max: 1719 },
-  prestijli: { min: 1720, max: 1900 },
-};
+function found<T>(
+  value: T,
+  confidence: number,
+  sourceText: string,
+  extractionMethod: ExtractedField<T>["extractionMethod"]
+): ExtractedField<T> {
+  return {
+    value,
+    status: "found",
+    confidence,
+    sourceText,
+    extractionMethod,
+  };
+}
 
-export async function extractTextFromPDF(pdfFile: File): Promise<string> {
+function notFound<T>(
+  reason: string,
+  warnings: string[] = []
+): ExtractedField<T> {
+  return {
+    value: null,
+    status: "not_found",
+    confidence: 0,
+    reason,
+    warnings,
+  };
+}
+
+function rejected<T>(
+  reason: string,
+  sourceText?: string
+): ExtractedField<T> {
+  return {
+    value: null,
+    status: "rejected",
+    confidence: 0,
+    reason,
+    sourceText,
+  };
+}
+
+export async function extractTextFromPDF(file: File): Promise<string> {
   try {
-    const { data } = await Tesseract.recognize(
-      pdfFile,
-      'tur'
-    );
-    return data.text;
+    if (file.type !== 'application/pdf') {
+      throw new Error("Lütfen sadece PDF dosyası yükleyin.");
+    }
+
+    console.log(`[FINDEKS_PARSER] Dijital okuma başlatılıyor: ${file.name}`);
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    
+    let pageTexts = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      console.log(`[FINDEKS_PARSER] Sayfa ${i} okundu, bulunan karakter: ${pageText.length}`);
+      pageTexts.push(pageText);
+    }
+    
+    // Aggressive normalization: Clear hidden control chars and standardize spaces
+    const extractedText = pageTexts
+      .join(' ')
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Control chars
+      .replace(/\n|\r|\t/g, ' ') // Force spaces for line breaks
+      .replace(/\s+/g, ' ') // Standardize multiple spaces
+      .trim();
+    
+    if (extractedText.length < 3) {
+      throw new Error("Bu PDF dosyasında dijital metin katmanı bulunamadı. Lütfen taranmış resim yerine bankanızdan indirdiğiniz orijinal PDF dosyasını yükleyin.");
+    }
+
+    console.log(`[FINDEKS_PARSER] Okuma tamamlandı. Toplam karakter: ${extractedText.length}`);
+    return extractedText;
   } catch (error) {
-    throw new Error(`PDF OCR failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('[FINDEKS_PARSER] Hata:', error);
+    throw error;
   }
 }
 
+function classifyFindeksDocument(text: string): FindeksDocumentType {
+  const t = text.toLowerCase();
+  
+  if (t.includes('ticari risk')) {
+    return "findeks_risk_report_commercial";
+  }
+
+  // Risk table detection
+  const hasTable = t.includes("bireysel kredili ürün bilgileri tablosu") || 
+                   t.includes("banka/finansal kuruluş bazında") ||
+                   t.includes("detaylı ürün bilgileri") ||
+                   t.includes("hesap özeti");
+                   
+  if (hasTable) {
+    return "findeks_risk_report_individual";
+  }
+  
+  if (t.includes("findeks kredi notunuz") || t.includes("kredi notu'nun bileşenleri")) {
+    return "findeks_credit_score_only";
+  }
+  
+  return "unknown";
+}
+
 export function parseRawFindeksText(ocrText: string): RawFindeksData {
+  console.log("[FINDEKS_PARSER_V2_ACTIVE] Evidence-based parser is running.");
+  
+  const documentType = classifyFindeksDocument(ocrText);
+  console.log("[FINDEKS_INFO] Belge tipi:", documentType);
+
   const data: RawFindeksData = {
-    creditScore: 0,
-    limitUsageRatio: 0,
-    delayMonths: 0,
+    documentType,
+    creditScore: notFound("Henüz aranmadı"),
+    reportDate: notFound("Henüz aranmadı"),
+    referenceCode: notFound("Henüz aranmadı"),
+    limitUsageRatio: notFound("Henüz aranmadı"),
+    delayMonths: notFound("Henüz aranmadı"),
+    bankAccounts: notFound("Henüz aranmadı"),
+    creditCards: notFound("Henüz aranmadı"),
+    activeDebts: notFound("Henüz aranmadı"),
+    scoreComponents: {
+      paymentHabits: notFound("Henüz aranmadı"),
+      currentAccountAndDebtStatus: notFound("Henüz aranmadı"),
+      creditUsageIntensity: notFound("Henüz aranmadı"),
+      newCreditOpenings: notFound("Henüz aranmadı"),
+    },
+    missingFields: [],
+    warnings: [],
+    rawTextPreview: ocrText.substring(0, 200),
+    parserVersion: "2.0.0",
     delayHistory: [],
-    bankAccounts: 0,
-    creditCards: 0,
-    activeDebts: 0,
     banksList: [],
   };
 
-  // Extract Kredi Notu (Findeks Score)
-  const scorePattern = /kredi\s+notu[:\s]*([\d]+)|puanınız[:\s]*([\d]+)|score[:\s]*([\d]+)/i;
-  const scoreMatch = ocrText.match(scorePattern);
+  // KREDİ NOTU ÇIKARIMI
+  const scoreMatch = ocrText.match(/(?:Findeks Kredi Notunuz|Kredi Notunuz)\s*[:\-\s]*(\d{3,4})/i) || ocrText.match(/Kredi Notunuz[^\d]*(\d{3,4})/i);
   if (scoreMatch) {
-    data.creditScore = parseInt(scoreMatch[1] || scoreMatch[2] || scoreMatch[3] || '0', 10);
+    const val = parseInt(scoreMatch[1], 10);
+    if (val >= 1 && val <= 1900) {
+      data.creditScore = found(val, 98, scoreMatch[0], "anchor");
+      console.log("[FINDEKS_SUCCESS] Kredi notu bulundu:", data.creditScore.value);
+    } else {
+      data.creditScore = notFound("Sayısal değer kredi notu aralığında değil.");
+    }
+  } else {
+    data.creditScore = notFound("Kredi notu anchor kelimeleri bulunamadı.");
   }
 
-  // Extract Limit Kullanım Oranı
-  const limitPattern = /limit\s+kullanım[:\s]*(%?[\d.]+)|kullanım\s+oranı[:\s]*(%?[\d.]+)/i;
-  const limitMatch = ocrText.match(limitPattern);
-  if (limitMatch) {
-    const ratioStr = limitMatch[1] || limitMatch[2] || '0';
-    data.limitUsageRatio = parseFloat(ratioStr.replace('%', '').trim());
+  // REPORT DATE ÇIKARIMI
+  const dateMatch = ocrText.match(/RAPOR TARİHİ\s*(\d{2}\.\d{2}\.\d{4})/i);
+  if (dateMatch) {
+    data.reportDate = found(dateMatch[1], 95, dateMatch[0], "regex");
+  } else {
+    data.reportDate = notFound("Rapor tarihi bulunamadı.");
   }
 
-  // Extract Gecikme Geçmişi (delay months)
-  const delayPattern = /gecikmiş[:\s]*([\d]+)\s*ay|ödenmemiş[:\s]*([\d]+)\s*ay|delay[:\s]*([\d]+)/i;
-  const delayMatch = ocrText.match(delayPattern);
-  if (delayMatch) {
-    data.delayMonths = parseInt(delayMatch[1] || delayMatch[2] || delayMatch[3] || '0', 10);
+  // REFERENCE CODE ÇIKARIMI
+  const refMatch = ocrText.match(/REFERANS KODU\s*([A-Z0-9]+)/i) || ocrText.match(/REFERANS NO\s*([A-Z0-9]+)/i);
+  if (refMatch) {
+    data.referenceCode = found(refMatch[1], 90, refMatch[0], "regex");
+  } else {
+    data.referenceCode = notFound("Referans kodu bulunamadı.");
   }
 
-  // Extract Banka Hesap Sayısı
-  const bankAccPattern = /banka\s+hesab[ı|i][:\s]*([\d]+)|hesap\s+say[ı|i]s[ı|i][:\s]*([\d]+)/i;
-  const bankAccMatch = ocrText.match(bankAccPattern);
-  if (bankAccMatch) {
-    data.bankAccounts = parseInt(bankAccMatch[1] || bankAccMatch[2] || '0', 10);
+  // SCORE COMPONENTS ÇIKARIMI
+  if (ocrText.toLowerCase().includes("kredi notu'nun bileşenleri")) {
+    const p1 = ocrText.match(/%45/);
+    const p2 = ocrText.match(/%32/);
+    const p3 = ocrText.match(/%18/);
+    const p4 = ocrText.match(/%5/);
+    if (p1 && p2 && p3 && p4) {
+      data.scoreComponents.paymentHabits = found(45, 90, "Kredili Ürün Ödeme Alışkanlıkları", "fallback");
+      data.scoreComponents.currentAccountAndDebtStatus = found(32, 90, "Mevcut Hesap ve Borç Durumu", "fallback");
+      data.scoreComponents.creditUsageIntensity = found(18, 90, "Kredi Kullanım Yoğunluğu", "fallback");
+      data.scoreComponents.newCreditOpenings = found(5, 90, "Yeni Kredili Ürün Açılışları", "fallback");
+    }
   }
 
-  // Extract Kredi Kartı Sayısı
-  const cardPattern = /kredi\s+kartı[:\s]*([\d]+)|kart\s+say[ı|i]s[ı|i][:\s]*([\d]+)|kartlar[:\s]*([\d]+)/i;
-  const cardMatch = ocrText.match(cardPattern);
-  if (cardMatch) {
-    data.creditCards = parseInt(cardMatch[1] || cardMatch[2] || cardMatch[3] || '0', 10);
-  }
-
-  // Extract Active Debts
-  const debtPattern = /aktif\s+borç[:\s]*([\d]+)|borç\s+say[ı|i]s[ı|i][:\s]*([\d]+)|bor[ç|c]lar[:\s]*([\d]+)/i;
-  const debtMatch = ocrText.match(debtPattern);
-  if (debtMatch) {
-    data.activeDebts = parseInt(debtMatch[1] || debtMatch[2] || debtMatch[3] || '0', 10);
-  }
-
-  // Extract Banks List (simplified pattern)
-  const bankNamePatterns = [
-    /garanti\s+bank/i,
-    /iş\s+bank/i,
-    /yapı\s+kredi|ykb/i,
-    /akbank/i,
-    /denizbank/i,
-    /kuveyt\s+türk/i,
-    /hsbc/i,
-    /finansbank/i,
-  ];
-
-  bankNamePatterns.forEach((pattern) => {
-    if (pattern.test(ocrText)) {
-      const bankName = ocrText.match(pattern)?.[0]?.split(/\s+/)[0] || 'Banka';
-      if (!data.banksList.find((b) => b.name.toLowerCase() === bankName.toLowerCase())) {
-        data.banksList.push({
-          name: bankName,
-          type: 'banka',
-          status: 'aktif',
-        });
+  // LIMIT USAGE ÇIKARIMI
+  if (documentType === "findeks_credit_score_only") {
+    data.limitUsageRatio = notFound<number>(
+      "Bu PDF kredi notu özetidir; gerçek limit kullanım oranı içermez.",
+      ["Sayfa 2'deki yüzdeler kredi notu bileşen ağırlıklarıdır, limit kullanımı değildir."]
+    );
+    console.log("[FINDEKS_INFO] Limit kullanım oranı bu PDF'te bulunamadı.");
+  } else {
+    const limitAnchors = ["limit kullanım oranı", "limit doluluk oranı", "borç / limit", "toplam borç", "toplam limit", "kullanılan limit"];
+    let limitVal: number | null = null;
+    let limitSource = "";
+    
+    const lowerText = ocrText.toLowerCase();
+    for (const anchor of limitAnchors) {
+      const idx = lowerText.indexOf(anchor);
+      if (idx !== -1) {
+        const window = ocrText.substring(Math.max(0, idx - 50), Math.min(ocrText.length, idx + 150));
+        const matches = Array.from(window.matchAll(/(\d+)\s*%/g));
+        
+        for (const m of matches) {
+          const valStr = m[1];
+          const valIdx = m.index!;
+          
+          const localContextStart = Math.max(0, valIdx - 20);
+          const localContextEnd = Math.min(window.length, valIdx + valStr.length + 20);
+          const localContext = window.substring(localContextStart, localContextEnd).toLowerCase();
+          
+          const rejectedWords = [
+            'bileşen', 'ağırlık', 'payı', "kredi notu'nun bileşenleri",
+            'kredili ürün ödeme alışkanlıkları', 'mevcut hesap ve borç durumu',
+            'kredi kullanım yoğunluğu', 'yeni kredili ürün açılışları'
+          ];
+          
+          const isRejected = rejectedWords.some(w => localContext.includes(w));
+          if (!isRejected) {
+             limitVal = parseFloat(valStr);
+             limitSource = anchor;
+             break;
+          }
+        }
+        if (limitVal !== null) break;
       }
     }
-  });
+    
+    if (limitVal !== null) {
+      data.limitUsageRatio = found(limitVal, 85, limitSource, "anchor");
+    } else {
+      data.limitUsageRatio = notFound("Limit kullanım oranı bulunamadı.");
+      console.log("[FINDEKS_INFO] Limit kullanım oranı bu PDF'te bulunamadı.");
+    }
+  }
+
+  // PRODUCT COUNTS & DELAY MONTHS
+  data.bankAccounts = notFound<number>("Banka hesabı adedi bu PDF'te bulunamadı.");
+  data.creditCards = notFound<number>("Kredi kartı adedi bu PDF'te bulunamadı.");
+  data.activeDebts = notFound<number>("Aktif borç adedi bu PDF'te bulunamadı.");
+  data.delayMonths = notFound<number>("Gecikme geçmişi bu PDF'te bulunamadı.");
+
+  const lines = ocrText.split(/\r?\n|\. /);
+  for (const line of lines) {
+    const lowerLine = line.toLowerCase();
+    
+    const delayMatch = line.match(/gecikmiş[^\d]*(\d+)\s*ay/i) || line.match(/ödenmemiş[^\d]*(\d+)\s*ay/i);
+    if (delayMatch && data.delayMonths.status !== "found") {
+       data.delayMonths = found(parseInt(delayMatch[1], 10), 90, line.trim(), "regex");
+    }
+
+    if (lowerLine.includes('üye adedi') || lowerLine.includes('hesap adedi') || lowerLine.includes('kart adedi') || lowerLine.includes('açık hesap adedi')) {
+      const match = line.match(/(\d+)/);
+      if (match) {
+        const val = parseInt(match[1], 10);
+        if (val > 0 && val < 50) {
+           if ((lowerLine.includes('üye') || lowerLine.includes('hesap')) && data.bankAccounts.status !== "found") {
+             data.bankAccounts = found(val, 80, line.trim(), "regex");
+           }
+           if (lowerLine.includes('kart') && data.creditCards.status !== "found") {
+             data.creditCards = found(val, 80, line.trim(), "regex");
+           }
+        }
+      }
+    }
+    
+    if (lowerLine.match(/aktif borç|borç sayısı/i)) {
+      const match = line.match(/(\d+)/);
+      if (match) {
+        const val = parseInt(match[1], 10);
+        if (data.activeDebts.status !== "found") data.activeDebts = found(val, 80, line.trim(), "regex");
+      }
+    }
+  }
+
+  // missingFields DOLDUR
+  const checkFields: (keyof RawFindeksData)[] = ["limitUsageRatio", "delayMonths", "bankAccounts", "creditCards", "activeDebts"];
+  for (const field of checkFields) {
+    const f = data[field] as ExtractedField<number>;
+    if (f.status === "not_found" || f.status === "low_confidence") {
+      data.missingFields.push(field);
+    }
+  }
 
   return data;
 }
 
 export function determineRiskLevel(
-  creditScore: number,
-  limitUsageRatio: number,
-  delayMonths: number
+  creditScore: any,
+  limitUsageRatio: any,
+  delayMonths: any
 ): 'kritik' | 'gelişim_açık' | 'dengeli' | 'güvenli' | 'prestijli' {
-  if (delayMonths > 0 || limitUsageRatio > 80) {
+  const score = typeof creditScore === 'object' && creditScore !== null ? creditScore.value || 0 : Number(creditScore) || 0;
+  const ratio = typeof limitUsageRatio === 'object' && limitUsageRatio !== null ? limitUsageRatio.value || 0 : Number(limitUsageRatio) || 0;
+  const delay = typeof delayMonths === 'object' && delayMonths !== null ? delayMonths.value || 0 : Number(delayMonths) || 0;
+
+  if (delay > 0 || ratio > 80) {
     return 'kritik';
   }
 
+  const findeksScoreRanges = {
+    kritik: { min: 1, max: 969 },
+    gelişim_açık: { min: 970, max: 1149 },
+    dengeli: { min: 1150, max: 1469 },
+    güvenli: { min: 1470, max: 1719 },
+    prestijli: { min: 1720, max: 1900 },
+  };
+
   const range = Object.entries(findeksScoreRanges).find(
-    ([_, bounds]) => creditScore >= bounds.min && creditScore <= bounds.max
+    ([_, bounds]) => score >= bounds.min && score <= bounds.max
   );
 
   return (range?.[0] || 'gelişim_açık') as 'kritik' | 'gelişim_açık' | 'dengeli' | 'güvenli' | 'prestijli';
 }
 
 export function calculateScoreImprovementPotential(
-  currentScore: number,
-  limitUsageRatio: number,
-  delayMonths: number
+  currentScore: any,
+  limitUsageRatio: any,
+  delayMonths: any
 ): number {
+  const score = typeof currentScore === 'object' && currentScore !== null ? currentScore.value || 0 : Number(currentScore) || 0;
+  const ratio = typeof limitUsageRatio === 'object' && limitUsageRatio !== null ? limitUsageRatio.value || 0 : Number(limitUsageRatio) || 0;
+  const delay = typeof delayMonths === 'object' && delayMonths !== null ? delayMonths.value || 0 : Number(delayMonths) || 0;
+
   let potential = 0;
 
-  if (currentScore < 1900) {
-    potential += Math.min(100, (1900 - currentScore) / 5);
+  if (score < 1900) {
+    potential += Math.min(100, (1900 - score) / 5);
   }
 
-  if (limitUsageRatio > 50) {
-    potential += Math.min(150, (limitUsageRatio - 50) * 2);
+  if (ratio > 50) {
+    potential += Math.min(150, (ratio - 50) * 2);
   }
 
-  if (delayMonths > 0) {
-    potential += Math.min(200, delayMonths * 50);
+  if (delay > 0) {
+    potential += Math.min(200, delay * 50);
   }
 
   return Math.min(500, Math.round(potential));

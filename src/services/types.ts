@@ -13,11 +13,12 @@ import type {
   TaxObligation,
   BaskurProfile,
   TaxPaymentHistory,
+  RecurringFlow,
 } from '@types';
 
 export interface IUserRepository {
   getById(id: string): Promise<User | null>;
-  create(user: Omit<User, 'id' | 'createdAt'>): Promise<User>;
+  create(user: Omit<User, 'createdAt'>): Promise<User>;
   update(id: string, user: Partial<User>): Promise<User>;
   delete(id: string): Promise<void>;
 }
@@ -28,6 +29,7 @@ export interface IAccountRepository {
   create(account: Omit<Account, 'id' | 'createdAt'>): Promise<Account>;
   update(id: string, account: Partial<Account>): Promise<Account>;
   delete(id: string): Promise<void>;
+  recalibrateBalance(id: string): Promise<Account>;
 }
 
 export interface ITransactionRepository {
@@ -36,6 +38,7 @@ export interface ITransactionRepository {
     limit?: number,
     offset?: number
   ): Promise<Transaction[]>;
+  list(limit?: number): Promise<{ data: Transaction[] }>;
   getByDateRange(
     accountId: string,
     startDate: Date,
@@ -106,12 +109,21 @@ export interface ITaxRepository {
   upsertBaskurProfile(userId: string, profile: Omit<BaskurProfile, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<BaskurProfile>;
 }
 
+export interface IRecurringFlowRepository {
+  getByUserId(userId: string): Promise<RecurringFlow[]>;
+  getById(id: string): Promise<RecurringFlow | null>;
+  create(flow: Omit<RecurringFlow, 'id' | 'createdAt' | 'updatedAt'>): Promise<RecurringFlow>;
+  update(id: string, flow: Partial<RecurringFlow>): Promise<RecurringFlow>;
+  delete(id: string): Promise<void>;
+}
+
 export interface IDataSourceAdapter {
   user: IUserRepository;
   account: IAccountRepository;
   transaction: ITransactionRepository;
   debt: IDebtRepository;
   installment: IInstallmentRepository;
+  recurringFlow: IRecurringFlowRepository;
   financialScore: IFinancialScoreRepository;
   findeks: IFindeksRepository;
   chat: IChatRepository;
