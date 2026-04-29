@@ -2,7 +2,7 @@ import { AssistantContextCache, ChatMessage, SuggestedTransaction } from '@/type
 
 // Gemini Free Tier API (Proxy üzerinden)
 const AI_PROXY_URL = '/api/ai/gemini';
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const AI_MODEL = 'google/gemma-3-12b-it:free';
 const MAX_TOKENS = 900;
 
 function isExtractedField(field: any): boolean {
@@ -129,7 +129,7 @@ export async function sendAssistantMessage(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: GEMINI_MODEL,
+        model: AI_MODEL,
         maxTokens: MAX_TOKENS,
         fullPrompt,
       }),
@@ -137,11 +137,18 @@ export async function sendAssistantMessage(
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`Gemini API error: ${response.status} — ${errorBody}`);
+      throw new Error(`AI proxy error: ${response.status} — ${errorBody}`);
     }
 
     const data = await response.json();
+
+    // Parse response shape with fallback chain:
+    // 1. Raw OpenRouter: choices[0].message.content
+    // 2. Wrapped proxy:  data.data.message
+    // 3. Gemini legacy: candidates[0].content.parts[0].text
     const text =
+      data?.choices?.[0]?.message?.content ||
+      data?.data?.message ||
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       'AI yanıt üretemedi.';
 
@@ -150,7 +157,7 @@ export async function sendAssistantMessage(
     return {
       message: cleanResponseText(text),
       suggestedTransaction,
-      tokensUsed: data?.usageMetadata?.candidatesTokenCount || 0,
+      tokensUsed: data?.usage?.completion_tokens ?? 0,
     };
   } catch (error) {
     throw new Error(

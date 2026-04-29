@@ -43,16 +43,46 @@ async function fetchUserAccounts(userId: string): Promise<AccountSummary[]> {
 }
 
 async function fetchTransactionsTrend(userId: string): Promise<TransactionTrend> {
+  const emptyFallback: TransactionTrend = {
+    avgMonthlyIncome: 0,
+    avgMonthlyExpense: 0,
+    savingsRate: 0,
+    topCategories: [],
+  };
+
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const dateFilter = sixMonthsAgo.toISOString().slice(0, 10); // YYYY-MM-DD
 
+  // Step 1: Get user's account IDs
+  const { data: accountRows, error: accountError } = await supabase
+    .from('accounts')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('is_active', true);
+
+  if (accountError) {
+    console.warn('[RAG_CONTEXT] accounts query failed', accountError);
+    return emptyFallback;
+  }
+
+  const accountIds = (accountRows || []).map((a) => a.id);
+
+  if (accountIds.length === 0) {
+    return emptyFallback;
+  }
+
+  // Step 2: Query transactions via account_id (transactions has no user_id column)
   const { data, error } = await supabase
     .from('transactions')
     .select('amount, type, category, date')
-    .eq('user_id', userId)
-    .gte('date', sixMonthsAgo.toISOString());
+    .in('account_id', accountIds)
+    .gte('date', dateFilter);
 
-  if (error) throw error;
+  if (error) {
+    console.warn('[RAG_CONTEXT] transactions query failed', error);
+    return emptyFallback;
+  }
 
   const transactions = data || [];
   const monthCount = 6;
@@ -82,6 +112,7 @@ async function fetchTransactionsTrend(userId: string): Promise<TransactionTrend>
     savingsRate,
   };
 }
+
 
 async function fetchFindeksData(userId: string): Promise<{ creditScore: number; limitUsageRatio: number } | undefined> {
   const { data, error } = await supabase

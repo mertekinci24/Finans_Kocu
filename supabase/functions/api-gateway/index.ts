@@ -11,6 +11,7 @@
 //   IYZICO_BASE_URL         — https://sandbox-api.iyzipay.com (sandbox) veya https://api.iyzipay.com (production)
 //   IYZICO_WEBHOOK_SECRET   — Webhook HMAC doğrulama anahtarı
 //   CLAUDE_API_KEY           — Anthropic Claude API key
+//   GEMINI_API_KEY           — Google Gemini API key
 //   SUPABASE_URL             — otomatik
 //   SUPABASE_SERVICE_ROLE_KEY — otomatik
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -65,6 +66,20 @@ function getSupabaseAdmin() {
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
+}
+
+// ─── Path Normalization ──────────────────────────────────────────────
+function normalizePath(pathname: string): string {
+  let path = pathname;
+
+  path = path.replace(/^\/functions\/v1\/api-gateway/, '');
+  path = path.replace(/^\/api-gateway/, '');
+
+  if (!path.startsWith('/')) {
+    path = `/${path}`;
+  }
+
+  return path;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -364,13 +379,25 @@ async function handleClaudeProxy(body: Record<string, unknown>): Promise<Respons
 // GEMINI AI PROXY HANDLERS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+const FREE_MODEL_FALLBACKS = [
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "qwen/qwen3-next-80b-a3b-instruct:free",
+  "google/gemma-4-31b-it:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "nousresearch/hermes-3-llama-3.1-405b:free",
+  "openai/gpt-oss-120b:free",
+  "google/gemma-3-12b-it:free",
+];
+
+const RETRYABLE_STATUSES = new Set([404, 429, 500, 502, 503]);
+
 async function handleGeminiProxy(body: Record<string, unknown>): Promise<Response> {
-  const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-  if (!GEMINI_API_KEY) {
-    return errorResponse('Gemini API anahtarı yapılandırılmamış', 500);
+  const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
+  if (!OPENROUTER_API_KEY) {
+    return errorResponse('OpenRouter API anahtarı yapılandırılmamış', 500);
   }
 
-  const { fullPrompt, model, maxTokens } = body as {
+  const { fullPrompt, maxTokens, model: requestedModel } = body as {
     fullPrompt?: string;
     model?: string;
     maxTokens?: number;
@@ -380,37 +407,115 @@ async function handleGeminiProxy(body: Record<string, unknown>): Promise<Respons
     return errorResponse('fullPrompt zorunlu', 400);
   }
 
-  const targetModel = model || 'gemini-1.5-flash';
+  // If body.model is not already in the verified fallback list, prepend it as a one-shot attempt.
+  // Otherwise always use the fallback list order (avoids getting stuck on a stale/unavailable model).
+  const modelsToTry: string[] = [
+    ...(typeof requestedModel === 'string' && !FREE_MODEL_FALLBACKS.includes(requestedModel)
+      ? [requestedModel]
+      : []),
+    ...FREE_MODEL_FALLBACKS,
+  ];
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${GEMINI_API_KEY}`,
-      {
+  console.log('[OPENROUTER_REQUEST]', {
+    modelsToTry,
+    hasKey: Boolean(OPENROUTER_API_KEY),
+    promptLength: fullPrompt?.length ?? 0,
+  });
+
+  let lastError: string = 'Unknown error';
+
+  for (const model of modelsToTry) {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: fullPrompt }],
-            },
-          ],
-          ...(maxTokens ? { generationConfig: { maxOutputTokens: maxTokens } } : {})
+          model,
+          messages: [{ role: 'user', content: fullPrompt }],
+          max_tokens: maxTokens || 800,
         }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        lastError = `${response.status} - ${errText}`;
+
+        if (RETRYABLE_STATUSES.has(response.status)) {
+          console.warn('[OPENROUTER_MODEL_FAILED]', { model, status: response.status, error: errText });
+          continue;
+        }
+
+        // Non-retryable error — fail immediately
+        console.error('[OPENROUTER_ERROR]', response.status, errText);
+        return errorResponse(`OpenRouter API error: ${lastError}`, response.status);
       }
-    );
+
+      // Return raw OpenRouter JSON directly — frontend parses choices[0].message.content
+      const result = await response.json();
+
+      // Guard: treat empty content as a failure and try next model
+      const content = result?.choices?.[0]?.message?.content;
+      if (!content || String(content).trim().length === 0) {
+        lastError = `Empty response from ${model}`;
+        console.warn('[OPENROUTER_EMPTY_RESPONSE]', { model });
+        continue;
+      }
+
+      console.log('[OPENROUTER_SUCCESS]', { model, contentLength: String(content).length });
+      return jsonResponse(result);
+
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.warn('[OPENROUTER_MODEL_FAILED]', { model, status: 'exception', error: lastError });
+      // Network/parse exceptions — try next model
+    }
+  }
+
+  console.error('[OPENROUTER_ALL_FAILED]', { lastError });
+  return errorResponse(`All OpenRouter free models failed. Last error: ${lastError}`, 503);
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// OPENROUTER MODEL DISCOVERY (diagnostic)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function handleOpenRouterModels(): Promise<Response> {
+  const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
+  if (!OPENROUTER_API_KEY) {
+    return errorResponse('OpenRouter API anahtarı yapılandırılmamış', 500);
+  }
+
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
     if (!response.ok) {
-      const err = await response.text();
-      return errorResponse(`Gemini API error: ${response.status} - ${err}`, response.status);
+      const errText = await response.text();
+      return errorResponse(`OpenRouter models fetch failed: ${response.status} - ${errText}`, response.status);
     }
 
-    const result = await response.json();
-    return jsonResponse(result);
+    const raw = await response.json();
+
+    // Simplified list for quick inspection
+    const simplified = (raw.data ?? []).map((m: Record<string, unknown>) => ({
+      id: m.id,
+      name: m.name,
+      pricing: m.pricing,
+      context_length: m.context_length,
+    }));
+
+    return jsonResponse({ total: simplified.length, models: simplified, raw });
   } catch (err) {
-    return errorResponse(`Gemini bağlantı hatası: ${err instanceof Error ? err.message : 'Unknown'}`, 500);
+    return errorResponse(`OpenRouter models exception: ${err instanceof Error ? err.message : String(err)}`, 500);
   }
 }
 
@@ -425,7 +530,9 @@ serve(async (request: Request) => {
   }
 
   const url = new URL(request.url);
-  const path = url.pathname.replace('/functions/v1/api-gateway', '');
+  const path = normalizePath(url.pathname);
+  
+  console.log('[API_GATEWAY_ROUTE]', { rawPath: url.pathname, normalizedPath: path });
 
   try {
     // ── Payment Routes ──────────────────────────────────────────────
@@ -464,6 +571,11 @@ serve(async (request: Request) => {
     if (path === '/ai/gemini' && request.method === 'POST') {
       const body = await request.json();
       return handleGeminiProxy(body);
+    }
+
+    // ── OpenRouter Model Discovery (diagnostic) ──────────────────────
+    if (path === '/ai/openrouter-models' && request.method === 'GET') {
+      return handleOpenRouterModels();
     }
 
     return errorResponse('Route bulunamadı', 404);
