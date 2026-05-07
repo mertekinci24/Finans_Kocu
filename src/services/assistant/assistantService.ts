@@ -1,8 +1,8 @@
 import { AssistantContextCache, ChatMessage, SuggestedTransaction } from '@/types';
+import { FinancialIntelligenceContext } from '../../types/intelligence';
 
-// Gemini Free Tier API (Proxy üzerinden)
+// AI Proxy (model seçimi backend fallback sistemine bırakıldı)
 const AI_PROXY_URL = '/api/ai/gemini';
-const AI_MODEL = 'google/gemma-3-12b-it:free';
 const MAX_TOKENS = 900;
 
 function isExtractedField(field: any): boolean {
@@ -49,26 +49,106 @@ function formatEvidenceField(label: string, field: any): string {
   return `- ${label}: bilinmiyor`;
 }
 
+function serializeFinancialIntelligenceContext(intel?: FinancialIntelligenceContext): string {
+  if (!intel) return "";
+
+  const lines: string[] = [];
+  lines.push("## FINANCIAL INTELLIGENCE LAYER — DETERMINISTIC SIGNALS");
+  lines.push("DİKKAT: Bu bölümdeki veriler sistem tarafından deterministik (kesin) olarak hesaplanmıştır.");
+  lines.push("KURALLAR:");
+  lines.push("- AI bu sinyalleri DEĞİŞTİREMEZ.");
+  lines.push("- AI yeni oran, sayı, skor veya risk seviyesi HESAPLAYAMAZ.");
+  lines.push("- AI yalnızca canBeExplainedByAI: true olan sinyalleri açıklayabilir.");
+  lines.push("- AI, MissingFields içinde yer alan alanlarda yorum YAPAMAZ (veriler eksiktir).");
+  lines.push("- AI, BlockedInsights konularında kesinlikle tavsiye veremez, her zaman belirtilen fallback cümlesini kullanmalıdır.");
+  lines.push("- Findeks ve Uygulama (App) kaynakları birbirine KARIŞTIRILMAMALIDIR.");
+  lines.push("- Kredi onayı, garanti veya yatırım tavsiyesi VERİLEMEZ.");
+  
+  lines.push("\n1. RİSK SİNYALLERİ:");
+  if (intel.signals && intel.signals.length > 0) {
+    intel.signals.forEach(s => {
+      lines.push(`- Sinyal: [${s.code}] (Kaynak: ${s.source}, Seviye: ${s.level})`);
+      lines.push(`  Özet: ${s.summary}`);
+      lines.push(`  Yorum: ${s.interpretation}`);
+      lines.push(`  Koçluk Konusu: ${s.coachGuidanceTopic}`);
+      lines.push(`  Açıklanabilir mi?: ${s.canBeExplainedByAI}`);
+    });
+  } else {
+    lines.push("- Risk sinyali bulunmuyor.");
+  }
+
+  lines.push("\n2. İZİNLER (PERMISSIONS):");
+  if (intel.permissions) {
+    const p = intel.permissions;
+    lines.push(`- Kredi Notu Analizi: ${p.canAnalyzeCreditScore}`);
+    lines.push(`- Borç/Limit Analizi: ${p.canAnalyzeDebtLimitRatio}`);
+    lines.push(`- Ödeme Geçmişi Analizi: ${p.canAnalyzePaymentHistory}`);
+    lines.push(`- Nakit Akışı Analizi: ${p.canAnalyzeCashflow}`);
+    lines.push(`- Likidite Analizi: ${p.canAnalyzeLiquidity}`);
+    lines.push(`- Aksiyon Planı Verebilir mi: ${p.canGiveActionPlan}`);
+  }
+
+  lines.push("\n3. EKSİK VERİLER (MISSING FIELDS):");
+  if (intel.missingFields && intel.missingFields.length > 0) {
+    intel.missingFields.forEach(m => {
+      lines.push(`- ${m.field} (${m.source}): ${m.instructionToAI}`);
+    });
+  } else {
+    lines.push("- Tespit edilen eksik alan yok.");
+  }
+
+  lines.push("\n4. İZİN VERİLEN KONULAR (ALLOWED INSIGHTS):");
+  if (intel.allowedInsights && intel.allowedInsights.length > 0) {
+    intel.allowedInsights.forEach(a => {
+      lines.push(`- Konu: ${a.topic} (Kaynak: ${a.source}, Ton: ${a.allowedTone})`);
+    });
+  } else {
+    lines.push("- Özel izin verilen konu yok.");
+  }
+
+  lines.push("\n5. YASAKLI KONULAR VE FALLBACK (BLOCKED INSIGHTS):");
+  if (intel.blockedInsights && intel.blockedInsights.length > 0) {
+    intel.blockedInsights.forEach(b => {
+      lines.push(`- Konu: ${b.topic} (Kaynak: ${b.source})`);
+      lines.push(`  Neden: ${b.reason}`);
+      lines.push(`  Zorunlu Yanıt (Fallback): "${b.userFacingFallback}"`);
+    });
+  } else {
+    lines.push("- Tespit edilen özel yasaklı konu yok (varsayılanlar geçerlidir).");
+  }
+
+  lines.push("\n6. UYARILAR:");
+  if (intel.warnings && intel.warnings.length > 0) {
+    intel.warnings.forEach(w => lines.push(`- ${w}`));
+  } else {
+    lines.push("- Sistem uyarısı yok.");
+  }
+
+  return lines.join("\n") + "\n";
+}
+
 function serializeFindeksEvidence(data: any): string {
   if (!data) return "";
 
-  const scoreComponents = data.scoreComponents;
+  const scoreComponents = data.scoreComponents || data.fields?.components;
   const componentLines: string[] = [];
 
   if (scoreComponents) {
     if (scoreComponents.paymentHabits) {
       componentLines.push(formatEvidenceField("Ödeme Alışkanlıkları Bileşeni", scoreComponents.paymentHabits));
     }
-    if (scoreComponents.currentAccountAndDebtStatus) {
-      componentLines.push(formatEvidenceField("Mevcut Hesap ve Borç Durumu Bileşeni", scoreComponents.currentAccountAndDebtStatus));
+    if (scoreComponents.currentAccountAndDebtStatus || scoreComponents.currentDebt) {
+      componentLines.push(formatEvidenceField("Mevcut Hesap ve Borç Durumu Bileşeni", scoreComponents.currentAccountAndDebtStatus || scoreComponents.currentDebt));
     }
-    if (scoreComponents.creditUsageIntensity) {
-      componentLines.push(formatEvidenceField("Kredi Kullanım Yoğunluğu Bileşeni", scoreComponents.creditUsageIntensity));
+    if (scoreComponents.creditUsageIntensity || scoreComponents.creditUsage) {
+      componentLines.push(formatEvidenceField("Kredi Kullanım Yoğunluğu Bileşeni", scoreComponents.creditUsageIntensity || scoreComponents.creditUsage));
     }
-    if (scoreComponents.newCreditOpenings) {
-      componentLines.push(formatEvidenceField("Yeni Kredili Ürün Açılışları Bileşeni", scoreComponents.newCreditOpenings));
+    if (scoreComponents.newCreditOpenings || scoreComponents.newAccounts) {
+      componentLines.push(formatEvidenceField("Yeni Kredili Ürün Açılışları Bileşeni", scoreComponents.newCreditOpenings || scoreComponents.newAccounts));
     }
   }
+
+  const fields = data.fields || data;
 
   return `
 **KULLANICI_FİNDEKS_PROFİLİ (SİSTEM KAYDI - KANITLI VERİ):**
@@ -76,15 +156,15 @@ function serializeFindeksEvidence(data: any): string {
 Belge Bilgisi:
 - Belge Tipi: ${data.documentType || data.scope || "unknown"}
 - Parser Versiyonu: ${data.parserVersion || "unknown"}
-- Kaynak: ${data.source || "unknown"}
+- Kaynak: ${data.source || "attachment_parse"}
 
 Kanıtlı Alanlar:
-${formatEvidenceField("Kredi Notu", data.creditScore)}
-${formatEvidenceField("Limit Kullanımı", data.limitUsageRatio)}
-${formatEvidenceField("Gecikme Geçmişi", data.delayMonths)}
-${formatEvidenceField("Banka Hesapları", data.bankAccounts)}
-${formatEvidenceField("Kredi Kartları", data.creditCards)}
-${formatEvidenceField("Aktif Borçlar", data.activeDebts)}
+${formatEvidenceField("Kredi Notu", fields.creditScore)}
+${formatEvidenceField("Limit Kullanımı", fields.limitUsageRatio)}
+${formatEvidenceField("Gecikme Geçmişi", fields.delayMonths)}
+${formatEvidenceField("Banka Hesapları", fields.bankAccounts)}
+${formatEvidenceField("Kredi Kartları", fields.creditCards)}
+${formatEvidenceField("Aktif Borçlar", fields.activeDebts)}
 
 Findeks Not Bileşenleri:
 ${componentLines.length > 0 ? componentLines.join("\n") : "- Bileşen verisi yok"}
@@ -123,13 +203,16 @@ export async function sendAssistantMessage(
   const fullPrompt = `${systemPrompt}\n\n--- SOHBET GEÇMİŞİ ---\n${conversationHistory}`;
 
   try {
+    console.log('[AI_PROXY_REQUEST]', {
+      promptLength: fullPrompt.length,
+    });
+
     const response = await fetch(AI_PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: AI_MODEL,
         maxTokens: MAX_TOKENS,
         fullPrompt,
       }),
@@ -137,7 +220,8 @@ export async function sendAssistantMessage(
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`AI proxy error: ${response.status} — ${errorBody}`);
+      console.error('[AI_PROXY_ERROR_BODY]', errorBody);
+      throw new Error(`AI proxy error ${response.status}: ${errorBody}`);
     }
 
     const data = await response.json();
@@ -155,7 +239,7 @@ export async function sendAssistantMessage(
     const suggestedTransaction = extractSuggestedTransaction(text);
 
     return {
-      message: cleanResponseText(text),
+      message: sanitizeAssistantOutput(cleanResponseText(extractAnswerText(text))),
       suggestedTransaction,
       tokensUsed: data?.usage?.completion_tokens ?? 0,
     };
@@ -167,14 +251,185 @@ export async function sendAssistantMessage(
 }
 
 function cleanResponseText(text: string): string {
-  // Remove any JSON transaction blocks from the visible message
   return text.replace(/\{[\s\S]*"action":\s*"suggest_transaction"[\s\S]*\}/g, '').trim();
+}
+
+function extractAnswerText(raw: string): string {
+  const trimmed = raw.trim();
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && typeof parsed.answer === 'string') {
+      return parsed.answer;
+    }
+  } catch {}
+
+  const jsonMatch = trimmed.match(/\{[\s\S]*"answer"\s*:\s*"([\s\S]*?)"\s*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed && typeof parsed.answer === 'string') {
+        return parsed.answer;
+      }
+    } catch {}
+  }
+
+  return trimmed;
+}
+
+function sanitizeAssistantOutput(text: string): string {
+  let cleaned = text.trim();
+
+  cleaned = cleaned
+    .replace(/^.*We need.*$/gim, '')
+    .replace(/^.*Let's.*$/gim, '')
+    .replace(/^.*Need to.*$/gim, '')
+    .replace(/^.*I should.*$/gim, '')
+    .replace(/^.*analysis.*$/gim, '')
+    .replace(/^.*Paragraph\s*\d*:.*$/gim, '')
+    .replace(/\bactual\b/gi, 'mevcut')
+    .replace(/\bcomponent\b/gi, 'bileşen')
+    .replace(/\bcontradiction\b/gi, 'tutarsızlık')
+    .replace(/\bcalculate\b/gi, 'hesapla')
+    .replace(/\bWe\b/g, '')
+    .replace(/\bLet's\b/g, '')
+    .trim();
+
+  const unfinishedEndings = [
+    've',
+    'ile',
+    'için',
+    'ö',
+    'taksit ö',
+    'kullan'
+  ];
+
+  const lower = cleaned.toLowerCase();
+  if (unfinishedEndings.some((ending) => lower.endsWith(ending))) {
+    cleaned += ' ... Yanıt tamamlanamadı; lütfen tekrar sorarsan daha net yanıtlayabilirim.';
+  }
+
+  if (/^\.*$/.test(cleaned) || cleaned.length < 20) {
+    return 'Yanıt şu an sağlıklı üretilemedi. Lütfen sorunuzu tekrar daha kısa şekilde yazar mısınız?';
+  }
+
+  return cleaned || 'Yanıt oluşturulamadı. Lütfen tekrar dener misin?';
+}
+
+function buildParsedAttachmentsInfo(context: AssistantContextCache): string {
+  const parsed = context.parsedAttachments || [];
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    return '';
+  }
+
+  return `
+
+YÜKLENEN DOSYALARDAN AYIKLANAN KANITLI VERİLER:
+${parsed.map((item: any) => {
+    const data = item.structured_data || {};
+    const fields = data.fields || {};
+    const components = fields.components || {};
+    const missingFields = Array.isArray(data.missingFields) ? data.missingFields : [];
+
+    if (data.parserType === 'findeks_semantic') {
+      return `Dosya: ${item.file_name || 'Bilinmeyen dosya'}
+Belge tipi: ${data.documentType || 'bilinmiyor'}
+Parser: ${data.parserType || 'bilinmiyor'} v${data.parserVersion || 'bilinmiyor'}
+Kredi notu: ${fields.creditScore ?? 'bulunamadı'}
+Rapor tarihi: ${fields.reportDate ?? 'bulunamadı'}
+Bileşenler:
+- Ödeme alışkanlıkları: ${components.paymentHabits ?? 'bulunamadı'}
+- Mevcut hesap ve borç durumu: ${components.currentDebt ?? 'bulunamadı'}
+- Kredi kullanım yoğunluğu: ${components.creditUsage ?? 'bulunamadı'}
+- Yeni kredili ürün açılışları: ${components.newAccounts ?? 'bulunamadı'}
+Eksik alanlar: ${missingFields.length ? missingFields.join(', ') : 'Yok'}`;
+    }
+
+    return `Dosya: ${item.file_name || 'Bilinmeyen dosya'}
+Durum: parsed (Ham metin ayıklandı, detaylı analiz bekliyor)`;
+  }).join('\n\n')}`;
+}
+
+function buildDeterministicFinancialSummary(context: AssistantContextCache): string {
+  const cards = context.accountsSummary.filter((a: any) => a.type === 'kredi_kartı');
+  const cashAccounts = context.accountsSummary.filter((a: any) => a.type !== 'kredi_kartı');
+
+  const totalCash = cashAccounts.reduce((sum: number, a: any) => sum + Number(a.balance || 0), 0);
+  const totalCardDebt = cards.reduce((sum: number, a: any) => sum + Number(a.balance || 0), 0);
+  const totalCardLimit = cards.reduce((sum: number, a: any) => sum + Number(a.cardLimit || 0), 0);
+
+  const activeDebtTotal = (context.debts || []).reduce(
+    (sum: number, d: any) => sum + Number(d.remaining_amount ?? d.remainingAmount ?? 0),
+    0
+  );
+
+  const installmentMonthlyTotal = (context.installments || []).reduce(
+    (sum: number, i: any) => sum + Number(i.monthly_payment ?? i.monthlyPayment ?? 0),
+    0
+  );
+
+  const cardUsageRatio =
+    totalCardLimit > 0 ? (totalCardDebt / totalCardLimit) * 100 : null;
+
+  return `
+DETERMİNİSTİK FİNANSAL ÖZET:
+- Toplam nakit/banka varlığı: ₺${totalCash.toLocaleString('tr-TR')}
+- Kredi kartı ekstre/dönem borcu toplamı: ₺${totalCardDebt.toLocaleString('tr-TR')}
+- Kredi kartı toplam limiti: ${
+    totalCardLimit > 0 ? `₺${totalCardLimit.toLocaleString('tr-TR')}` : 'limit bilgisi yok'
+  }
+- Uygulama kayıtlarına göre kart kullanım oranı: ${
+    cardUsageRatio !== null ? `%${cardUsageRatio.toFixed(1)}` : 'hesaplanamaz'
+  }
+- Uygulama borçları kalan toplamı: ₺${activeDebtTotal.toLocaleString('tr-TR')}
+- Taksitlerin görünen aylık ödeme toplamı: ₺${installmentMonthlyTotal.toLocaleString('tr-TR')}
+- Aylık ortalama gelir: ₺${context.transactionsTrend.avgMonthlyIncome.toLocaleString('tr-TR')}
+- Aylık ortalama gider: ₺${context.transactionsTrend.avgMonthlyExpense.toLocaleString('tr-TR')}
+- Tasarruf oranı: %${context.transactionsTrend.savingsRate.toFixed(1)}
+
+Not:
+- Bu özet uygulama kayıtlarından hesaplanmıştır.
+- Findeks raporundaki eksik alanlar bu hesaplara dahil edilmemiştir.
+- Kart balance değeri limit değil, dönem/ekstre borcudur.
+`;
 }
 
 function buildSystemPrompt(context: AssistantContextCache): string {
   const accountsInfo = context.accountsSummary
-    .map((a) => `${a.name} (${a.type}): ₺${a.balance.toLocaleString('tr-TR')}`)
+    .map((acc) => {
+      if (acc.type === 'kredi_kartı') {
+        return `${acc.name} (kredi kartı) | Dönem Borcu: ₺${acc.balance.toLocaleString('tr-TR')}${
+          acc.cardLimit ? ` | Limit: ₺${acc.cardLimit.toLocaleString('tr-TR')}` : ' | Limit bilgisi girilmemiş'
+        }`;
+      }
+      return `${acc.name} (${acc.type}): ₺${acc.balance.toLocaleString('tr-TR')}`;
+    })
     .join('\n');
+
+  const debtsInfo = `- Borçlar:\n${context.debts?.map(d => {
+    const name = d.creditor_name || d.name || 'Borç';
+    const remaining = d.remaining_amount ?? d.remainingAmount ?? null;
+    const monthly = d.monthly_payment ?? d.monthlyPayment ?? null;
+
+    return `${name}: Kalan borç: ${
+      remaining !== null ? `₺${Number(remaining).toLocaleString('tr-TR')}` : 'bilgi yok'
+    }${
+      monthly !== null ? ` | Aylık ödeme: ₺${Number(monthly).toLocaleString('tr-TR')}` : ' | Aylık ödeme bilgisi yok'
+    }`;
+  }).join('\n') || 'Yok'}`;
+
+  const installmentsInfo = `- Taksitler:\n${context.installments?.map(i => {
+    const name = i.lender_name || i.name || 'Taksit';
+    const monthly = i.monthly_payment ?? i.monthlyPayment ?? null;
+    const remainingMonths = i.remaining_months ?? i.remainingMonths ?? null;
+
+    return `${name}: ${
+      monthly !== null ? `Aylık ödeme: ₺${Number(monthly).toLocaleString('tr-TR')}` : 'Aylık ödeme bilgisi yok'
+    }${
+      remainingMonths !== null ? ` | Kalan süre: ${remainingMonths} ay` : ' | Kalan süre bilgisi yok'
+    }`;
+  }).join('\n') || 'Yok'}`;
 
   const topCategoriesInfo = context.transactionsTrend.topCategories
     .map((c) => `${c.name}: ₺${c.amount.toLocaleString('tr-TR')}`)
@@ -182,26 +437,56 @@ function buildSystemPrompt(context: AssistantContextCache): string {
 
   const alertsInfo = context.alerts.length > 0 ? `\n⚠️ Dikkat Çeken Noktalar:\n${context.alerts.join('\n')}` : '';
 
-  const findeksInfo = context.findeksData ? serializeFindeksEvidence(context.findeksData) : '';
+  const findeksInfo = ''; // Phase 7.2E-B: Legacy Findeks bridge disabled; Financial Intelligence Layer is primary source.
 
-  return `Sen FinansKoçu'nun AI Asistanısın. Kullanıcıyla WhatsApp gibi samimi, kolay bir diyalogta konuş.
+  const deterministicSummary = buildDeterministicFinancialSummary(context);
 
-**Kullanıcının Güncel Mali Durumu:**
-- Hesaplar:
-${accountsInfo}
-- Aylık Ortalama Gelir: ₺${context.transactionsTrend.avgMonthlyIncome.toLocaleString('tr-TR')}
-- Aylık Ortalama Gider: ₺${context.transactionsTrend.avgMonthlyExpense.toLocaleString('tr-TR')}
-- Tasarruf Oranı: %${context.transactionsTrend.savingsRate.toFixed(1)}
-- En Çok Harcanan Kategoriler:
-${topCategoriesInfo}
-${findeksInfo}${alertsInfo}
+  const parsedAttachmentsInfo = buildParsedAttachmentsInfo(context);
+  
+  const financialIntelligenceInfo = serializeFinancialIntelligenceContext(context.financialIntelligenceContext);
 
-**Kurallar:**
-1. Kullanıcının gerçek verilerine dayanarak tavsiye ver (örn: "Garanti kartındaki taksit yükü gelirinizin %35'i")
-2. "Yazıyor..." hissi vermek için kısa cümleler kullan
-3. Eğer kullanıcı bir işlem söylerse ("500 TL market"), JSON formatında öner: {"action": "suggest_transaction", "amount": 500, "category": "Yiyecek", "description": "Market", "type": "gider"}
-4. Yargılama yapma — destek ve rehberlik tonu
-5. Türkçe, konuşma dili, "koç" tonu
+  const parsedAttachmentRules = `
+YÜKLENEN DOSYA KURALLARI:
+- Yüklenen dosyalardan ayıklanan structured_data kanıtlı veri kabul edilir.
+- Raw PDF metni yoksa dosyanın tamamını okuduğunu iddia etme.
+- missingFields içindeki alanları sıfır kabul etme.
+- Findeks not bileşenlerini limit kullanım oranı sanma.
+- Kullanıcı "yüklediğim dosyaya göre", "dosyaya göre", "findeks raporuma göre" veya "rapora göre" derse önce parsed attachment verisine bak.
+- Eğer parsedAttachments içinde findeks_semantic verisi varsa, Findeks sorularında onu birincil kaynak kabul et. Eski Findeks bridge verisi sadece parsedAttachments yoksa kullanılır.
+`;
+
+  return `**KRİTİK KURALLAR — MUTLAKA UY**
+
+GÖREVİN:
+- Finansal hesaplamaları yeniden yapma.
+- DETERMİNİSTİK FİNANSAL ÖZET içindeki sonuçları kullan.
+- Kullanıcıya kısa, anlaşılır ve profesyonel koç yorumu yap.
+- Eğer soru spesifikse sadece o soruyu yanıtla.
+
+ÇIKTI:
+- Sadece kullanıcıya gösterilecek nihai cevabı yaz.
+- JSON yazma.
+- İç düşünce yazma.
+- En fazla 900 karakter yaz.
+
+ZORUNLU CEVAP FORMATI:
+- Cevaba doğrudan kullanıcıya yanıt vererek başla.
+- Asla "Paragraph", "Plan", "Analysis", "Let's", "We need", "actual", "component" gibi kelimeler yazma.
+- Cevapta iç hesaplama sürecini gösterme.
+- Yeni hesap yapma; hazır sonuç yoksa eksik veri olduğunu belirt.
+- Cevabı şu yapıda ver:
+  1. Findeks raporuna göre...
+  2. Uygulama kayıtlarına göre...
+  3. Kısa koç yorumu...
+  4. Sonraki adım...
+
+CEVAP STİLİ:
+- Uzun liste yapma.
+- Bütün borçları tek tek saymak zorunda değilsen özetle.
+- Hesaplama gerekiyorsa yalnızca deterministik özet veya Financial Intelligence sinyallerinde hazır verilen sonucu kullan.
+- Cevabı yarıda bırakacak kadar uzun açıklama yapma.
+
+${parsedAttachmentRules}
 
 **Findeks Kuralları (Eğer Findeks verisi varsa):**
 - Kanıtlı veri dışına çıkma.
@@ -209,13 +494,40 @@ ${findeksInfo}${alertsInfo}
 - Eksik limit/borç/kart bilgileri için kesin borç analizi yapma.
 - Kredi notu bileşenlerini doğru yorumla.
 - Kullanıcıya eksik belgeyi nasıl tamamlayacağını söyle.
-- Eğer belge "findeks_credit_score_only" ise: Kredi notu güvenle okunmuşsa yorumla. Limit ve borç detayları yoksa açıkça belirt. "Bu PDF kredi notu özeti; tam risk raporu değil" de. Kullanıcıya Tam Findeks Risk Raporu veya banka limit özeti yüklemesini öner.`;
+- Eğer belge "findeks_credit_score_only" ise: Kredi notu güvenle okunmuşsa yorumla. Limit ve borç detayları yoksa açıkça belirt. "Bu PDF kredi notu özeti; tam risk raporu değil" de. Kullanıcıya Tam Findeks Risk Raporu veya banka limit özeti yüklemesini öner.
+
+${parsedAttachmentsInfo}
+
+**Kullanıcının Güncel Mali Durumu:**
+- Hesaplar:
+${accountsInfo}
+${debtsInfo}
+${installmentsInfo}
+- Aylık Ortalama Gelir: ₺${context.transactionsTrend.avgMonthlyIncome.toLocaleString('tr-TR')}
+- Aylık Ortalama Gider: ₺${context.transactionsTrend.avgMonthlyExpense.toLocaleString('tr-TR')}
+- Tasarruf Oranı: %${context.transactionsTrend.savingsRate.toFixed(1)}
+- En Çok Harcanan Kategoriler:
+${topCategoriesInfo}
+${findeksInfo}${alertsInfo}
+
+${deterministicSummary}
+
+${financialIntelligenceInfo}
+
+**Kurallar:**
+1. Eğer FINANCIAL INTELLIGENCE LAYER bölümü ile eski ham veri blokları arasında çelişki varsa, FINANCIAL INTELLIGENCE LAYER kuralları önceliklidir.
+2. Kullanıcının gerçek verilerine ve deterministik sinyallere dayanarak güvenli koçluk yorumu yap. Kredi onayı, yatırım tavsiyesi, ürün önerisi veya garanti dili kullanma.
+3. "Yazıyor..." hissi vermek için kısa cümleler kullan
+4. Eğer kullanıcı bir işlem söylerse ("500 TL market"), JSON formatında öner: {"action": "suggest_transaction", "amount": 500, "category": "Yiyecek", "description": "Market", "type": "gider"}
+5. Yargılama yapma — destek ve rehberlik tonu
+6. Türkçe, konuşma dili, "koç" tonu`;
 }
 
 function buildConversationText(previousMessages: ChatMessage[], newUserMessage: string): string {
   const lines: string[] = [];
+  const recentMessages = previousMessages.slice(-6);
 
-  previousMessages.forEach((msg) => {
+  recentMessages.forEach((msg) => {
     const role = msg.role === 'user' ? 'Kullanıcı' : 'Asistan';
     lines.push(`${role}: ${msg.content}`);
   });
@@ -305,7 +617,6 @@ Bu senaryoyu koç tonunda analiz et.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: GEMINI_MODEL,
         maxTokens: 600,
         fullPrompt,
       }),

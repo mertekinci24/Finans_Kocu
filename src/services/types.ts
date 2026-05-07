@@ -99,6 +99,8 @@ export interface IChatRepository {
     suggestedTransaction?: SuggestedTransaction,
     tokensUsed?: number
   ): Promise<ChatMessage>;
+  renameSession(sessionId: string, newTitle: string): Promise<void>;
+  deleteSession(sessionId: string): Promise<void>;
 }
 
 export interface ITaxRepository {

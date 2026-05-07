@@ -1,5 +1,33 @@
 import { supabase } from '../supabase/adapter';
 import { AssistantContextCache, AccountSummary, TransactionTrend } from '@/types';
+import { buildFinancialIntelligenceContext } from '../intelligence/riskEngine';
+import { FindeksFinancialSnapshot, AppFinancialSnapshot, EvidenceItem } from '../../types/intelligence';
+
+/**
+ * Hardened interfaces for local context mapping
+ */
+interface ParsedAttachmentResult {
+  document_type?: string | null;
+  parser_version?: string | null;
+  confidence?: 'high' | 'medium' | 'low' | 'unknown' | null;
+  structured_data?: Record<string, unknown> | null;
+  evidence?: EvidenceItem[] | null;
+}
+
+interface RagInstallmentRow {
+  lender_name?: string | null;
+  monthly_payment?: number | null;
+  remaining_months?: number | null;
+  status?: string | null;
+}
+
+interface RagDebtRow {
+  creditor_name?: string | null;
+  amount?: number | null;
+  remaining_amount?: number | null;
+  monthly_payment?: number | null;
+  status?: string | null;
+}
 
 export async function buildUserContext(userId: string): Promise<AssistantContextCache> {
   const [accounts, transactions, findeks, debts, installments] = await Promise.all([
@@ -10,16 +38,49 @@ export async function buildUserContext(userId: string): Promise<AssistantContext
     fetchInstallments(userId),
   ]);
 
+  const { data: parsedAttachments, error: parsedAttachmentsError } = await supabase
+    .from('attachment_parse_results')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'parsed')
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  if (parsedAttachmentsError) {
+    console.error('[PARSED_ATTACHMENTS_FETCH_ERROR]', parsedAttachmentsError);
+  }
+
+  if (import.meta.env.DEV) {
+    console.log('[RAG_PARSED_ATTACHMENTS]', {
+      count: parsedAttachments?.length || 0,
+      latest: parsedAttachments?.[0]?.structured_data,
+    });
+  }
+
   const alerts = generateAlerts(accounts, debts, installments, transactions.savingsRate);
   const contextHash = generateContextHash(accounts, transactions, findeks?.creditScore);
+
+  // --- Phase 7.2C: Financial Intelligence Integration (Hardened) ---
+  const latestParsedResult = (parsedAttachments?.[0] as ParsedAttachmentResult | undefined);
+  const findeksSnapshot = buildFindeksSnapshotFromParsedResult(latestParsedResult);
+  const appSnapshot = buildAppSnapshotFromData(accounts, transactions, installments);
+
+  const financialIntelligenceContext = buildFinancialIntelligenceContext({
+    findeksSnapshot,
+    appSnapshot
+  });
 
   return {
     userId,
     contextHash,
     accountsSummary: accounts,
     findeksData: findeks,
+    debts,
+    installments,
     transactionsTrend: transactions,
     alerts,
+    parsedAttachments: parsedAttachments ?? undefined,
+    financialIntelligenceContext,
     cachedAt: new Date(),
     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
   };
@@ -132,17 +193,17 @@ async function fetchFindeksData(userId: string): Promise<{ creditScore: number; 
   };
 }
 
-async function fetchDebts(userId: string): Promise<any[]> {
+async function fetchDebts(userId: string): Promise<RagDebtRow[]> {
   const { data, error } = await supabase
     .from('debts')
-    .select('creditor_name, amount, remaining_amount, status')
+    .select('creditor_name, amount, remaining_amount, monthly_payment, status')
     .eq('user_id', userId);
 
   if (error) throw error;
   return data || [];
 }
 
-async function fetchInstallments(userId: string): Promise<any[]> {
+async function fetchInstallments(userId: string): Promise<RagInstallmentRow[]> {
   const { data, error } = await supabase
     .from('installments')
     .select('lender_name, monthly_payment, remaining_months, status')
@@ -154,8 +215,8 @@ async function fetchInstallments(userId: string): Promise<any[]> {
 
 function generateAlerts(
   accounts: AccountSummary[],
-  debts: { remainingAmount: number; dueDate: Date; status: string }[],
-  installments: { monthlyPayment: number; remainingMonths: number; status: string }[],
+  debts: RagDebtRow[],
+  installments: RagInstallmentRow[],
   savingsRate: number
 ): string[] {
   const alerts: string[] = [];
@@ -166,8 +227,8 @@ function generateAlerts(
   }
 
   const activeDebts = debts.filter((d) => d.status === 'active');
-  const totalDebt = activeDebts.reduce((sum, d) => sum + d.remaining_amount, 0);
-  if (totalDebt > 50000) {
+  const totalDebtValue = activeDebts.reduce((sum, d) => sum + (d.remaining_amount ?? 0), 0);
+  if (totalDebtValue > 50000) {
     alerts.push('Toplam borç yükünüz yüksek, ödeme planı gözden geçirmeyi tavsiye ederim.');
   }
 
@@ -206,4 +267,83 @@ function generateContextHash(
     hash = hash & hash;
   }
   return Math.abs(hash).toString(16);
+}
+
+// --- Intelligence Mapping Helpers ---
+
+function buildFindeksSnapshotFromParsedResult(result: ParsedAttachmentResult | undefined): FindeksFinancialSnapshot | undefined {
+  if (!result || !result.structured_data) return undefined;
+  
+  const data = result.structured_data;
+
+  return {
+    documentType: result.document_type || 'unknown',
+    parserVersion: result.parser_version || '1.0.0',
+    reportDate: toStringOrNull(data.reportDate),
+    creditScore: toNumberOrNull(data.creditScore),
+    creditScoreBand: toStringOrNull(data.creditScoreBand),
+    totalLimit: toNumberOrNull(data.totalLimit),
+    totalDebt: toNumberOrNull(data.totalDebt),
+    debtLimitRatio: toNumberOrNull(data.limitUsageRatio),
+    delayStatus: toStringOrNull(data.worstPaymentStatus),
+    delayCount: toNumberOrNull(data.currentLongestDelay),
+    
+    source: 'findeks',
+    confidence: toConfidence(result.confidence),
+    missingFields: [], // Risk engine will populate this if it finds nulls
+    evidence: Array.isArray(result.evidence) ? result.evidence : []
+  };
+}
+
+function buildAppSnapshotFromData(
+  accounts: AccountSummary[],
+  transactions: TransactionTrend,
+  installments: RagInstallmentRow[]
+): AppFinancialSnapshot {
+  const walletBalance = accounts
+    .filter(a => a.type !== 'kredi_kartı')
+    .reduce((sum, a) => sum + a.balance, 0);
+
+  const accountsTotal = accounts.length;
+  const creditCardsTotal = accounts.filter(a => a.type === 'kredi_kartı').length;
+  
+  const activeInstallments = (installments || []).filter(i => i.status === 'active');
+  const plannedPaymentsTotal = activeInstallments.reduce((sum, i) => sum + (i.monthly_payment ?? 0), 0);
+
+  return {
+    walletBalance,
+    accountsTotal,
+    creditCardsTotal,
+    plannedPaymentsTotal,
+    monthlyIncome: transactions.avgMonthlyIncome ?? null,
+    monthlyExpense: transactions.avgMonthlyExpense ?? null,
+    projectedMonthEndBalance: null, // Logic can be added later
+    
+    source: 'app',
+    confidence: 'high',
+    missingFields: [],
+    evidence: []
+  };
+}
+
+// --- Primitive Type Helpers ---
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return isFinite(n) ? n : null;
+}
+
+function toStringOrNull(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  const s = String(value).trim();
+  return s === '' ? null : s;
+}
+
+function toConfidence(value: unknown): 'high' | 'medium' | 'low' | 'unknown' {
+  const val = String(value || '').toLowerCase();
+  if (['high', 'medium', 'low', 'unknown'].includes(val)) {
+    return val as 'high' | 'medium' | 'low' | 'unknown';
+  }
+  return 'unknown';
 }

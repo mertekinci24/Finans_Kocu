@@ -18,6 +18,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { getDocumentProxy, extractText } from 'https://esm.sh/unpdf@0.11.0';
 
 // ─── CORS Headers ───────────────────────────────────────────────────
 const CORS_HEADERS = {
@@ -389,6 +390,8 @@ const FREE_MODEL_FALLBACKS = [
   "google/gemma-3-12b-it:free",
 ];
 
+let lastSuccessfulModel: string | null = null;
+
 const RETRYABLE_STATUSES = new Set([404, 429, 500, 502, 503]);
 
 async function handleGeminiProxy(body: Record<string, unknown>): Promise<Response> {
@@ -397,7 +400,7 @@ async function handleGeminiProxy(body: Record<string, unknown>): Promise<Respons
     return errorResponse('OpenRouter API anahtarı yapılandırılmamış', 500);
   }
 
-  const { fullPrompt, maxTokens, model: requestedModel } = body as {
+  const { fullPrompt, maxTokens, model: rawModel } = body as {
     fullPrompt?: string;
     model?: string;
     maxTokens?: number;
@@ -407,14 +410,22 @@ async function handleGeminiProxy(body: Record<string, unknown>): Promise<Respons
     return errorResponse('fullPrompt zorunlu', 400);
   }
 
-  // If body.model is not already in the verified fallback list, prepend it as a one-shot attempt.
-  // Otherwise always use the fallback list order (avoids getting stuck on a stale/unavailable model).
-  const modelsToTry: string[] = [
-    ...(typeof requestedModel === 'string' && !FREE_MODEL_FALLBACKS.includes(requestedModel)
-      ? [requestedModel]
-      : []),
-    ...FREE_MODEL_FALLBACKS,
+  const requestedModel = typeof rawModel === "string" ? rawModel : null;
+
+  const modelsToTry = [
+    ...(lastSuccessfulModel ? [lastSuccessfulModel] : []),
+    ...(requestedModel &&
+      requestedModel !== lastSuccessfulModel &&
+      !FREE_MODEL_FALLBACKS.includes(requestedModel)
+        ? [requestedModel]
+        : []),
+    ...FREE_MODEL_FALLBACKS.filter((m) => m !== lastSuccessfulModel),
   ];
+
+  console.log("[MODEL_CACHE_STATE]", {
+    cachedModel: lastSuccessfulModel,
+    modelsToTry,
+  });
 
   console.log('[OPENROUTER_REQUEST]', {
     modelsToTry,
@@ -445,6 +456,13 @@ async function handleGeminiProxy(body: Record<string, unknown>): Promise<Respons
 
         if (RETRYABLE_STATUSES.has(response.status)) {
           console.warn('[OPENROUTER_MODEL_FAILED]', { model, status: response.status, error: errText });
+          if (model === lastSuccessfulModel) {
+            lastSuccessfulModel = null;
+            console.warn("[MODEL_CACHE_RESET]", {
+              failedModel: model,
+              reason: "retryable_failure_or_empty_response",
+            });
+          }
           continue;
         }
 
@@ -461,10 +479,23 @@ async function handleGeminiProxy(body: Record<string, unknown>): Promise<Respons
       if (!content || String(content).trim().length === 0) {
         lastError = `Empty response from ${model}`;
         console.warn('[OPENROUTER_EMPTY_RESPONSE]', { model });
+        if (model === lastSuccessfulModel) {
+          lastSuccessfulModel = null;
+          console.warn("[MODEL_CACHE_RESET]", {
+            failedModel: model,
+            reason: "retryable_failure_or_empty_response",
+          });
+        }
         continue;
       }
 
       console.log('[OPENROUTER_SUCCESS]', { model, contentLength: String(content).length });
+      
+      lastSuccessfulModel = model;
+      console.log("[MODEL_CACHE_UPDATED]", {
+        lastSuccessfulModel,
+      });
+
       return jsonResponse(result);
 
     } catch (err) {
@@ -518,6 +549,311 @@ async function handleOpenRouterModels(): Promise<Response> {
     return errorResponse(`OpenRouter models exception: ${err instanceof Error ? err.message : String(err)}`, 500);
   }
 }
+async function extractPdfText(fileBytes: Uint8Array): Promise<string> {
+  try {
+    const pdf = await getDocumentProxy(fileBytes);
+    const { text } = await extractText(pdf);
+    return text.join(' ').replace(/\s+/g, ' ').trim();
+  } catch (err) {
+    console.error('[PDF_EXTRACT_ERROR]', err);
+    throw new Error(`PDF metni ayıklanamadı: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+function parseTurkishMoney(value: string): number | null {
+  if (!value) return null;
+  const normalized = value.replace(/\s/g, '').replace(/\./g, '');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseDashOrNumber(value: string): number | null {
+  if (!value || value.trim() === '-') return null;
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function handleFindeksSemanticParsing(text: string): any {
+  const isFindeks = 
+    text.includes('FİNDEKS') || 
+    text.includes('Kredi Notu') || 
+    text.includes('Findeks Kredi Notunuz');
+
+  if (!isFindeks) return null;
+
+  // Document Type Logic
+  const isFullRiskReport = 
+    text.includes('Bireysel Krediler') ||
+    text.includes('Limitler Toplamı') ||
+    text.includes('Borçlar Toplamı') ||
+    text.includes('Borç / Limit Oranı');
+    
+  const documentType = isFullRiskReport ? "findeks_full_risk_report" : "findeks_credit_score_only";
+
+  // 1. Credit Score
+  const scoreMatch = text.match(/Findeks Kredi Notunuz\s+(\d{3,4})/);
+  const creditScore = scoreMatch ? parseInt(scoreMatch[1], 10) : null;
+
+  if (!creditScore) {
+    throw new Error('Findeks kredi notu tespit edilemedi');
+  }
+
+  // 2. Report Date
+  const dateMatch = text.match(/RAPOR TARİHİ\s+(\d{2}\.\d{2}\.\d{4})/);
+  const reportDate = dateMatch ? dateMatch[1] : null;
+
+  // 3. Components (%)
+  const percentageMatches = Array.from(text.matchAll(/%(\d{1,2})/g));
+  const percentages = percentageMatches.map(m => parseInt(m[1], 10));
+
+  const components = {
+    paymentHabits: percentages[0] || null,
+    currentDebt: percentages[1] || null,
+    creditUsage: percentages[2] || null,
+    newAccounts: percentages[3] || null
+  };
+
+  // Additional Full Risk Report Fields
+  let totalLimit: number | null = null;
+  let totalDebt: number | null = null;
+  let limitUsageRatio: number | null = null;
+  let worstPaymentStatus: string | null = null;
+  let delayedAccountCount: number | null = null;
+  let currentLongestDelay: number | null = null;
+
+  if (isFullRiskReport) {
+    const limitMatch = text.match(/Limitler\s+Toplamı\s*\(D3\)\s*([\d.\s]+)\s*TL/i);
+    totalLimit = limitMatch ? parseTurkishMoney(limitMatch[1]) : null;
+
+    const debtMatch = text.match(/Borçlar\s+Toplamı\s*\(D4\)\s*([\d.\s]+)\s*TL/i);
+    totalDebt = debtMatch ? parseTurkishMoney(debtMatch[1]) : null;
+
+    const limitRatioMatch = text.match(/Borç\s*\/\s*Limit\s*Oranı\s*%?\s*(\d{1,3})/i);
+    limitUsageRatio = limitRatioMatch ? parseInt(limitRatioMatch[1], 10) : null;
+
+    const worstPaymentMatch = text.match(/Ödeme\s+Tarihçesindeki\s+En\s+Olumsuz\s+Durum\s+([^\n]+?)(?:\s+Gecikmedeki|\s+Dönem|\s+Mevcut|$)/i);
+    worstPaymentStatus = worstPaymentMatch ? worstPaymentMatch[1].trim() : null;
+
+    const delayCountMatch = text.match(/Gecikmedeki\s+Hesap\s+Sayısı\s*\(E1\)\s*([-\d]+)/i);
+    delayedAccountCount = delayCountMatch ? parseDashOrNumber(delayCountMatch[1]) : null;
+
+    const longestDelayMatch = text.match(/Mevcut\s+En\s+Uzun\s+Gecikme\s+Süresi\s*\(E3\)\s*(\d+)/i);
+    currentLongestDelay = longestDelayMatch ? parseInt(longestDelayMatch[1], 10) : null;
+
+    console.log("[FINDEKS_RISK_FIELDS_EXTRACTED]", {
+      documentType,
+      creditScore,
+      totalLimit,
+      totalDebt,
+      limitUsageRatio,
+      worstPaymentStatus
+    });
+  }
+
+  // Base Missing Fields
+  let missingFields = [
+    "limitUsageRatio",
+    "delayMonths",
+    "bankAccounts",
+    "creditCards",
+    "activeDebts"
+  ];
+
+  if (isFullRiskReport) {
+    missingFields = missingFields.filter(f => {
+      if (f === "limitUsageRatio" && limitUsageRatio !== null) return false;
+      if (f === "activeDebts" && totalDebt !== null) return false;
+      if (f === "delayMonths" && (worstPaymentStatus !== null || currentLongestDelay !== null)) return false;
+      return true;
+    });
+  }
+
+  const result: any = {
+    parserType: "findeks_semantic",
+    parserVersion: "1.1.0",
+    documentType,
+    fields: {
+      creditScore,
+      reportDate,
+      components,
+    },
+    confidence: {
+      creditScore: 0.98,
+      components: 0.9,
+    },
+    missingFields,
+    rawTextPreview: text.slice(0, 3000)
+  };
+
+  if (isFullRiskReport) {
+    result.fields = {
+      ...result.fields,
+      totalLimit,
+      totalDebt,
+      limitUsageRatio,
+      worstPaymentStatus,
+      delayedAccountCount,
+      currentLongestDelay
+    };
+    result.confidence = {
+      ...result.confidence,
+      totalLimit: 0.95,
+      totalDebt: 0.95,
+      limitUsageRatio: 0.95,
+      worstPaymentStatus: 0.9,
+      delayedAccountCount: 0.9,
+      currentLongestDelay: 0.9
+    };
+  }
+
+  return result;
+}
+
+async function handleParseAttachment(request: Request, body: Record<string, unknown>): Promise<Response> {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) return errorResponse('Yetkisiz erişim', 401);
+
+  const supabase = getSupabaseAdmin();
+  const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+  if (authError || !user) return errorResponse('Yetkisiz erişim', 401);
+
+  const { messageId, bucket, path, fileName, mimeType } = body as {
+    messageId: string;
+    bucket: string;
+    path: string;
+    fileName: string;
+    mimeType: string;
+  };
+
+  if (!messageId || !bucket || !path) {
+    return errorResponse('Eksik parametre: messageId, bucket ve path zorunlu', 400);
+  }
+
+  // 1. Validation
+  if (bucket !== 'chat-attachments' || !path.startsWith(`${user.id}/`) || mimeType !== 'application/pdf') {
+    return errorResponse('Desteklenmeyen dosya tipi veya geçersiz erişim yolu', 403);
+  }
+
+  try {
+    console.log('[ATTACHMENT_PARSE_START]', { userId: user.id, path });
+
+    // 2. Idempotency Check
+    const { data: existing } = await supabase
+      .from('attachment_parse_results')
+      .select('id, status, structured_data')
+      .eq('user_id', user.id)
+      .eq('path', path)
+      .maybeSingle();
+
+    if (existing && existing.status === 'parsed') {
+      console.log('[ATTACHMENT_PARSE_ALREADY_DONE]', { path });
+      return jsonResponse({ status: 'already_exists', parseId: existing.id, currentStatus: existing.status });
+    }
+
+    // 3. Upsert Processing Row — ignoreDuplicates:false ensures message_id is always updated,
+    //    so client polling by message_id works even when re-uploading the same file path.
+    const { data: inserted, error: upsertError } = await supabase
+      .from('attachment_parse_results')
+      .upsert({
+        message_id: messageId,
+        user_id: user.id,
+        bucket,
+        path,
+        file_name: fileName,
+        mime_type: mimeType,
+        status: 'processing',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id,path', ignoreDuplicates: false })
+      .select()
+      .maybeSingle();
+
+    if (upsertError || !inserted) throw upsertError || new Error('Upsert failed');
+
+    // 4. Download from Storage
+    const { data: fileBlob, error: downloadError } = await supabase.storage
+      .from(bucket)
+      .download(path);
+
+    if (downloadError || !fileBlob) {
+      console.error('[ATTACHMENT_PARSE_DOWNLOAD_FAILED]', downloadError);
+      await supabase.from('attachment_parse_results').update({
+        status: 'failed',
+        error_message: `Dosya indirilemedi: ${downloadError?.message || 'Empty blob'}`
+      }).eq('id', inserted.id);
+      return errorResponse('Dosya indirilemedi', 500);
+    }
+    console.log('[ATTACHMENT_PARSE_DOWNLOAD_OK]', { size: fileBlob.size });
+
+    // 5. Extract Text
+    try {
+      const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
+      const extractedText = await extractPdfText(fileBytes);
+
+      if (extractedText.length < 30) {
+        throw new Error('PDF metin katmanı çok kısa veya boş');
+      }
+
+      console.log('[ATTACHMENT_PARSE_TEXT_OK]', { length: extractedText.length });
+
+      // 6. Semantic Parsing (Findeks etc.)
+      let structuredData: any = {
+        parserType: "pdf_text_layer",
+        parserVersion: "0.1.0",
+        textLength: extractedText.length,
+        rawTextPreview: extractedText.slice(0, 3000)
+      };
+
+      try {
+        const semanticResult = handleFindeksSemanticParsing(extractedText);
+        if (semanticResult) {
+          console.log('[ATTACHMENT_PARSE_SEMANTIC_OK]', { type: semanticResult.documentType });
+          structuredData = semanticResult;
+        }
+      } catch (semanticErr) {
+        console.warn('[ATTACHMENT_PARSE_SEMANTIC_FAILED]', semanticErr);
+        // If semantic parsing fails for a Findeks doc, we might want to fail the whole parse
+        if (extractedText.includes('FİNDEKS')) {
+          throw semanticErr;
+        }
+      }
+
+      // 7. Save Result
+      await supabase
+        .from('attachment_parse_results')
+        .update({
+          status: 'parsed',
+          structured_data: structuredData,
+          warnings: [],
+          error_message: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', inserted.id);
+
+      console.log('[ATTACHMENT_PARSE_DONE]', { id: inserted.id });
+      return jsonResponse({ status: 'parsed', parseId: inserted.id, structuredData });
+
+    } catch (parseErr) {
+      console.warn('[ATTACHMENT_PARSE_FAILED]', parseErr);
+      await supabase
+        .from('attachment_parse_results')
+        .update({
+          status: 'failed',
+          structured_data: null,
+          warnings: ["PDF metin katmanı bulunamadı. OCR desteği sonraki fazda eklenecek."],
+          error_message: parseErr instanceof Error ? parseErr.message : String(parseErr),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', inserted.id);
+      
+      return jsonResponse({ status: 'failed', error: parseErr instanceof Error ? parseErr.message : String(parseErr) });
+    }
+
+  } catch (err) {
+    console.error('[ATTACHMENT_PARSE_CRITICAL_ERROR]', err);
+    return errorResponse(`Parse işlemi sırasında kritik hata: ${err instanceof Error ? err.message : String(err)}`, 500);
+  }
+}
+
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MAIN ROUTER
@@ -576,6 +912,12 @@ serve(async (request: Request) => {
     // ── OpenRouter Model Discovery (diagnostic) ──────────────────────
     if (path === '/ai/openrouter-models' && request.method === 'GET') {
       return handleOpenRouterModels();
+    }
+
+    // ── Attachment Parsing (async trigger) ───────────────────────────
+    if (path === '/ai/attachments/parse' && request.method === 'POST') {
+      const body = await request.json();
+      return handleParseAttachment(request, body);
     }
 
     return errorResponse('Route bulunamadı', 404);

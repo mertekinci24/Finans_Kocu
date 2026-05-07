@@ -1,3 +1,5 @@
+import { FinancialIntelligenceContext } from './intelligence';
+
 export interface User {
   id: string;
   email: string;
@@ -159,6 +161,14 @@ export interface ChatSession {
   updatedAt: Date;
 }
 
+export interface ChatAttachment {
+  name: string;
+  type: string;
+  size: number;
+  path: string;
+  bucket: string;
+}
+
 export interface ChatMessage {
   id: string;
   sessionId: string;
@@ -166,6 +176,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   suggestedTransaction?: SuggestedTransaction;
+  attachment?: ChatAttachment;
   tokensUsed: number;
   createdAt: Date;
 }
@@ -183,9 +194,14 @@ export interface AssistantContextCache {
   userId: string;
   contextHash: string;
   accountsSummary: AccountSummary[];
-  findeksData?: { creditScore: number; limitUsageRatio: number };
+  /** DB'den scalar veya Findeks bridge'den zengin evidence payload — ikisini de destekler */
+  findeksData?: any;
+  debts?: any[];
+  installments?: any[];
   transactionsTrend: TransactionTrend;
   alerts: string[];
+  parsedAttachments?: any[];
+  financialIntelligenceContext?: FinancialIntelligenceContext;
   cachedAt: Date;
   expiresAt: Date;
 }

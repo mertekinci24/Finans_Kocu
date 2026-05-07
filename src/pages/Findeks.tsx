@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { dataSourceAdapter } from '@/services/supabase/adapter';
 import { extractTextFromPDF, parseRawFindeksText, determineRiskLevel, calculateScoreImprovementPotential } from '@/services/findeks/findeksOcrParser';
-import { analyzeFindeksWithClaude } from '@/services/findeks/claudeAnalyzer';
 import FindeksScoreScale from '@/components/findeks/FindeksScoreScale';
 import ActionPlanCard from '@/components/findeks/ActionPlanCard';
 
@@ -134,23 +133,44 @@ export default function Findeks() {
     if (!rawData || !user) return;
     setLoading(true);
     setStep('analysis');
-    
     setAnalysisStuck(false);
     const stuckTimer = setTimeout(() => setAnalysisStuck(true), 8000);
 
     try {
-      const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-      if (!apiKey) throw new Error('Claude API key not configured');
-
-      const analysisPromise = analyzeFindeksWithClaude(rawData, apiKey);
-      const timeoutPromise = new Promise<any>((_, reject) =>
-        setTimeout(() => reject(new Error('AI Analiz zaman aşımı (10s)')), 10000)
+      const deterministicRiskLevel = determineRiskLevel(
+        rawData.creditScore,
+        rawData.limitUsageRatio,
+        rawData.delayMonths
       );
 
-      const analysis = await Promise.race([analysisPromise, timeoutPromise]);
+      // Deterministic local analysis — no external API key required
+      const analysis = {
+        aiAnalysis:
+          rawData.documentType === 'findeks_credit_score_only'
+            ? `Kredi notunuz ${rawData.creditScore?.value ?? 'okunmadı'}. Bu belge kredi notu özeti olarak algılandı. Limit, borç, kart ve hesap detayları bu PDF'te yer almadığı için bu alanlar sıfır kabul edilmez. Daha detaylı analiz için tam Findeks Risk Raporu veya banka limit özetinizi yükleyebilirsiniz.`
+            : `Findeks raporunuz işlendi. Kanıtlanan alanlar üzerinden analiz yapılabilir.`,
+        actionPlan: [
+          {
+            title: 'Eksik verileri tamamla',
+            description:
+              'Limit, borç, kart ve gecikme detayları için tam Findeks Risk Raporu veya banka limit özeti yükleyin.',
+          },
+          {
+            title: 'AI Asistan ile tartış',
+            description:
+              'Raporu AI Asistan\'a taşıyarak kanıtlı veriler üzerinden detaylı koçluk alın.',
+          },
+        ],
+        riskLevel: deterministicRiskLevel,
+        improvementPotential: calculateScoreImprovementPotential(
+          rawData.creditScore,
+          rawData.limitUsageRatio,
+          rawData.delayMonths
+        ),
+      };
+
       setAnalysisResult(analysis);
 
-      const riskLevel = determineRiskLevel(rawData.creditScore, rawData.limitUsageRatio, rawData.delayMonths);
       const newReport = await dataSourceAdapter.findeks.createReport({
         userId: user.id,
         fileName: file?.name || 'findeks-report.pdf',
@@ -162,12 +182,8 @@ export default function Findeks() {
         creditCards: rawData.creditCards?.value ?? 0,
         activeDebts: rawData.activeDebts?.value ?? 0,
         banksList: rawData.banksList ?? [],
-        riskLevel,
-        scoreImprovementPotential: calculateScoreImprovementPotential(
-          rawData.creditScore,
-          rawData.limitUsageRatio,
-          rawData.delayMonths
-        ),
+        riskLevel: deterministicRiskLevel,
+        scoreImprovementPotential: analysis.improvementPotential,
         uploadedAt: new Date(),
         aiAnalysis: analysis.aiAnalysis,
         actionPlan: analysis.actionPlan,
@@ -176,18 +192,21 @@ export default function Findeks() {
       setReport(newReport);
       setStep('result');
     } catch (err) {
-      console.error('[FINDEKS_ERROR] Analiz veya Kayıt Hatası:', err);
+      console.error('[FINDEKS_ERROR] Kayıt Hatası:', err);
+      // Even if DB save fails, show the result screen with deterministic data
       const deterministicRiskLevel = determineRiskLevel(
         rawData.creditScore,
         rawData.limitUsageRatio,
         rawData.delayMonths
       );
-      setAnalysisResult({
-        aiAnalysis: 'AI Analizi şu an yapılamadı, ancak asistan ile manuel tartışabilirsiniz.',
-        actionPlan: [{ title: "AI Asistan'a Sor", description: 'Verileriniz hazır, butona basarak detaylı analiz isteyebilirsiniz.' }],
-        riskLevel: deterministicRiskLevel,
-        improvementPotential: 0,
-      });
+      if (!analysisResult) {
+        setAnalysisResult({
+          aiAnalysis: 'Rapor işlendi. AI Asistan ile detaylı analiz için aşağıdaki butonu kullanın.',
+          actionPlan: [{ title: "AI Asistan'a Sor", description: 'Verileriniz hazır, butona basarak detaylı analiz isteyebilirsiniz.' }],
+          riskLevel: deterministicRiskLevel,
+          improvementPotential: 0,
+        });
+      }
       setStep('result');
     } finally {
       clearTimeout(stuckTimer);

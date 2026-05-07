@@ -326,3 +326,60 @@ Kredi kartlarının BDDK regülasyonları ve bankacılık standartlarına (Ekstr
 - [x] ## TASK 48.22 — Precision Alignment & UI Flow Recovery (DONE)
 - [x] ## TASK 48.30 — Findeks Data Pipeline & UI Recovery (DONE)
 - [x] ## TASK 48.31 — Type Safety & Data Recovery - HOTFIX (DONE)
+
+## FAZ 8: AI ASSISTANT & CHAT UI-UX OPTIMIZASYON
+
+AI Assistant Upgrade — Master Task List
+- [x] 🔴 Phase 1 — AI Coaching Guardrails (CRITICAL) [DONE]
+assistantService.ts → KRİTİK KURALLAR bloğu ekle
+assistantService.ts → hesap serialization düzelt:
+balance → "Dönem Borcu"
+cardLimit ayrı göster
+ragContextBuilder.ts → debts + installments context'e ekle
+types/index.ts → AssistantContextCache genişlet
+Prompt'a zorunlu Türkçe kuralı ekle
+Limit vs borç karışmasını engelleyen kurallar ekle
+
+✅ Acceptance:
+
+AI "limitin 33k" DEMEZ
+AI sadece Türkçe konuşur
+Findeks + App verisini AYRI sunar
+- [x] 🟠 Phase 2 — AI Performance (Model Cache) [DONE]
+api-gateway/index.ts → lastSuccessfulModel cache ekle
+fallback listesi başına cache model koy
+success sonrası cache update
+retryable error → cache reset
+
+✅ Acceptance:
+
+İlk başarılı model tekrar kullanılır
+response süresi düşer
+🟡 Phase 3 — Chat Session Management
+IChatRepository → renameSession ekle
+IChatRepository → deleteSession ekle
+SupabaseChatRepository implement et
+Assistant.tsx → three-dot menu ekle
+rename UI (inline edit)
+delete confirm dialog
+
+✅ Acceptance:
+
+sohbet adı değiştirilebilir
+sohbet silinebilir
+active session düzgün yönetilir
+🟢 Phase 4 — Chat UX Upgrade
+ChatInterface.tsx → full-width ses butonunu kaldır
+"+" attach menu ekle
+ses kaydı menü içine taşınır
+file/image seçenekleri (disabled stub)
+
+✅ Acceptance:
+
+UI sadeleşir
+ses butonu yer kaplamaz
+🔵 Phase 5 — Attachments (Future)
+speech-to-text endpoint
+file upload
+image upload
+assistant ingestion pipeline

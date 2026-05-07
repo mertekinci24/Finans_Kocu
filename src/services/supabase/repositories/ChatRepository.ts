@@ -1,5 +1,5 @@
 import { supabase } from '../adapter';
-import { ChatSession, ChatMessage, SuggestedTransaction } from '@/types';
+import { ChatSession, ChatMessage, SuggestedTransaction, ChatAttachment } from '@/types';
 import type { ChatSessionRow, ChatMessageRow } from '@/types/database';
 
 export interface IChatRepository {
@@ -13,8 +13,11 @@ export interface IChatRepository {
     role: 'user' | 'assistant',
     content: string,
     suggestedTransaction?: SuggestedTransaction,
+    attachment?: ChatAttachment,
     tokensUsed?: number
   ): Promise<ChatMessage>;
+  renameSession(sessionId: string, newTitle: string): Promise<void>;
+  deleteSession(sessionId: string): Promise<void>;
 }
 
 export class SupabaseChatRepository implements IChatRepository {
@@ -70,6 +73,7 @@ export class SupabaseChatRepository implements IChatRepository {
     role: 'user' | 'assistant',
     content: string,
     suggestedTransaction?: SuggestedTransaction,
+    attachment?: ChatAttachment,
     tokensUsed = 0
   ): Promise<ChatMessage> {
     const { data, error } = await supabase
@@ -81,6 +85,7 @@ export class SupabaseChatRepository implements IChatRepository {
           role,
           content,
           suggested_transaction: suggestedTransaction ? JSON.stringify(suggestedTransaction) : null,
+          attachment: attachment ? JSON.stringify(attachment) : null,
           tokens_used: tokensUsed,
         },
       ])
@@ -91,6 +96,35 @@ export class SupabaseChatRepository implements IChatRepository {
     if (!data) throw new Error('Failed to add message');
 
     return this.mapToMessage(data);
+  }
+
+  async renameSession(sessionId: string, newTitle: string): Promise<void> {
+    const { error } = await supabase
+      .from('chat_sessions')
+      .update({
+        title: newTitle.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId);
+
+    if (error) throw error;
+  }
+
+  // Assuming chat_messages.session_id has ON DELETE CASCADE configured in the database
+  async deleteSession(sessionId: string): Promise<void> {
+    const { data, error } = await supabase
+      .from('chat_sessions')
+      .delete()
+      .eq('id', sessionId)
+      .select('id');
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      throw new Error(
+        'Delete failed: no chat session row was deleted. Check RLS DELETE policy or session ownership.'
+      );
+    }
   }
 
   private mapToSession(row: ChatSessionRow): ChatSession {
@@ -108,9 +142,10 @@ export class SupabaseChatRepository implements IChatRepository {
       id: row.id,
       sessionId: row.session_id,
       userId: row.user_id,
-      role: row.role,
+      role: row.role as 'user' | 'assistant',
       content: row.content,
       suggestedTransaction: row.suggested_transaction ? JSON.parse(row.suggested_transaction) : undefined,
+      attachment: row.attachment ? JSON.parse(row.attachment) : undefined,
       tokensUsed: row.tokens_used || 0,
       createdAt: new Date(row.created_at),
     };

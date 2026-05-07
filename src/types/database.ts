@@ -136,6 +136,7 @@ export interface ChatMessageRow {
   role: string;
   content: string;
   suggested_transaction: string | null;
+  attachment: string | null;
   tokens_used: number;
   created_at: string;
 }
