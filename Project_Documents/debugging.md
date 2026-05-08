@@ -359,3 +359,18 @@ Eğer timeout oluşursa:
 3. Hata takibini kolaylaştırmak için dev ortamında `[7.2F_POLL_START]`, `[7.2F_HAS_STRUCTURED_DATA]` vb. spesifik loglar eklendi.
 4. Çift renderları ve race condition'ları engellemek için `${messageId}_${storagePath}` yapısıyla daha robust bir guard uygulandı.
 **Durum:** Çözüldü.
+
+## Phase 7.2F — Real UAT Failure: Polling Gate Blocked by Text-Only Check
+**Date:** 2026-05-08
+**Semptom:** Browser subagent testi başarılı raporlanmıştı ancak gerçek kullanıcı dosya gönderdiğinde 60 saniye bekleyip timeout'a düştü. Otomatik summary hiç gelmedi.
+**Root Cause (Kanıtlanmış):**
+1. **isAutoSummaryCandidate text-only gate (Ana neden):** `pollParseAndAutoSummary` içindeki `isAutoSummaryCandidate` kontrolü YALNIZCA mesaj metnindeki anahtar kelimelere bakıyordu (analiz, yorumla, findeks, rapor, dosyay). Kullanıcı dosyayı tek başına gönderdiğinde ChatInterface otomatik olarak "Findeks raporumu analiz eder misin?" veya "Yüklediğim dosyayı analiz eder misin?" text'i oluşturuyordu — bu durumda gate geçiyormuş gibi görünse de, kullanıcı kendi yazdığı bir metin + dosya gönderdiğinde (örn. "merhaba" + PDF) gate text'i eşleşmiyordu ve polling HİÇ BAŞLAMIYORDU. `[7.2F_POLL_START]` logu console'da görünmüyordu.
+2. **activeSession stale closure (İkincil risk):** `finalize()` fonksiyonu `activeSession?.id` değerini closure'dan okuyordu. Polling 60 saniye sürdüğü için bu süre içinde kullanıcı session değiştirirse injection başarısız olabiliyordu.
+3. **Parse trigger fire-and-forget (Gözlemlenebilirlik eksikliği):** `fetch(...parse)` çağrısının HTTP response status'u loglanmıyordu. Edge Function 401/404/500 dönse bile teşhis edilemiyordu.
+**Çözüm:**
+- Fix A: `isAutoSummaryCandidate` gate'ine `hasAttachment = !!storagePath && !!fileName` eklendi. Attachment varsa text intent'e bakılmaksızın polling her zaman başlıyor.
+- Fix B: `activeSessionIdRef` eklendi, `activeSession?.id` yerine ref kullanılarak stale closure riski ortadan kaldırıldı.
+- Fix C: Tüm `finalize()` içindeki session kontrolleri `activeSessionIdRef.current` ile değiştirildi.
+- Fix D: Parse trigger response status'u `[7.2F_PARSE_TRIGGER_RESPONSE]` ve `[7.2F_PARSE_TRIGGER_FAILED]` loglarıyla izlenebilir hale getirildi.
+**Eski UAT Neden Yanlış Pozitifti:** Browser subagent, `success_findeks.pdf` dosyasını yüklerken ChatInterface'in otomatik oluşturduğu "Findeks raporumu analiz eder misin?" text'ini kullandı. Bu text `qNorm.includes('analiz')` kontrolünü geçiyordu. Gerçek kullanıcılar farklı text yazabildiği veya text boş bırakabildiği düşünülmemişti.
+**Durum:** Fix uygulandı, UAT bekliyor.

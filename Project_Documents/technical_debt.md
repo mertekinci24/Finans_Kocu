@@ -341,3 +341,19 @@ Her 3 görevde bir gözden geçirilir.
 - Geçici çözüm kalıcı bırakılmaz.
 - Mimariyi bozan kısa yollar yasaktır.
 - Borç varsa backlog'a görev açılır.
+
+## Known Pre-existing Type Debt Blocking Formal Build Pass
+
+- **Date:** 2026-05-08T14:23:55.622Z
+- **Description:** Global build (`npm run build` / `tsc`) is currently blocked by pre-existing type errors in several repositories, unrelated to Phase 7.2F. These need to be resolved to unblock CI/CD.
+- **Affected Files:**
+  - `src/services/supabase/repositories/FindeksRepository.ts`
+  - `src/services/supabase/repositories/InstallmentRepository.ts`
+  - `src/services/supabase/repositories/RecurringFlowRepository.ts`
+  - `src/services/supabase/repositories/TaxRepository.ts`
+  - `src/services/supabase/repositories/TransactionRepository.ts`
+  - `src/utils/categoryPredictor.ts`
+
+## Phase 7.2F Future Refinements (Assistant.tsx)
+- `isFindeksResult` içinde `!!fields.creditScore` ileride 0/missing ayrımı için daha güvenli hale getirilecek.
+- `autoSummarizedMessageIdsRef` başlangıçtaki `messageId` kontrolü ile `finalize` içerisindeki `messageId_storagePath` kontrolü ileride sadeleştirilerek tek bir yapıya oturtulacak.
