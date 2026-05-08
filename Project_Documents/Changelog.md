@@ -1,13 +1,26 @@
 # Changelog.md
 
-## Phase 7.2F — Auto Parse Completion Summary Timeout Fix
+## Phase 7.2F — Auto Parse Completion Summary Timeout Fix (Tamamlandı)
 
 - Görev No: Phase 7.2F
 - Modüller: Assistant.tsx
 - Yapılan İş:
-  - **Doğrudan Veri Aktarımı (Fix 1):** Edge fonksiyonundan dönen `structuredData` doğrudan kullanılarak, veritabanı replika gecikmeleri bypass edildi.
-  - **Clock Skew Toleransı (Fix 2):** Polling 2. ve 3. geçişlerinde `updated_at` kontrolüne 2 dakikalık tolerans eklendi.
-  - **Güvenli State Enjeksiyonu (Fix 3):** Strict Mode çift render sorunlarını engellemek üzere mesaj enjeksiyonunda duplicate guard (`prev.some()`) kullanıldı.
+  - **Doğrudan Veri Aktarımı (Fix 1):** Edge fonksiyonundan dönen `structuredData` sentetik bir attachment nesnesine çevrilerek doğrudan `freshEnriched.parsedAttachments` içine enjekte edildi. RAG context builder veritabanı replika gecikmesine (replica lag) takılmadan anında deterministic yanıt üretebiliyor.
+  - **Clock Skew Toleransı (Fix 2):** `pollParseAndAutoSummary` içindeki 2. ve 3. polling geçişlerinde `updated_at` ve 2 dakikalık tolerans (`uploadSinceWithTolerance`) kullanılarak saat farkı kaynaklı kaçakların önüne geçildi.
+  - **Güvenli State Enjeksiyonu (Fix 3):** Strict Mode çift render sorunlarını engellemek üzere mesaj enjeksiyonunda `messageId` + `storagePath` kombinasyonu ile `autoSummarizedMessageIdsRef` seti kullanıldı. `setMessages` çağrılarında da tam duplicate guard (`prev.some()`) uygulandı.
+  - **Observability:** Sürecin başından sonuna izlenebilmesi için spesifik `[7.2F_...]` log event'leri eklendi.
+- Durum: Kapalı (UAT Başarılı)
+
+
+## Phase 7.2F — Auto Parse Completion Summary Timeout Fix (Tamamlandı)
+
+- Görev No: Phase 7.2F
+- Modüller: Assistant.tsx
+- Yapılan İş:
+  - **Doğrudan Veri Aktarımı (Fix 1):** Edge fonksiyonundan dönen `structuredData` sentetik bir attachment nesnesine çevrilerek doğrudan `freshEnriched.parsedAttachments` içine enjekte edildi. RAG context builder veritabanı replika gecikmesine (replica lag) takılmadan anında deterministic yanıt üretebiliyor.
+  - **Clock Skew Toleransı (Fix 2):** `pollParseAndAutoSummary` içindeki 2. ve 3. polling geçişlerinde `updated_at` ve 2 dakikalık tolerans (`uploadSinceWithTolerance`) kullanılarak saat farkı kaynaklı kaçakların önüne geçildi.
+  - **Güvenli State Enjeksiyonu (Fix 3):** Strict Mode çift render sorunlarını engellemek üzere mesaj enjeksiyonunda `messageId` + `storagePath` kombinasyonu ile `autoSummarizedMessageIdsRef` seti kullanıldı. `setMessages` çağrılarında da tam duplicate guard (`prev.some()`) uygulandı.
+  - **Observability:** Sürecin başından sonuna izlenebilmesi için spesifik `[7.2F_...]` log event'leri eklendi.
 - Durum: Kapalı (UAT Başarılı)
 
 ## 2026-04-27 17:30

@@ -347,3 +347,15 @@ Eğer timeout oluşursa:
 - **Clock Skew Toleransı (Fix 2)**: Polling esnasındaki 2. ve 3. geçiş (Pass-2 & Pass-3) sorgularında `created_at >= uploadStartedAt` kuralı esnetildi. Yeni yaklaşımda, `updated_at >= uploadStartedAt - 2 dakika` şartı kullanılarak, istemcinin saati DB sunucusundan ilerde olsa bile TimeOut engellendi.
 - **Güvenli State Enjeksiyonu (Fix 3)**: React Strict Mode çift render ve state yarışlarını önlemek üzere `setMessages` içerisinde message duplicate guard kullanıldı.
 - **UAT Sonuçları**: Happy path başarıyla doğrulandı. Findeks raporu yüklendikten sonra DB polling satırı bulduğu anda, timeout'a düşmeden deterministik AI raporu ekrana doğrudan inject edildi. Session korumaları çalıştı.
+
+## Auto-Parse Polling Timeout & Missing Summary Issue (Phase 7.2F)
+**Semptom:** Kullanıcı bir Findeks PDF dosyası yüklediğinde, parse işlemi başarıyla tamamlanıyor ve `attachment_parse_results` tablosuna yazılıyor, ancak frontend 60 saniye bekledikten sonra timeout hatası veriyor ve otomatik yorumlama (summary) mesajı oluşturmuyordu.
+**Root Cause:**
+1. Polling işlemi sırasında, `updated_at` yerine `created_at` kullanılarak `uploadStartedAt` ile karşılaştırma yapılıyordu. Bu durum, onConflict=user_id,path durumunda eski kayıtların `created_at` değeri eski kaldığı için (saat farkı veya update) filtreden geçememesine neden oluyordu.
+2. `finalize()` adımında, parse edilmiş veri `buildUserContext()` üzerinden dolaylı yoldan veritabanından çağrılıyordu. Veritabanı okuma replikalarındaki (veya cache) gecikmeler nedeniyle güncel parse verisi context'e yansımıyor, AI summary üretemiyordu.
+**Çözüm:**
+1. `pollParseAndAutoSummary` içerisindeki fallback pass'lerinde (Pass-2, Pass-3) `updated_at` kullanıldı ve saat kaymalarına (clock skew) karşı `- 2 mins` tolerans eklendi (`uploadSinceWithTolerance`).
+2. Edge function'dan dönen gerçek `structured_data` kullanılarak manuel bir `syntheticAttachment` objesi yaratıldı ve bu obje `freshEnriched.parsedAttachments` array'ine doğrudan enjekte edildi (Direct Data Injection).
+3. Hata takibini kolaylaştırmak için dev ortamında `[7.2F_POLL_START]`, `[7.2F_HAS_STRUCTURED_DATA]` vb. spesifik loglar eklendi.
+4. Çift renderları ve race condition'ları engellemek için `${messageId}_${storagePath}` yapısıyla daha robust bir guard uygulandı.
+**Durum:** Çözüldü.

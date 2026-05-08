@@ -380,10 +380,11 @@ export default function Assistant() {
       );
     };
 
-    const finalize = async (status: 'parsed' | 'failed' | 'timeout', structuredData: Record<string, unknown> | null) => {
-      if (autoSummarizedMessageIdsRef.current.has(messageId)) return;
-      autoSummarizedMessageIdsRef.current.add(messageId);
-
+    const finalize = async (status: 'parsed' | 'failed' | 'timeout', structuredData: Record<string, unknown> | null) => {
+      const autoSummaryKey = `${messageId}_${storagePath}`;
+      if (autoSummarizedMessageIdsRef.current.has(autoSummaryKey)) return;
+      autoSummarizedMessageIdsRef.current.add(autoSummaryKey);
+
       if (status === 'failed') {
         const msg = await dataSourceAdapter.chat.addMessage(
           sessionId, userId, 'assistant',
@@ -391,25 +392,32 @@ export default function Assistant() {
           undefined, undefined, 0
         );
         if (isMountedRef.current && activeSession?.id === sessionId) {
-          setMessages((prev) => [...prev, msg]);
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
         }
+        if (import.meta.env.DEV) console.log('[7.2F_MESSAGE_INJECTED]', { status: 'failed', msgId: msg.id });
         return;
-      }
-
+      }
+
       if (status === 'timeout') {
+        if (import.meta.env.DEV) console.log('[7.2F_TIMEOUT_REASON] lastPass=3, timeout=true');
         const msg = await dataSourceAdapter.chat.addMessage(
           sessionId, userId, 'assistant',
           'Analiz beklenenden uzun sürdü. Sonuç arka planda tamamlanabilir; biraz sonra "Findeks raporumu yorumla" yazarsanız hazır sonucu kullanarak yorumlayabilirim.',
           undefined, undefined, 0
         );
         if (isMountedRef.current && activeSession?.id === sessionId) {
-          setMessages((prev) => [...prev, msg]);
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
         }
         return;
-      }
-
-      // status === 'parsed'
-      // Only produce Findeks summary if it looks like a Findeks document
+      }
+
+      // status === 'parsed'
       if (!isFindeksResult(structuredData)) {
         const msg = await dataSourceAdapter.chat.addMessage(
           sessionId, userId, 'assistant',
@@ -417,104 +425,141 @@ export default function Assistant() {
           undefined, undefined, 0
         );
         if (isMountedRef.current && activeSession?.id === sessionId) {
-          setMessages((prev) => [...prev, msg]);
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
         }
-        return;
-      }
-
-      const freshContext = await buildUserContext(userId);
-      const freshEnriched = { ...freshContext, isProcessingNewFile: false };
-      const summary = buildDeterministicIntentAnswer(
-        'Findeks raporumu profesyonelce yorumlar mısın?',
-        freshEnriched,
-        undefined
-      );
+        return;
+      }
+
+      if (import.meta.env.DEV) console.log('[7.2F_HAS_STRUCTURED_DATA] True');
+
+      const baseContext = await buildUserContext(userId);
+      const sd = structuredData as any;
+      
+      const syntheticAttachment = {
+        file_name: fileName,
+        document_type: (sd?.documentType || sd?.document_type || 'Unknown').toString().toLowerCase(),
+        status: 'parsed',
+        structured_data: structuredData
+      };
+
+      if (import.meta.env.DEV) console.log('[7.2F_SYNTHETIC_ATTACHMENT_INJECTED]');
+
+      const freshEnriched = { 
+        ...baseContext, 
+        parsedAttachments: [
+          syntheticAttachment as any,
+          ...(baseContext.parsedAttachments ?? [])
+        ],
+        isProcessingNewFile: false 
+      };
+      
+      const summary = buildDeterministicIntentAnswer(
+        'Findeks raporumu profesyonelce yorumlar mısın?',
+        freshEnriched,
+        undefined
+      );
+      
+      if (import.meta.env.DEV) console.log('[7.2F_SUMMARY_BUILT]', { ok: !!summary });
+
       const autoMsg = await dataSourceAdapter.chat.addMessage(
         sessionId, userId, 'assistant',
         summary ?? 'Analiz tamamlandı. Rapor detaylarını görmek için "Findeks raporumu yorumla" diyebilirsiniz.',
         undefined, undefined, 0
       );
+      
       if (isMountedRef.current && activeSession?.id === sessionId) {
-        setMessages((prev) => [...prev, autoMsg]);
-      }
-    };
-
-    for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
-      await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
-
-      try {
-        let row = null;
-
-        // PASS 1: Exact match by storage path (most reliable -- path is unique per user+file in Edge Fn)
-        const { data: byPath, error: err1 } = await supabase
-          .from('attachment_parse_results')
-          .select('status, structured_data')
-          .eq('user_id', userId)
-          .eq('path', storagePath)
-          .in('status', ['parsed', 'failed'])
-          .maybeSingle();
-
-        if (err1 && import.meta.env.DEV) console.warn('[POLL_PARSE] Pass-1 error:', err1.message);
-
-        if (byPath) {
-          row = byPath;
-          if (import.meta.env.DEV) console.log('[POLL_PARSE] Pass-1 (path) hit', row.status);
-        }
-
-        // PASS 2: file_name + upload window (if path doesn't match or column missing)
-        if (!row) {
-          const { data: byName, error: err2 } = await supabase
-            .from('attachment_parse_results')
-            .select('status, structured_data')
-            .eq('user_id', userId)
-            .eq('file_name', fileName)
-            .in('status', ['parsed', 'failed'])
-            .gte('created_at', uploadStartedAt)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (err2 && import.meta.env.DEV) console.warn('[POLL_PARSE] Pass-2 error:', err2.message);
-
-          if (byName) {
-            row = byName;
-            if (import.meta.env.DEV) console.log('[POLL_PARSE] Pass-2 (file_name) hit', row.status);
-          }
-        }
-
-        // PASS 3: Latest parsed/failed for this user since upload (broad safety net)
-        if (!row) {
-          const { data: byLatest, error: err3 } = await supabase
-            .from('attachment_parse_results')
-            .select('status, structured_data')
-            .eq('user_id', userId)
-            .in('status', ['parsed', 'failed'])
-            .gte('created_at', uploadStartedAt)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (err3 && import.meta.env.DEV) console.warn('[POLL_PARSE] Pass-3 error:', err3.message);
-
-          if (byLatest) {
-            row = byLatest;
-            if (import.meta.env.DEV) console.log('[POLL_PARSE] Pass-3 (latest) hit', row.status);
-          }
-        }
-
-        if (!row) {
-          if (import.meta.env.DEV) console.log('[POLL_PARSE] Attempt ' + (attempt + 1) + ': no completed row yet');
-          continue;
-        }
-
-        if (row.status === 'failed') { await finalize('failed', null); return; }
-        if (row.status === 'parsed') { await finalize('parsed', row.structured_data); return; }
-
-      } catch (err) {
-        if (import.meta.env.DEV) console.warn('[POLL_PARSE] Unexpected error:', err);
-      }
-    }
-
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === autoMsg.id)) return prev;
+          return [...prev, autoMsg];
+        });
+      }
+      if (import.meta.env.DEV) console.log('[7.2F_MESSAGE_INJECTED]', { status: 'parsed', ok: true });
+    };
+    if (import.meta.env.DEV) console.log('[7.2F_POLL_START]', { messageId, storagePath, fileName, userId });
+
+    const uploadSinceWithTolerance = new Date(
+      new Date(uploadStartedAt).getTime() - 2 * 60 * 1000
+    ).toISOString();
+
+    for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
+
+      try {
+        let row = null;
+
+        // PASS 1: Exact match by storage path (most reliable -- path is unique per user+file in Edge Fn)
+        const { data: byPath, error: err1 } = await supabase
+          .from('attachment_parse_results')
+          .select('status, structured_data')
+          .eq('user_id', userId)
+          .eq('path', storagePath)
+          .in('status', ['parsed', 'failed'])
+          .maybeSingle();
+
+        if (err1 && import.meta.env.DEV) console.warn('[7.2F_PASS_1_PATH] Error:', err1.message);
+
+        if (byPath) {
+          row = byPath;
+          if (import.meta.env.DEV) console.log('[7.2F_ROW_FOUND] Pass-1 (path)', row.status);
+        }
+
+        // PASS 2: file_name + updated_at window
+        if (!row) {
+          const { data: byName, error: err2 } = await supabase
+            .from('attachment_parse_results')
+            .select('status, structured_data')
+            .eq('user_id', userId)
+            .eq('file_name', fileName)
+            .in('status', ['parsed', 'failed'])
+            .gte('updated_at', uploadSinceWithTolerance)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (err2 && import.meta.env.DEV) console.warn('[7.2F_PASS_2_FILENAME_UPDATED_AT] Error:', err2.message);
+
+          if (byName) {
+            row = byName;
+            if (import.meta.env.DEV) console.log('[7.2F_ROW_FOUND] Pass-2 (file_name)', row.status);
+          }
+        }
+
+        // PASS 3: Latest parsed/failed for this user since upload
+        if (!row) {
+          const { data: byLatest, error: err3 } = await supabase
+            .from('attachment_parse_results')
+            .select('status, structured_data')
+            .eq('user_id', userId)
+            .in('status', ['parsed', 'failed'])
+            .gte('updated_at', uploadSinceWithTolerance)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (err3 && import.meta.env.DEV) console.warn('[7.2F_PASS_3_LATEST_UPDATED_AT] Error:', err3.message);
+
+          if (byLatest) {
+            row = byLatest;
+            if (import.meta.env.DEV) console.log('[7.2F_ROW_FOUND] Pass-3 (latest)', row.status);
+          }
+        }
+
+        if (!row) {
+          if (import.meta.env.DEV) console.log('[POLL_PARSE] Attempt ' + (attempt + 1) + ': no completed row yet');
+          continue;
+        }
+
+        if (row.status === 'failed') { await finalize('failed', null); return; }
+        if (row.status === 'parsed') { await finalize('parsed', row.structured_data); return; }
+
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn('Unexpected poll error:', err);
+      }
+    }
+
     await finalize('timeout', null);
   };
 
