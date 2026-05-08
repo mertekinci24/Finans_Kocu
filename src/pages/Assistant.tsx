@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { dataSourceAdapter, supabase } from '@/services/supabase/adapter';
@@ -312,20 +312,37 @@ export default function Assistant() {
   const isCreatingSessionRef = useRef(false);
   const isRenamingRef = useRef(false);
   const sidebarMenuRef = useRef<HTMLDivElement | null>(null);
-  // Phase 7.2F: Prevent duplicate auto-summary for the same message
-  const autoSummarizedMessageIdsRef = useRef<Set<string>>(new Set());
-
-  const pendingBridgeRef = useRef<{
-    mode: AssistantEntryMode;
-    findeksData?: any;
-    initialQuery?: string;
-  } | null>(null);
-
-  // Phase 7.2F: Poll parse result and auto-send deterministic summary
-  // Root cause of previous timeout: Edge Function uses onConflict='user_id,path',
-  // so if the same file was parsed before, message_id is NOT updated on upsert.
-  // Fix: Primary lookup by 'path' (unique per user+file), fallback by file_name.
-  const pollParseAndAutoSummary = async (opts) => {
+  // Phase 7.2F: Prevent duplicate auto-summary for the same message
+  const autoSummarizedMessageIdsRef = useRef<Set<string>>(new Set());
+  // Phase 7.2F: Unmount guard to prevent setState on unmounted component
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const pendingBridgeRef = useRef<{
+    mode: AssistantEntryMode;
+    findeksData?: any;
+    initialQuery?: string;
+  } | null>(null);
+
+  // Phase 7.2F: Poll parse result and auto-send deterministic summary
+  // Root cause of previous timeout: Edge Function uses onConflict='user_id,path',
+  // so if the same file was parsed before, message_id is NOT updated on upsert.
+  // Fix: Primary lookup by 'path' (unique per user+file), fallback by file_name.
+  interface PollParseOpts {
+    messageId: string;
+    sessionId: string;
+    userId: string;
+    originalText: string;
+    storagePath: string;
+    fileName: string;
+    uploadStartedAt: string;
+  }
+  const pollParseAndAutoSummary = async (opts: PollParseOpts) => {
     const { messageId, sessionId, userId, originalText, storagePath, fileName, uploadStartedAt } = opts;
 
     const qNorm = normalizeText(originalText);
@@ -348,7 +365,8 @@ export default function Assistant() {
     const MAX_TRIES = 40;
     const INTERVAL_MS = 1500;
 
-    const isFindeksResult = (structured) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const isFindeksResult = (structured: any): boolean => {
       if (!structured) return false;
       const sd = structured.structured_data || structured;
       const docType = (sd.documentType || sd.document_type || '').toLowerCase();
@@ -362,39 +380,45 @@ export default function Assistant() {
       );
     };
 
-    const finalize = async (status, structuredData) => {
+    const finalize = async (status: 'parsed' | 'failed' | 'timeout', structuredData: Record<string, unknown> | null) => {
       if (autoSummarizedMessageIdsRef.current.has(messageId)) return;
       autoSummarizedMessageIdsRef.current.add(messageId);
 
-      if (status === 'failed') {
-        const msg = await dataSourceAdapter.chat.addMessage(
-          sessionId, userId, 'assistant',
-          'Dosya alındı ancak analiz tamamlanamadı. PDF metin katmanı olmayabilir veya format desteklenmiyor olabilir.',
-          undefined, undefined, 0
-        );
-        setMessages((prev) => [...prev, msg]);
-        return;
+      if (status === 'failed') {
+        const msg = await dataSourceAdapter.chat.addMessage(
+          sessionId, userId, 'assistant',
+          'Dosya alındı ancak analiz tamamlanamadı. PDF metin katmanı olmayabilir veya format desteklenmiyor olabilir.',
+          undefined, undefined, 0
+        );
+        if (isMountedRef.current && activeSession?.id === sessionId) {
+          setMessages((prev) => [...prev, msg]);
+        }
+        return;
       }
 
-      if (status === 'timeout') {
-        const msg = await dataSourceAdapter.chat.addMessage(
-          sessionId, userId, 'assistant',
-          'Analiz beklenenden uzun sürdü. Sonuç arka planda tamamlanabilir; biraz sonra "Findeks raporumu yorumla" yazarsanız hazır sonucu kullanarak yorumlayabilirim.',
-          undefined, undefined, 0
-        );
-        setMessages((prev) => [...prev, msg]);
-        return;
+      if (status === 'timeout') {
+        const msg = await dataSourceAdapter.chat.addMessage(
+          sessionId, userId, 'assistant',
+          'Analiz beklenenden uzun sürdü. Sonuç arka planda tamamlanabilir; biraz sonra "Findeks raporumu yorumla" yazarsanız hazır sonucu kullanarak yorumlayabilirim.',
+          undefined, undefined, 0
+        );
+        if (isMountedRef.current && activeSession?.id === sessionId) {
+          setMessages((prev) => [...prev, msg]);
+        }
+        return;
       }
 
       // status === 'parsed'
       // Only produce Findeks summary if it looks like a Findeks document
-      if (!isFindeksResult(structuredData)) {
-        const msg = await dataSourceAdapter.chat.addMessage(
-          sessionId, userId, 'assistant',
-          'Analiz tamamlandı, ancak bu dosya Findeks raporu gibi görünmüyor. Başka bir sorunuz varsa yardımcı olabilirim.',
-          undefined, undefined, 0
-        );
-        setMessages((prev) => [...prev, msg]);
+      if (!isFindeksResult(structuredData)) {
+        const msg = await dataSourceAdapter.chat.addMessage(
+          sessionId, userId, 'assistant',
+          'Analiz tamamlandı, ancak bu dosya Findeks raporu gibi görünmüyor. Başka bir sorunuz varsa yardımcı olabilirim.',
+          undefined, undefined, 0
+        );
+        if (isMountedRef.current && activeSession?.id === sessionId) {
+          setMessages((prev) => [...prev, msg]);
+        }
         return;
       }
 
@@ -405,12 +429,14 @@ export default function Assistant() {
         freshEnriched,
         undefined
       );
-      const autoMsg = await dataSourceAdapter.chat.addMessage(
-        sessionId, userId, 'assistant',
-        summary ?? 'Analiz tamamlandı. Rapor detaylarını görmek için "Findeks raporumu yorumla" diyebilirsiniz.',
-        undefined, undefined, 0
-      );
-      setMessages((prev) => [...prev, autoMsg]);
+      const autoMsg = await dataSourceAdapter.chat.addMessage(
+        sessionId, userId, 'assistant',
+        summary ?? 'Analiz tamamlandı. Rapor detaylarını görmek için "Findeks raporumu yorumla" diyebilirsiniz.',
+        undefined, undefined, 0
+      );
+      if (isMountedRef.current && activeSession?.id === sessionId) {
+        setMessages((prev) => [...prev, autoMsg]);
+      }
     };
 
     for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
@@ -521,11 +547,13 @@ export default function Assistant() {
         initialQuery: location.state.initialQuery,
       };
 
-      console.log("[ASSISTANT_BRIDGE_CAPTURED]", {
-        documentType: location.state.findeksData?.documentType,
-        parserVersion: location.state.findeksData?.parserVersion,
-        missingFields: location.state.findeksData?.missingFields,
-      });
+      if (import.meta.env.DEV) {
+        console.log("[ASSISTANT_BRIDGE_CAPTURED]", {
+          documentType: location.state.findeksData?.documentType,
+          parserVersion: location.state.findeksData?.parserVersion,
+          missingFields: location.state.findeksData?.missingFields,
+        });
+      }
     }
   }, [location.state]);
 
@@ -583,10 +611,12 @@ export default function Assistant() {
 
         pendingBridgeRef.current = null;
 
-        console.log("[ASSISTANT_BRIDGE_SENT_DETERMINISTIC]", {
-          documentType: payload.findeksData?.documentType,
-          missingFields: payload.findeksData?.missingFields,
-        });
+        if (import.meta.env.DEV) {
+          console.log("[ASSISTANT_BRIDGE_SENT_DETERMINISTIC]", {
+            documentType: payload.findeksData?.documentType,
+            missingFields: payload.findeksData?.missingFields,
+          });
+        }
       }, 800);
 
       return () => clearTimeout(timer);
@@ -777,8 +807,8 @@ export default function Assistant() {
             fileName: attachmentMetadata.name,
             mimeType: attachmentMetadata.type
           })
-        }).catch((err) => {
-          console.warn('Parse trigger failed:', err);
+        }).catch((err) => {
+          if (import.meta.env.DEV) console.warn('[POLL_PARSE] Parse trigger failed:', err);
         });
 
         // Phase 7.2F: Start polling for parse completion in background

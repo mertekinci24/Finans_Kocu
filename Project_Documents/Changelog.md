@@ -1,5 +1,15 @@
 # Changelog.md
 
+## Phase 7.2F — Auto Parse Completion Summary Timeout Fix
+
+- Görev No: Phase 7.2F
+- Modüller: Assistant.tsx
+- Yapılan İş:
+  - **Doğrudan Veri Aktarımı (Fix 1):** Edge fonksiyonundan dönen `structuredData` doğrudan kullanılarak, veritabanı replika gecikmeleri bypass edildi.
+  - **Clock Skew Toleransı (Fix 2):** Polling 2. ve 3. geçişlerinde `updated_at` kontrolüne 2 dakikalık tolerans eklendi.
+  - **Güvenli State Enjeksiyonu (Fix 3):** Strict Mode çift render sorunlarını engellemek üzere mesaj enjeksiyonunda duplicate guard (`prev.some()`) kullanıldı.
+- Durum: Kapalı (UAT Başarılı)
+
 ## 2026-04-27 17:30
 
 - Görev No: 48.10 — Enterprise Data Pipeline & AI Initialization

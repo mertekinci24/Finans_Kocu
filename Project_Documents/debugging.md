@@ -5,15 +5,16 @@ Hata günlüğü ve öğrenimler.
 ## Kayıt Şablonu
 
 ### 20. SyntaxError: Expected corresponding JSX closing tag for <> / Ternary Mismatch (2026-04-19)
+
 **Sorun**: `src/pages/Installments.tsx` dosyasında "Expected corresponding JSX closing tag for <>" ve "TypeScriptParserMixin.parseConditional" hatalarıyla uygulamanın çökmesi.
-**Kök Neden**: 
+**Kök Neden**:
+
 1. `activeTab === 'installments'` bloğu için açılan `<>` (Fragment) etiketinin sonu yanlışlıkla `</div>` ile kapatılmıştı.
 2. Daha da kritik olarak, blok `{activeTab === 'installments' ? (` (ternary) ile başlatılmış ancak else durumu (`:`) belirtilmeden kapatılmıştı. Bu durum derleyicinin "parseConditional" hatası fırlatmasına sebep oldu.
-**Çözüm**: 
-1. `</div>` etiketi `</>` ile düzeltildi.
-2. Ternary operatörü (`?`) yerine, else durumu gerektirmeyen mantıksal VE (`&&`) operatörüne geçildi.
-**Öğrenim**: JSX içinde ternary (`? :`) kullanılıyorsa, React her zaman iki dalın da (true/false) mevcudiyetini bekler. Sadece belirli bir durumu göstermek istiyorsak `&&` operatörü hem daha temizdir hem de "missing colon" gibi syntax hatalarını engeller.
-
+   **Çözüm**:
+3. `</div>` etiketi `</>` ile düzeltildi.
+4. Ternary operatörü (`?`) yerine, else durumu gerektirmeyen mantıksal VE (`&&`) operatörüne geçildi.
+   **Öğrenim**: JSX içinde ternary (`? :`) kullanılıyorsa, React her zaman iki dalın da (true/false) mevcudiyetini bekler. Sadece belirli bir durumu göstermek istiyorsak `&&` operatörü hem daha temizdir hem de "missing colon" gibi syntax hatalarını engeller.
 
 ## 2026-04-14 (SURGICAL FIX FOR QUICKINPUT - Task 43.1)
 
@@ -36,27 +37,33 @@ Hata günlüğü ve öğrenimler.
 - Neden-Sonuç: Geliştirici ortamında placeholder kullanıldığı için, string boş olmadığı sürece frontend çalışmış, ancak backend'e giden `apikey` header'ı arızalı olduğu için "Invalid API key" vermiştir.
 
 ### 11. Bi-directional Sync: Transactions to Installments (2026-04-16)
+
 **Sorun**: İşlemler (Transactions) sayfasından bir taksit ödemesi silindiğinde, bu durumun taksit takvimini (PaymentCalendar) etkilememesi ve bakiyenin iade edilmemesi.
 **Çözüm**: `Transactions.tsx` içindeki silme mantığına "Reverse Atomic Protocol" eklendi.
 **Mantık Akışı**:
+
 1. `category === 'Taksit Ödemesi'` kontrolü yapılır.
 2. İşlem açıklaması (`lenderName - monthName Taksidi`) parse edilerek ilgili taksit ve ay anahtarı (`monthKey`) bulunur.
 3. **Bakiye İadesi**: İşlem tutarı, hesap türüne göre ters işlemle iade edilir (Kredi kartı ise borç düşülür, nakit/banka ise bakiye artırılır).
 4. **Takvim Geri Alma**: `installments` tablosunda `paymentHistory` içinden ilgili ay silinir ve `remainingMonths` 1 artırılır.
 5. **İşlem Silme**: En son ana `transaction` kaydı silinir.
-**Hata Yönetimi**: Herhangi bir adımda hata oluşursa süreç durdurulur ve "Atomic Rollback" mantığı gereği transaction silinmez.
+   **Hata Yönetimi**: Herhangi bir adımda hata oluşursa süreç durdurulur ve "Atomic Rollback" mantığı gereği transaction silinmez.
 
 ### 12. Debt Calculation & Sync Rectification (2026-04-16)
+
 **Sorun**: Ödemeler yapılmasına rağmen nominal borcun Dashboard'da erimemesi ve `InstallmentCard` içinde eksi değerler (-1 Ödendi) oluşması.
-**Çözüm**: 
+**Çözüm**:
+
 1. `PaymentCalendar.tsx` içinde ödeme yapıldığında `remainingMonths` bir azaltıldı, geri alındığında bir artırıldı.
 2. `Dashboard.tsx` içindeki `totalDebt` hesaplaması, `Installments` sayfasındaki gibi `paymentHistory` duyarlı hale getirildi.
 3. Dashboard "Toplam Borç" widget'ı enflasyon ayarına (`useRealValue`) bağlandı.
 4. `InstallmentCard.tsx`'e `Math.max(0, ...)` güvenlik kontrolleri eklendi.
 
 ### 13. Fixed Timeline vs. Floating Timeline (2026-04-16)
+
 **Sorun**: Taksitlerin sadece `remainingMonths` üzerinden hesaplanması yüzünden ödeme yapıldıkça bitiş tarihinin erkene kayması ve gelecek taksitlerin görünümden kaybolması.
 **Çözüm**: "Permanent Anchor" (Mühürleme) mantığına geçildi.
+
 1. `firstPaymentDate` alanı eklendi (Geriye dönük fallback formülü: `nextDate - (total - remaining) ay`).
 2. Takvim döngüsü `remainingMonths` üzerinden değil, `firstPaymentDate` ve `totalMonths` aralığındaki tarihlere göre kuruldu.
 3. Sonuç: Ödeme yapılsa dahi taksit kutuları ve itfa planı sabit kalır, sadece ayın statüsü 'paid' olarak güncellenir.
@@ -182,12 +189,14 @@ Hata günlüğü ve öğrenimler.
 ## 2026-04-17 (MRE Refinement & Hook Stability)
 
 ### 17. React Hook Violation in Dashboard.tsx
+
 **Sorun**: Dashboard sayfasında veri yüklenirken (loading state) "Rendered more hooks than during the previous render" hatasıyla uygulamanın çökmesi.
-**Kök Neden**: `useMemo` (MRE hesaplayıcı) kancasının, `if (loading) return <Loading />` gibi bir erken dönüş (early return) ifadesinden *sonra* tanımlanmış olması. React kuralları gereği kancalar her zaman bileşenin en üstünde ve her render'da aynı sırayla çağrılmalıdır.
+**Kök Neden**: `useMemo` (MRE hesaplayıcı) kancasının, `if (loading) return <Loading />` gibi bir erken dönüş (early return) ifadesinden _sonra_ tanımlanmış olması. React kuralları gereği kancalar her zaman bileşenin en üstünde ve her render'da aynı sırayla çağrılmalıdır.
 **Çözüm**: Tüm `useMemo` ve `useState` kancaları bileşenin en üstüne, yükleme ve veri kontrolü mantığından önceye taşındı.
 **Öğrenim**: Karmaşık Dashboard bileşenlerinde "Early Return" kullanımı kancaları kırma riski taşır. Hook'lar her zaman dosyanın en başında "Hooks Zone" içinde toplanmalıdır.
 
 ### 18. MRE Logic Mismatch: Constitution vs. Implementation
+
 **Sorun**: `logic_specs_v2.md` revizyonu ile MRE tanımı "3 Aylık Hareketli Ortalama" bazlı hibrit bir yapıya geçti ancak `cashFlowEngine.ts` hala "Fallback" bazlı eski mantığı kullanıyor.
 **Kök Neden**: Mimari kararlar (Anayasa) teknik borç oluşmadan önce güncellendi ancak kod implementasyonu henüz bu yeni hiyerarşiye (Fixed vs Variable) tam senkronize edilmedi.
 **Öğrenim**: Dokümantasyon v5 iken kod v4.5 seviyesinde kaldı. Bir sonraki sprintte `cashFlowEngine.ts`'in bu yeni hiyerarşiye göre refaktör edilmesi (Sağlık kategorisinin dışlanması vb.) gerekmektedir.
@@ -212,7 +221,7 @@ Hata günlüğü ve öğrenimler.
 
 - Tarih: 2026-04-19
 - Problem: `cashFlowEngine.ts` içerisindeki `forecast` metodunda `ReferenceError: tightnessSeverity is not defined` ve `recommendations is not defined` hataları alınarak Dashboard'un tamamen çökmesi.
-- Kök Neden: Dinamik tarih motoru entegrasyonu (v6.2) sırasında yapılan kod blok değişiminde, metodun başındaki yerel değişken tanımlarının (`let tightnessSeverity`, `let recommendations`) yanlışlıkla silinmiş olması. 
+- Kök Neden: Dinamik tarih motoru entegrasyonu (v6.2) sırasında yapılan kod blok değişiminde, metodun başındaki yerel değişken tanımlarının (`let tightnessSeverity`, `let recommendations`) yanlışlıkla silinmiş olması.
 - Çözüm: Eksik değişken tanımları `forecast` metodunun başına geri eklendi.
 - Öğrenim: Kod bloklarını "replace" ederken metodun initialization (başlangıç) kısmındaki state'lerin korunması hayati önemdedir. Özellikle "logic engine" gibi merkezi bileşenlerde tek bir değişken kaybı tüm uygulamayı kilitler. Test script'leri bu tür "unintentional deletions" (kasıtsız silmeler) için daha sık kullanılmalıdır.
 
@@ -233,19 +242,108 @@ Hata günlüğü ve öğrenimler.
 - Öğrenim: Modern frontend frameworkleri (Vite/Next.js) ile çalışırken global `React` importu yerine hook'ların açıkça (explicitly) deconstruct edilerek import (`{ useState, useRef }`) edilmesi hem typesafeliktir hem de derleme çökmelerini anında engeller.
 
 ### 21. Double-count in Debt Restructuring (2026-04-22)
+
 **Sorun**: Kredi kartı borcu yapılandırıldığında borç hem taksitlerde hem kart bakiyesinde mükerrer görünüyordu.
 **Kök Neden**: `ScenarioNavigator` sadece `installments` tablosunu güncelliyor, hesap bakiyesiyle senkron olmuyordu.
 **Çözüm**: `targetAccountUpdate` protokolü ile Dashboard üzerinden atomic senkronizasyon sağlandı.
 **Öğrenim**: Borç transferi içeren işlemlerde kaynak ve hedef hesaplar her zaman atomic bir blokta güncellenmelidir.
 
 ### 22. Cognitive Friction in Goal Setting (2026-04-23)
+
 **Sorun**: Kullanıcılar ne kadar biriktirebileceklerini bilmedikleri için rastgele (genelde imkansız) tasarruf hedefleri giriyordu.
 **Kök Neden**: `Goals.tsx` sayfası Dashboard'daki finansal kapasite verisinden (MRE/Income) bağımsız çalışıyordu.
 **Çözüm**: `Goals.tsx` içinde MRE hesaplayıcısı entegre edildi ve "Smart Default" öneri sistemi ile tıklanabilir rehberlik eklendi.
 **Öğrenim**: Formlar sadece veri girişi alanı değil, veri doğruluğunu anlık olarak denetleyen ve rehberlik eden (Nudge) akıllı asistanlar gibi davranmalıdır.
 
 ### 23. TDZ Error in Goals.tsx (2026-04-23)
+
 **Sorun**: `ReferenceError: Cannot access 'formPriority' before initialization` hatası nedeniyle Hedefler sayfası açılmıyordu.
 **Kök Neden**: `useMemo` bloklarının (recommendedSaving), bağımlı oldukları `useState` tanımlarından (formPriority) daha yukarıda yer alması. React hook'larının dosya içindeki fiziksel sırası, "Temporal Dead Zone" (TDZ) kurallarına tabidir.
 **Çözüm**: Hesaplama yapan tüm `useMemo` blokları, form state tanımlarının (useState) altına taşınarak initialization sırası garanti altına alındı.
 **Öğrenim**: Karmaşık sayfalarda "Önce State'ler, Sonra Hesaplamalar (Memo'lar), En Son Effect'ler" hiyerarşisi katı bir kural olarak uygulanmalıdır.
+
+# Debugging Log - Phase 7.2F Auto Parse Completion Timeout
+
+## 1. Problem Tanımı
+
+Findeks PDF yüklendiğinde Assistant "Dosyanız alındı ve analiz başlatıldı..." diyor ancak 60 saniye boyunca polling yaptıktan sonra "Analiz beklenenden uzun sürdü..." diyerek timeout'a düşüyor. Arka planda parse işlemi başarılı şekilde tamamlansa bile (DB'ye yazılsa bile) frontend tarafında otomatik deterministic summary oluşturulmuyor.
+
+## 2. Gerçek Lifecycle Diyagramı
+
+```mermaid
+sequenceDiagram
+    participant UI as Assistant.tsx
+    participant Storage as Supabase Storage
+    participant Edge as Edge Function (api-gateway)
+    participant DB as attachment_parse_results
+
+    UI->>Storage: 1. Upload PDF (path: user_id/session_id/time-name)
+    UI->>Edge: 2. fetch POST /ai/attachments/parse
+    UI->>DB: 3. pollParseAndAutoSummary() başlar (Pass 1, 2, 3)
+
+    Edge->>DB: 4. UPSERT status='processing' (service_role)
+    Edge->>Storage: 5. Download PDF
+    Edge->>Edge: 6. Extract Text & Semantic Parse
+    Edge->>DB: 7. UPDATE status='parsed', structured_data, updated_at
+
+    DB-->>UI: 8. Polling (Eğer satırı bulamazsa 60s sonra Timeout)
+    UI->>UI: 9. Bulursa finalize() -> buildUserContext() (Zayıf Bağ)
+    UI->>UI: 10. Deterministic Summary -> setMessages
+```
+
+## 3. Timeout'un En Olası Kök Nedeni
+
+Timeout'un oluşması için polling döngüsünün `row.status === 'parsed'` koşulunu **hiçbir pass'ta bulamaması** gerekir. Bunun 3 ana nedeni vardır:
+
+1. **Clock Skew (Zaman Kayması - Pass 2 & 3 Fail):**
+   İstemci (kullanıcı cihazı) saati, veritabanı sunucusundan sadece birkaç saniye bile ilerideyse, istemcide oluşturulan `uploadStartedAt` gelecekteki bir zaman damgası olur. Pass-2 ve Pass-3 sorgularındaki `.gte('created_at', uploadStartedAt)` filtresi, veritabanında yeni oluşan kaydı _eski_ sanarak dışlar.
+2. **RLS Policy Eksikliği (Pass 1, 2, 3 Fail):**
+   Eğer `attachment_parse_results` tablosunda `SELECT` yetkisi yoksa (önceki düzeltmeden önce yoktu), istemci DB'den hiçbir şey okuyamaz ve 60 saniye boyunca boş döner.
+3. **Zayıf Data Injection (Summary Fail):**
+   Eğer polling satırı bulsaydı bile, `finalize()` içindeki yapı verimsiz çalışıyor. Bulunan `row.structured_data` doğrudan AI summary'ye aktarılmıyor, bunun yerine `buildUserContext` çağrılarak DB'den `parsedAttachments` listesi _tekrar_ çekilmeye çalışılıyor. Replica gecikmesi (lag) yaşanırsa, yeni satır çekilemeyebilir.
+
+## 4. Kanıt (Kod Satırları)
+
+- **Zaman Kayması Kanıtı (Assistant.tsx L446 & L466):**
+  ```typescript
+  .gte('created_at', uploadStartedAt)
+  ```
+  Edge function `updated_at` günceller, ancak polling `created_at` filtreler. İstemci saati ileriyse bu sorgu asla çalışmaz.
+- **Zayıf Data Bağı Kanıtı (Assistant.tsx L401):**
+  ```typescript
+  const freshContext = await buildUserContext(userId);
+  // polling'in bulduğu row.structured_data kullanılmıyor!
+  ```
+
+## 5. Minimal Fix Stratejisi
+
+- **Fix 1 (Doğrudan Data Aktarımı):** Polling loop'tan gelen `parseResult.structured_data` doğrudan summary üreticiye verilmeli. Veritabanından gereksiz `refreshParsedAttachments` yapılmamalı.
+- **Fix 2 (Timestamp Toleransı):** Pass-2 ve Pass-3 sorgularında `created_at` yerine `updated_at` kullanılmalı ve zaman kaymalarını önlemek için sorguya 2 dakikalık tolerans eklenmeli:
+  `.gte('updated_at', new Date(uploadStartedAt.getTime() - 2 * 60 * 1000).toISOString())`
+- **Fix 3 (Güvenli State Güncellemesi):** Mesaj enjeksiyonu `setMessages` içinde functional update ve duplicate guard ile yapılmalı.
+  ```typescript
+  setMessages((prev) => {
+    if (prev.some((m) => m.id === 'auto_summary_id')) return prev;
+    return [...prev, msg];
+  });
+  ```
+
+## 6. UAT Log Planı
+
+Kod düzeltmeleri yapıldıktan sonra geliştirme (DEV) ortamında şu akış görülmelidir:
+
+1. `[7.2F_UPLOAD] path=user/sess/123-dosya.pdf`
+2. `[7.2F_POLL_PASS_1] query started`
+3. `[7.2F_POLL_FOUND] status='parsed', hasStructuredData=true`
+4. `[7.2F_SUMMARY_BUILT] ok=true`
+5. `[7.2F_MESSAGE_INJECTED] ok=true`
+
+Eğer timeout oluşursa:
+`[7.2F_TIMEOUT_REASON] lastPass=3, pathMismatch=false, timestampFiltered=true`
+
+## 7. Çözüm Uygulaması ve Sonuç (Phase 7.2F UAT)
+
+- **Doğrudan Veri Aktarımı (Fix 1)**: `Assistant.tsx` içerisinde `finalize` fonksiyonunda `buildUserContext` çağrısı sonrasında, Edge fonksiyonundan dönen güncel `structuredData` kullanılarak `syntheticAttachment` adında yapay bir attachment nesnesi oluşturuldu. Bu nesne `freshContext.parsedAttachments` dizisine en başa eklenerek veritabanı replika gecikmeleri atlatıldı.
+- **Clock Skew Toleransı (Fix 2)**: Polling esnasındaki 2. ve 3. geçiş (Pass-2 & Pass-3) sorgularında `created_at >= uploadStartedAt` kuralı esnetildi. Yeni yaklaşımda, `updated_at >= uploadStartedAt - 2 dakika` şartı kullanılarak, istemcinin saati DB sunucusundan ilerde olsa bile TimeOut engellendi.
+- **Güvenli State Enjeksiyonu (Fix 3)**: React Strict Mode çift render ve state yarışlarını önlemek üzere `setMessages` içerisinde message duplicate guard kullanıldı.
+- **UAT Sonuçları**: Happy path başarıyla doğrulandı. Findeks raporu yüklendikten sonra DB polling satırı bulduğu anda, timeout'a düşmeden deterministik AI raporu ekrana doğrudan inject edildi. Session korumaları çalıştı.
