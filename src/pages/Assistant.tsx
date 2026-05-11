@@ -400,13 +400,18 @@ export default function Assistant() {
           'Dosya alındı ancak analiz tamamlanamadı. PDF metin katmanı olmayabilir veya format desteklenmiyor olabilir.',
           undefined, undefined, 0
         );
+        if (import.meta.env.DEV) console.log('[7.2F_UI_GUARD_FAILED]', { isMounted: isMountedRef.current, refId: activeSessionIdRef.current, sessionId, msgId: msg.id });
         if (isMountedRef.current && activeSessionIdRef.current === sessionId) {
           setMessages((prev) => {
+            if (import.meta.env.DEV) console.log('[7.2F_SET_MESSAGES_FAILED]', { prevCount: prev.length, exists: prev.some((m) => m.id === msg.id) });
             if (prev.some((m) => m.id === msg.id)) return prev;
             return [...prev, msg];
           });
+          await loadMessagesForSession(sessionId);
+          if (import.meta.env.DEV) console.log('[7.2F_MESSAGE_INJECTED]', { status: 'failed', msgId: msg.id });
+        } else {
+          if (import.meta.env.DEV) console.log('[7.2F_MESSAGE_INJECTED_SKIPPED]', { status: 'failed', reason: 'guard_failed' });
         }
-        if (import.meta.env.DEV) console.log('[7.2F_MESSAGE_INJECTED]', { status: 'failed', msgId: msg.id });
         return;
       }
 
@@ -417,11 +422,14 @@ export default function Assistant() {
           'Analiz beklenenden uzun sürdü. Sonuç arka planda tamamlanabilir; biraz sonra "Findeks raporumu yorumla" yazarsanız hazır sonucu kullanarak yorumlayabilirim.',
           undefined, undefined, 0
         );
+        if (import.meta.env.DEV) console.log('[7.2F_UI_GUARD_TIMEOUT]', { isMounted: isMountedRef.current, refId: activeSessionIdRef.current, sessionId });
         if (isMountedRef.current && activeSessionIdRef.current === sessionId) {
           setMessages((prev) => {
+            if (import.meta.env.DEV) console.log('[7.2F_SET_MESSAGES_TIMEOUT]', { prevCount: prev.length, exists: prev.some((m) => m.id === msg.id) });
             if (prev.some((m) => m.id === msg.id)) return prev;
             return [...prev, msg];
           });
+          await loadMessagesForSession(sessionId);
         }
         return;
       }
@@ -433,11 +441,14 @@ export default function Assistant() {
           'Analiz tamamlandı, ancak bu dosya Findeks raporu gibi görünmüyor. Başka bir sorunuz varsa yardımcı olabilirim.',
           undefined, undefined, 0
         );
+        if (import.meta.env.DEV) console.log('[7.2F_UI_GUARD_NON_FINDEKS]', { isMounted: isMountedRef.current, refId: activeSessionIdRef.current, sessionId });
         if (isMountedRef.current && activeSessionIdRef.current === sessionId) {
           setMessages((prev) => {
+            if (import.meta.env.DEV) console.log('[7.2F_SET_MESSAGES_NON_FINDEKS]', { prevCount: prev.length, exists: prev.some((m) => m.id === msg.id) });
             if (prev.some((m) => m.id === msg.id)) return prev;
             return [...prev, msg];
           });
+          await loadMessagesForSession(sessionId);
         }
         return;
       }
@@ -479,13 +490,20 @@ export default function Assistant() {
         undefined, undefined, 0
       );
       
+      if (import.meta.env.DEV) console.log('[7.2F_UI_GUARD_PARSED]', { isMounted: isMountedRef.current, refId: activeSessionIdRef.current, sessionId, autoMsgId: autoMsg.id });
       if (isMountedRef.current && activeSessionIdRef.current === sessionId) {
         setMessages((prev) => {
-          if (prev.some((m) => m.id === autoMsg.id)) return prev;
+          const alreadyExists = prev.some((m) => m.id === autoMsg.id);
+          if (import.meta.env.DEV) console.log('[7.2F_SET_MESSAGES_PARSED]', { prevCount: prev.length, alreadyExists, autoMsgId: autoMsg.id });
+          if (alreadyExists) return prev;
           return [...prev, autoMsg];
         });
+        // Phase 7.2F-G: Fallback reload to guarantee live UI sync
+        await loadMessagesForSession(sessionId);
+        if (import.meta.env.DEV) console.log('[7.2F_MESSAGE_INJECTED]', { status: 'parsed', ok: true });
+      } else {
+        if (import.meta.env.DEV) console.log('[7.2F_MESSAGE_INJECTED_SKIPPED]', { status: 'parsed', reason: 'guard_failed', isMounted: isMountedRef.current, refId: activeSessionIdRef.current, sessionId });
       }
-      if (import.meta.env.DEV) console.log('[7.2F_MESSAGE_INJECTED]', { status: 'parsed', ok: true });
     };
     if (import.meta.env.DEV) console.log('[7.2F_POLL_START]', { messageId, storagePath, fileName, userId });
 
@@ -702,6 +720,15 @@ export default function Assistant() {
     if (!activeSession) return;
     const sessionMessages = await dataSourceAdapter.chat.getMessages(activeSession.id);
     setMessages(sessionMessages);
+  };
+
+  // Phase 7.2F-G: Session-independent message reload for async finalize
+  const loadMessagesForSession = async (sid: string) => {
+    const sessionMessages = await dataSourceAdapter.chat.getMessages(sid);
+    if (isMountedRef.current && activeSessionIdRef.current === sid) {
+      setMessages(sessionMessages);
+      if (import.meta.env.DEV) console.log('[7.2F_LOAD_MESSAGES_FALLBACK]', { sid, count: sessionMessages.length });
+    }
   };
 
   const createNewSession = async () => {
