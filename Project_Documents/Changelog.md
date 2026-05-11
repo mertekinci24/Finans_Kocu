@@ -11,7 +11,7 @@
   - Session güvenliği: Sadece `activeSession` içindeki mesajlar poll ediliyor.
   - Pass-3 kaldırıldı: Auto-summary için artık sadece Pass-1 (path) ve Pass-2 (file_name + window) kullanılıyor; cross-file summary riski sıfırlandı.
   - DB Write Guard: `addMessage` çağrısı öncesine `isCurrentSession` kontrolü eklendi; session değişmişse DB'ye mesaj yazılması engellenerek FK hataları önlendi.
-- Durum: Fix uygulandı, UAT (PDF/Non-PDF/Session Switch) doğrulandı.
+- Durum: Phase 7.2F-H Final UAT PASS.
 
 ## Phase 7.2F-G — Live UI State Rendering Fix (Hardened)
 
@@ -29,7 +29,7 @@
   - Tüm `finalize()` dalları (failed, timeout, parsed) bu yeni granüler akışa taşındı.
   - `isMountedRef` lifecycle bug'ı düzeltildi (mount/remount sırasında tekrar true set edilmesi sağlandı).
   - `[APP_BUILD_MARKER]` logu render body'den `useEffect` içine taşındı.
-- Durum: Fix uygulandı, gerçek UAT doğrulandı.
+- Durum: Phase 7.2F-G Final UAT PASS.
 
 
 ## Phase 7.2F — Auto Parse Completion Summary Timeout Fix (Tamamlandı)

@@ -17,7 +17,7 @@ Hata günlüğü ve öğrenimler.
 - Polling loop'tan Pass-3 latest fallback kaldırıldı (sadece path ve filename bazlı Pass-1/2 kaldı).
 - `addMessage` öncesine `isCurrentSession` guard'ı eklendi.
 **Değişen dosyalar:** `src/pages/Assistant.tsx`
-**Durum:** Fix uygulandı, UAT doğrulandı.
+**Durum:** Phase 7.2F-H Final UAT PASS.
 
 ### 20. SyntaxError: Expected corresponding JSX closing tag for <> / Ternary Mismatch (2026-04-19)
 
@@ -388,7 +388,7 @@ Eğer timeout oluşursa:
 - Fix C: Tüm `finalize()` içindeki session kontrolleri `activeSessionIdRef.current` ile değiştirildi.
 - Fix D: Parse trigger response status'u `[7.2F_PARSE_TRIGGER_RESPONSE]` ve `[7.2F_PARSE_TRIGGER_FAILED]` loglarıyla izlenebilir hale getirildi.
 **Eski UAT Neden Yanlış Pozitifti:** Browser subagent, `success_findeks.pdf` dosyasını yüklerken ChatInterface'in otomatik oluşturduğu "Findeks raporumu analiz eder misin?" text'ini kullandı. Bu text `qNorm.includes('analiz')` kontrolünü geçiyordu. Gerçek kullanıcılar farklı text yazabildiği veya text boş bırakabildiği düşünülmemişti.
-**Durum:** Fix uygulandı, UAT bekliyor.
+**Durum:** Phase 7.2F Final UAT PASS.
 
 ## Phase 7.2F-G — Live UI State Rendering: DB Write Başarılı Ama Canlı Ekran Güncellenmiyordu (Hardened)
 **Date:** 2026-05-11
@@ -407,4 +407,4 @@ Eğer timeout oluşursa:
 - `setMessages` callback'i içine duplicate koruması ve loglama eklendi.
 - `loadMessagesForSession(sessionId)` fallback reload mekanizması ile DB'den kesin senkronizasyon sağlandı.
 **Değişen dosyalar:** `src/pages/Assistant.tsx`
-**Durum:** Fix uygulandı, gerçek UAT doğrulandı.
+**Durum:** Phase 7.2F-G Final UAT PASS.
