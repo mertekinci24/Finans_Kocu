@@ -375,17 +375,21 @@ Eğer timeout oluşursa:
 **Eski UAT Neden Yanlış Pozitifti:** Browser subagent, `success_findeks.pdf` dosyasını yüklerken ChatInterface'in otomatik oluşturduğu "Findeks raporumu analiz eder misin?" text'ini kullandı. Bu text `qNorm.includes('analiz')` kontrolünü geçiyordu. Gerçek kullanıcılar farklı text yazabildiği veya text boş bırakabildiği düşünülmemişti.
 **Durum:** Fix uygulandı, UAT bekliyor.
 
-## Phase 7.2F-G — Live UI State Rendering: DB Write Başarılı Ama Canlı Ekran Güncellenmiyordu
-**Date:** 2026-05-08
+## Phase 7.2F-G — Live UI State Rendering: DB Write Başarılı Ama Canlı Ekran Güncellenmiyordu (Hardened)
+**Date:** 2026-05-11
 **Semptom:** Dosya yüklenip parse tamamlandığında deterministic summary DB'ye yazılıyor, ancak kullanıcı sayfayı yenilemeden mesaj canlı ekranda görünmüyordu. Refresh sonrası mesaj görünüyordu.
 **Console kanıtları:** `[7.2F_MESSAGE_INJECTED] status=parsed ok=true` logu görünüyordu ama UI güncellemesi yoktu.
 **Root Cause (Kanıtlanmış):**
-1. `[7.2F_MESSAGE_INJECTED]` logu guard bloğunun **DIŞINDA** yer alıyordu. Guard fail etse bile log `ok: true` yazıyordu — yani console çıktısı UI güncelleme kanıtı **değildi**.
-2. `setMessages` functional update çağrılıyor olsa bile React state güncellemesi async finalize context'inde (polling Promise chain) güvenilir render tetiklemeyebiliyordu.
+1. `[7.2F_MESSAGE_INJECTED]` logu guard bloğunun **DIŞINDA** yer alıyordu. Guard fail etse bile log `ok: true` yazıyordu.
+2. `setMessages` çağrılarının React batching veya closure sorunları nedeniyle canlı UI'ı her zaman güncellememesi.
 **Çözüm:**
-- Tüm finalize dallarına (failed/timeout/parsed-non-Findeks/parsed-Findeks) diagnostic loglar eklendi: `[7.2F_UI_GUARD_*]`, `[7.2F_SET_MESSAGES_*]`
-- Loglar guard bloğunun **İÇİNE** taşındı (guard geçmezse `[7.2F_MESSAGE_INJECTED_SKIPPED]` loglanıyor)
-- `loadMessagesForSession(sessionId)` fallback helper eklendi: `setMessages` sonrası DB'den tek seferlik reload yaparak canlı UI senkronizasyonu garanti altına alındı
-- `loadMessagesForSession` session-independent (closure'a bağımlı değil, `sid` parametre alıyor)
+- Granüler diagnostic loglar eklendi:
+  - `[7.2F_UI_STATE_INJECT_ATTEMPT]`
+  - `[7.2F_UI_STATE_SET_MESSAGES_ENTERED]`
+  - `[7.2F_UI_STATE_SET_MESSAGES_RESULT]`
+  - `[7.2F_LOAD_MESSAGES_FALLBACK]`
+- `isCurrentSession` mantığı `isMountedRef.current && activeSessionIdRef.current === sessionId` ile kesinleştirildi.
+- `setMessages` callback'i içine duplicate koruması ve loglama eklendi.
+- `loadMessagesForSession(sessionId)` fallback reload mekanizması ile DB'den kesin senkronizasyon sağlandı.
 **Değişen dosyalar:** `src/pages/Assistant.tsx`
-**Durum:** Fix uygulandı, canlı UAT bekliyor.
+**Durum:** Fix uygulandı, gerçek UAT doğrulandı.

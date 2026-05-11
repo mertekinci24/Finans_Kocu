@@ -1,16 +1,20 @@
 # Changelog.md
 
-## Phase 7.2F-G — Live UI State Rendering Fix
+## Phase 7.2F-G — Live UI State Rendering Fix (Hardened)
 
 - Görev No: Phase 7.2F-G
 - Modüller: Assistant.tsx
-- Root Cause: `[7.2F_MESSAGE_INJECTED]` logu guard bloğunun dışındaydı — setMessages çağrılıp çağrılmadığı bilinemiyordu. Async finalize context'inde React state update güvenilir render tetiklemeyebiliyordu.
+- Root Cause: `setMessages` çağrılarının React batching veya closure sorunları nedeniyle canlı UI'ı her zaman güncellememesi. Mevcut logların yetersizliği (guard dışında kalması).
 - Yapılan İş:
-  - Tüm finalize dallarına diagnostic loglar eklendi (guard İÇİNE taşındı)
-  - `loadMessagesForSession(sessionId)` fallback helper eklendi — DB'den tek seferlik reload
-  - Guard fail durumunda `[7.2F_MESSAGE_INJECTED_SKIPPED]` logu eklendi
-  - `loadMessagesForSession` session-independent (closure-safe)
-- Durum: Fix uygulandı, canlı UAT bekliyor
+  - `activeSessionIdRef` ve `isMountedRef` ile stale closure koruması sağlandı.
+  - `loadMessagesForSession(sessionId)` helper'ı ile DB tabanlı kesin UI senkronizasyonu eklendi.
+  - Granüler diagnostic loglar eklendi:
+    - `[7.2F_UI_STATE_INJECT_ATTEMPT]`
+    - `[7.2F_UI_STATE_SET_MESSAGES_ENTERED]`
+    - `[7.2F_UI_STATE_SET_MESSAGES_RESULT]`
+    - `[7.2F_LOAD_MESSAGES_FALLBACK]`
+  - Tüm `finalize()` dalları (failed, timeout, parsed) bu yeni granüler akışa taşındı.
+- Durum: Fix uygulandı, gerçek UAT doğrulandı.
 
 
 ## Phase 7.2F — Auto Parse Completion Summary Timeout Fix (Tamamlandı)
