@@ -379,10 +379,10 @@ Eğer timeout oluşursa:
 **Date:** 2026-05-11
 **Semptom:** Dosya yüklenip parse tamamlandığında deterministic summary DB'ye yazılıyor, ancak kullanıcı sayfayı yenilemeden mesaj canlı ekranda görünmüyordu. Refresh sonrası mesaj görünüyordu.
 **Console kanıtları:** `[7.2F_MESSAGE_INJECTED] status=parsed ok=true` logu görünüyordu ama UI güncellemesi yoktu.
-**Root Cause (Kanıtlanmış):**
 1. `[7.2F_MESSAGE_INJECTED]` logu guard bloğunun **DIŞINDA** yer alıyordu. Guard fail etse bile log `ok: true` yazıyordu.
-2. `setMessages` çağrılarının React batching veya closure sorunları nedeniyle canlı UI'ı her zaman güncellememesi.
+2. `isMountedRef` lifecycle bug'ı: React StrictMode/Dev ortamında cleanup sonrası `isMountedRef.current` tekrar `true` yapılmıyordu, bu yüzden bileşen ekranda olsa bile async finalize aşamasında `false` kalıyordu.
 **Çözüm:**
+- `isMountedRef` mount/remount sırasında `useEffect` içinde tekrar `true` set edildi.
 - Granüler diagnostic loglar eklendi:
   - `[7.2F_UI_STATE_INJECT_ATTEMPT]`
   - `[7.2F_UI_STATE_SET_MESSAGES_ENTERED]`

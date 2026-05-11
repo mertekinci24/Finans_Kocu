@@ -301,6 +301,7 @@ export default function Assistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+
   const [openSessionMenuId, setOpenSessionMenuId] = useState<string | null>(null);
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -318,8 +319,20 @@ export default function Assistant() {
   const isMountedRef = useRef(true);
   // Phase 7.2F: Ref to track active session ID — prevents stale closure in async finalize
   const activeSessionIdRef = useRef<string | null>(null);
+  const isPollingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    isMountedRef.current = true;
+
+    if (import.meta.env.DEV) {
+      console.log('[APP_BUILD_MARKER]', {
+        phase: '7.2F-G-live-ui-fix',
+        commit: '7f60bee',
+        hasLoadMessagesForSession: true,
+        builtAt: new Date().toISOString()
+      });
+    }
+
     return () => {
       isMountedRef.current = false;
     };
@@ -351,6 +364,11 @@ export default function Assistant() {
   }
   const pollParseAndAutoSummary = async (opts: PollParseOpts) => {
     const { messageId, sessionId, userId, originalText, storagePath, fileName, uploadStartedAt } = opts;
+
+    if (isPollingRef.current.has(messageId)) return;
+    isPollingRef.current.add(messageId);
+
+    try {
 
     // Phase 7.2F Fix A: Attachment presence always qualifies for polling.
     // Previous bug: text-only gate blocked polling when user sent file with unrelated text.
@@ -704,6 +722,9 @@ export default function Assistant() {
     }
 
     await finalize('timeout', null);
+    } finally {
+      isPollingRef.current.delete(messageId);
+    }
   };
 
   const entryMode: AssistantEntryMode =
@@ -853,6 +874,42 @@ export default function Assistant() {
       }
     }
   };
+  
+  // Phase 7.2F-G: Lifecycle Resilient Polling Trigger
+  // If a user message has an attachment but no summary yet, start polling.
+  // This ensures that if the component remounts, the new instance will resume polling.
+  useEffect(() => {
+    if (!user || !activeSession || !messages.length) return;
+
+    // We look for the latest user message with an attachment
+    const pendingMsg = [...messages].reverse().find(m => 
+      m.role === 'user' && 
+      m.attachment?.path && 
+      !autoSummarizedMessageIdsRef.current.has(`${m.id}_${m.attachment.path}`)
+    );
+
+    if (pendingMsg && pendingMsg.attachment && !isPollingRef.current.has(pendingMsg.id)) {
+      if (import.meta.env.DEV) {
+        console.log('[7.2F_RESILIENT_POLL_TRIGGER]', {
+          messageId: pendingMsg.id,
+          fileName: pendingMsg.attachment.name,
+          activePolls: Array.from(isPollingRef.current)
+        });
+      }
+
+      pollParseAndAutoSummary({
+        messageId: pendingMsg.id,
+        sessionId: activeSession.id,
+        userId: user.id,
+        originalText: pendingMsg.content,
+        storagePath: pendingMsg.attachment.path,
+        fileName: pendingMsg.attachment.name,
+        uploadStartedAt: pendingMsg.createdAt instanceof Date 
+          ? pendingMsg.createdAt.toISOString() 
+          : new Date(pendingMsg.createdAt).toISOString()
+      });
+    }
+  }, [messages, activeSession?.id, user?.id]);
 
   const createNewSession = async () => {
     if (!user || isCreatingSessionRef.current) return null;
@@ -1022,17 +1079,6 @@ export default function Assistant() {
           }
         }).catch((err) => {
           if (import.meta.env.DEV) console.warn('[7.2F_PARSE_TRIGGER_NETWORK_ERROR]', err);
-        });
-
-        // Phase 7.2F: Start polling for parse completion in background
-        pollParseAndAutoSummary({
-          messageId: userMsg.id,
-          sessionId: activeSession.id,
-          userId: user.id,
-          originalText: text,
-          storagePath: attachmentMetadata.path,
-          fileName: attachmentMetadata.name,
-          uploadStartedAt,
         });
       }
 

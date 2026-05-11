@@ -14,6 +14,8 @@
     - `[7.2F_UI_STATE_SET_MESSAGES_RESULT]`
     - `[7.2F_LOAD_MESSAGES_FALLBACK]`
   - Tüm `finalize()` dalları (failed, timeout, parsed) bu yeni granüler akışa taşındı.
+  - `isMountedRef` lifecycle bug'ı düzeltildi (mount/remount sırasında tekrar true set edilmesi sağlandı).
+  - `[APP_BUILD_MARKER]` logu render body'den `useEffect` içine taşındı.
 - Durum: Fix uygulandı, gerçek UAT doğrulandı.
 
 
