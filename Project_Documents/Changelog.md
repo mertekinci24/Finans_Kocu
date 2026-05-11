@@ -1,5 +1,18 @@
 # Changelog.md
 
+## Phase 7.2F-H — Resilient Polling Scope Hardening
+
+- Görev No: Phase 7.2F-H
+- Modüller: Assistant.tsx
+- Root Cause: Resilient polling'in tüm attachment'lar için çalışması (non-PDF dahil) ve Pass-3 latest fallback'in yanlış summary üretme riski. Session değişimi sırasında DB FK hataları (409 conflict).
+- Yapılan İş:
+  - Polling trigger daraltıldı: Sadece PDF dosyaları (`application/pdf` veya `.pdf` uzantısı) için çalışıyor.
+  - Recency filtresi eklendi: Sadece son 5 dakika içinde oluşturulmuş mesajlar poll ediliyor.
+  - Session güvenliği: Sadece `activeSession` içindeki mesajlar poll ediliyor.
+  - Pass-3 kaldırıldı: Auto-summary için artık sadece Pass-1 (path) ve Pass-2 (file_name + window) kullanılıyor; cross-file summary riski sıfırlandı.
+  - DB Write Guard: `addMessage` çağrısı öncesine `isCurrentSession` kontrolü eklendi; session değişmişse DB'ye mesaj yazılması engellenerek FK hataları önlendi.
+- Durum: Fix uygulandı, UAT (PDF/Non-PDF/Session Switch) doğrulandı.
+
 ## Phase 7.2F-G — Live UI State Rendering Fix (Hardened)
 
 - Görev No: Phase 7.2F-G

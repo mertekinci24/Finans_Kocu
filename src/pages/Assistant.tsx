@@ -413,13 +413,17 @@ export default function Assistant() {
       autoSummarizedMessageIdsRef.current.add(autoSummaryKey);
 
       if (status === 'failed') {
+        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
+        if (!isCurrentSession) {
+          if (import.meta.env.DEV) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'failed', sessionId });
+          return;
+        }
+
         const msg = await dataSourceAdapter.chat.addMessage(
           sessionId, userId, 'assistant',
           'Dosya alındı ancak analiz tamamlanamadı. PDF metin katmanı olmayabilir veya format desteklenmiyor olabilir.',
           undefined, undefined, 0
         );
-        
-        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
 
         if (import.meta.env.DEV) {
           console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
@@ -462,14 +466,19 @@ export default function Assistant() {
       }
 
       if (status === 'timeout') {
-        if (import.meta.env.DEV) console.log('[7.2F_TIMEOUT_REASON] lastPass=3, timeout=true');
+        if (import.meta.env.DEV) console.log('[7.2F_TIMEOUT_REASON] lastPass=2, timeout=true');
+        
+        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
+        if (!isCurrentSession) {
+          if (import.meta.env.DEV) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'timeout', sessionId });
+          return;
+        }
+
         const msg = await dataSourceAdapter.chat.addMessage(
           sessionId, userId, 'assistant',
           'Analiz beklenenden uzun sürdü. Sonuç arka planda tamamlanabilir; biraz sonra "Findeks raporumu yorumla" yazarsanız hazır sonucu kullanarak yorumlayabilirim.',
           undefined, undefined, 0
         );
-        
-        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
 
         if (import.meta.env.DEV) {
           console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
@@ -513,13 +522,17 @@ export default function Assistant() {
 
       // status === 'parsed'
       if (!isFindeksResult(structuredData)) {
+        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
+        if (!isCurrentSession) {
+          if (import.meta.env.DEV) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'parsed_non_findeks', sessionId });
+          return;
+        }
+
         const msg = await dataSourceAdapter.chat.addMessage(
           sessionId, userId, 'assistant',
           'Analiz tamamlandı, ancak bu dosya Findeks raporu gibi görünmüyor. Başka bir sorunuz varsa yardımcı olabilirim.',
           undefined, undefined, 0
         );
-        
-        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
 
         if (import.meta.env.DEV) {
           console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
@@ -592,14 +605,17 @@ export default function Assistant() {
       
       if (import.meta.env.DEV) console.log('[7.2F_SUMMARY_BUILT]', { ok: !!summary });
 
+      const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
+      if (!isCurrentSession) {
+        if (import.meta.env.DEV) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'parsed_findeks', sessionId });
+        return;
+      }
+
       const autoMsg = await dataSourceAdapter.chat.addMessage(
         sessionId, userId, 'assistant',
         summary ?? 'Analiz tamamlandı. Rapor detaylarını görmek için "Findeks raporumu yorumla" diyebilirsiniz.',
         undefined, undefined, 0
       );
-      
-      
-        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
 
         if (import.meta.env.DEV) {
           console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
@@ -688,25 +704,8 @@ export default function Assistant() {
           }
         }
 
-        // PASS 3: Latest parsed/failed for this user since upload
-        if (!row) {
-          const { data: byLatest, error: err3 } = await supabase
-            .from('attachment_parse_results')
-            .select('status, structured_data')
-            .eq('user_id', userId)
-            .in('status', ['parsed', 'failed'])
-            .gte('updated_at', uploadSinceWithTolerance)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (err3 && import.meta.env.DEV) console.warn('[7.2F_PASS_3_LATEST_UPDATED_AT] Error:', err3.message);
-
-          if (byLatest) {
-            row = byLatest;
-            if (import.meta.env.DEV) console.log('[7.2F_ROW_FOUND] Pass-3 (latest)', row.status);
-          }
-        }
+        // Pass-3 removed in 7.2F-H for auto-summary safety.
+        // We only rely on deterministic Pass-1 (path) and Pass-2 (file_name + time window).
 
         if (!row) {
           if (import.meta.env.DEV) console.log('[POLL_PARSE] Attempt ' + (attempt + 1) + ': no completed row yet');
@@ -876,17 +875,34 @@ export default function Assistant() {
   };
   
   // Phase 7.2F-G: Lifecycle Resilient Polling Trigger
-  // If a user message has an attachment but no summary yet, start polling.
-  // This ensures that if the component remounts, the new instance will resume polling.
+  // Phase 7.2F-H: Hardened scope (PDF only, recent messages only, current session only)
   useEffect(() => {
     if (!user || !activeSession || !messages.length) return;
 
+    const FIVE_MINUTES = 5 * 60 * 1000;
+    const now = Date.now();
+
     // We look for the latest user message with an attachment
-    const pendingMsg = [...messages].reverse().find(m => 
-      m.role === 'user' && 
-      m.attachment?.path && 
-      !autoSummarizedMessageIdsRef.current.has(`${m.id}_${m.attachment.path}`)
-    );
+    const pendingMsg = [...messages].reverse().find(m => {
+      if (m.role !== 'user' || !m.attachment?.path) return false;
+      
+      // Filter A: Already summarized in this instance
+      if (autoSummarizedMessageIdsRef.current.has(`${m.id}_${m.attachment.path}`)) return false;
+
+      // Filter B: File type (PDF only)
+      const fileName = (m.attachment.name || '').toLowerCase();
+      const isPdf = m.attachment.type === 'application/pdf' || fileName.endsWith('.pdf');
+      if (!isPdf) return false;
+
+      // Filter C: Recency (last 5 minutes)
+      const createdAt = new Date(m.createdAt).getTime();
+      if (now - createdAt > FIVE_MINUTES) return false;
+
+      // Filter D: Current session ID (safety)
+      if (m.sessionId !== activeSession.id) return false;
+
+      return true;
+    });
 
     if (pendingMsg && pendingMsg.attachment && !isPollingRef.current.has(pendingMsg.id)) {
       if (import.meta.env.DEV) {

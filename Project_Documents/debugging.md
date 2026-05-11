@@ -4,6 +4,21 @@ Hata günlüğü ve öğrenimler.
 
 ## Kayıt Şablonu
 
+### 23. Resilient Polling Scope Leak & FK Conflict (2026-05-11)
+
+**Semptom:** Non-PDF dosyalar (Changelog.md vb.) için de polling tetiklenmesi ve Pass-3 latest fallback nedeniyle alakasız summary üretilmesi. Session değişimi sırasında `chat_messages_session_id_fkey` 409 conflict hatası.
+**Console kanıtları:** `[7.2F_RESILIENT_POLL_TRIGGER] fileName: 'Changelog.md'`, `[7.2F_ROW_FOUND] Pass-3 (latest)`.
+**Root Cause:**
+1. Resilient polling trigger'ın dosya tipi ve zaman filtresi olmaması.
+2. Pass-3 fallback'in dosya adı doğrulaması yapmadan "user'ın son parsed satırını" çekmesi.
+3. `addMessage` çağrısının aktif session kontrolünden önce yapılması.
+**Çözüm:**
+- `useEffect` trigger'ına PDF, recency (5 dk) ve activeSession filtreleri eklendi.
+- Polling loop'tan Pass-3 latest fallback kaldırıldı (sadece path ve filename bazlı Pass-1/2 kaldı).
+- `addMessage` öncesine `isCurrentSession` guard'ı eklendi.
+**Değişen dosyalar:** `src/pages/Assistant.tsx`
+**Durum:** Fix uygulandı, UAT doğrulandı.
+
 ### 20. SyntaxError: Expected corresponding JSX closing tag for <> / Ternary Mismatch (2026-04-19)
 
 **Sorun**: `src/pages/Installments.tsx` dosyasında "Expected corresponding JSX closing tag for <>" ve "TypeScriptParserMixin.parseConditional" hatalarıyla uygulamanın çökmesi.
