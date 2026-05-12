@@ -4,6 +4,13 @@ Hata günlüğü ve öğrenimler.
 
 ## Kayıt Şablonu
 
+### 27. Final Regression UAT (2026-05-13)
+
+**Semptom:** AI Asistan ve Financial Health Score sistemlerinin kilitlenmesi öncesi regression (gerileme) testi gereksinimi.
+**Root Cause:** Yok.
+**Çözüm:** Test scriptleri (Fixture 1, 4, 6A, 6B, 6C) üzerinden WNW kriz limitleri, güçlü kullanıcı değerleri, gecikmemiş borç toleransı, gerçek gecikme sinyalleri ve Nakit Akışı uyarılarının tamamının sorunsuz çalıştığı doğrulandı. UAT maddeleri teker teker test edildi ve PASS alındı.
+**Durum:** Final Regression UAT PASS. AI Assistant ve Score SSOT modülleri LOCKED durumuna getirildi.
+
 ### 26. Final Scoring Hardening (Phase SCORE-SSOT-3) (2026-05-13)
 
 **Semptom:** Aktif borçların temerrüt sayılması, Cash Flow Warning olduğunda rozetin "Optimal Durum" kalması ve Teknik İflas durumunda koç açıklamasının pozitif bir ara cümle içermesi. Ayrıca UI'da çift versiyon (v8.9 ve v6.1.1) görünüyor olması.

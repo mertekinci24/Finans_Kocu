@@ -354,8 +354,8 @@ Her 3 görevde bir gözden geçirilir.
   - `src/services/supabase/repositories/TransactionRepository.ts`
   - `src/utils/categoryPredictor.ts`
 
-## Phase 7.2F Future Refinements (AI Asistan / Findeks Auto-Summary)
-*Durum: AI Asistan Findeks Auto-Summary için açık kritik borç kalmamıştır (LOCKED).*
-- Production öncesi `ASSISTANT_DEBUG` (veya benzer debug flag) kullanımı kontrol edilecek.
+## Phase 7.2F & SCORE-SSOT Future Refinements (AI Asistan / Financial Health)
+*Durum: AI Asistan Findeks Auto-Summary ve Financial Health Score SSOT motoru için açık kritik borç kalmamıştır (LOCKED).*
+- Production öncesi `ASSISTANT_DEBUG` (veya benzer debug flag) kullanımı son kez kontrol edilecek.
 - Kredi skoru (ve benzeri nümerik finansal veriler) için yazılan truthy kontrolleri (`hasKnownValue` dahil) ileride proje geneli paylaşımlı bir utils helper'ı ile normalize edilebilir.
-- **Phase SCORE-SSOT-2 Notu:** v8.9 UI hardcoded versiyonu, Engine'in v6.1 dinamik çıktısıyla (`assessment.version`) değiştirildi. Farklı ekranlarda (örn. PDF görüntüleyici) eski `v8.9 Honest Math Protocol` referansları kalmış olabilir, test edilmeli.
+- Sadece geleceğe dönük küçük UI polish notları kalmıştır (örn. PDF görüntüleyicide hala v8.9 statik metni kaldıysa kaldırılabilir).

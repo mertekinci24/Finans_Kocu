@@ -1,5 +1,20 @@
 # Changelog.md
 
+## Final Regression UAT — AI Assistant + Financial Health Score SSOT Lock
+
+- Görev No: Final Regression UAT
+- Modüller: `scoringEngine.ts`, `Assistant.tsx`, `FinancialScoreCard.tsx`
+- Root Cause: SSOT ve Assistant Auto-Summary geliştirmelerinin kilitlenmeden önce topluca doğrulanması ihtiyacı.
+- Yapılan İş:
+  - UAT-1.1 WNW Negative -> Skorun kriz bandına (<=14) kilitlendiği, rozetin "Kritik Seviye" ve durumun "Teknik İflas" olduğu test senaryolarıyla (Fixture 1) ispatlandı.
+  - UAT-1.2 Strong User -> Gerçek güçlü kullanıcı senaryosunda (Fixture 4) pozitif assessment üretildiği, "Optimal Durum" rozeti ve "Finansal Prestij" durumu döndüğü kanıtlandı.
+  - UAT-1.3 Active Debt Not Overdue -> Aktif ama gecikmemiş borcun temerrüt sayılmadığı (Fixture 6A) kod testiyle kanıtlandı.
+  - UAT-1.4 Real Overdue -> Gerçek overdue borçta Temerrüt sinyalinin ve `has_overdue` flag'inin tetiklendiği (Fixture 6B) kanıtlandı.
+  - UAT-1.5 Cash Warning -> Cash flow warning durumlarında skor yüksek olsa bile rozetin "⚠️ Nakit Akışı Uyarısı" olduğu (Fixture 6C) ispatlandı.
+  - UAT-2 Dashboard Consistency -> Impossible state'in yok olduğu, "Finansal Sağlık Skoru" başlığının versiyon karmaşasından kurtarıldığı ve metrik etiketlerinin ("Aylık Borç Yükü") doğru işlediği doğrulandı.
+  - UAT-3 ve UAT-4 -> AI Asistan Findeks PDF Upload döngüsü, non-PDF filtering ve ASSISTANT_DEBUG log kontrol mekanizmaları çalışır halde kilitlendi.
+- Durum: Final Regression UAT PASS. AI Assistant Findeks Auto-Summary LOCKED. Financial Health Score SSOT LOCKED.
+
 ## Phase SCORE-SSOT-3 — Financial Health Score Final Hardening
 
 - Görev No: Phase SCORE-SSOT-3
