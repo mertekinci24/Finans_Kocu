@@ -15,7 +15,7 @@ Hata günlüğü ve öğrenimler.
 - `buildDeterministicIntentAnswer` ve `isFindeksResult` fonksiyonlarındaki kontroller bu helper ile güncellendi.
 - Diagnostic loglar `ASSISTANT_DEBUG` (VITE_ASSISTANT_DEBUG) bayrağı arkasına alındı. `APP_BUILD_MARKER` güncellendi.
 **Değişen dosyalar:** `src/pages/Assistant.tsx`
-**Durum:** Phase 7.2F-I Final UAT PASS.
+**Durum:** Phase 7.2F-I Final UAT PASS. Final Smoke PASS. AI Assistant Findeks Auto-Summary LOCKED.
 
 ### 23. Resilient Polling Scope Leak & FK Conflict (2026-05-11)
 

@@ -354,3 +354,7 @@ Her 3 görevde bir gözden geçirilir.
   - `src/services/supabase/repositories/TransactionRepository.ts`
   - `src/utils/categoryPredictor.ts`
 
+## Phase 7.2F Future Refinements (AI Asistan / Findeks Auto-Summary)
+*Durum: AI Asistan Findeks Auto-Summary için açık kritik borç kalmamıştır (LOCKED).*
+- Production öncesi `ASSISTANT_DEBUG` (veya benzer debug flag) kullanımı kontrol edilecek.
+- Kredi skoru (ve benzeri nümerik finansal veriler) için yazılan truthy kontrolleri (`hasKnownValue` dahil) ileride proje geneli paylaşımlı bir utils helper'ı ile normalize edilebilir.

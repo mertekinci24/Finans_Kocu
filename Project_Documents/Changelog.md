@@ -11,7 +11,7 @@
   - Kullanılmayan `isParsedData` ve `sidebarMenuRef` değişkenleri temizlendi.
   - Sadece diagnostic amaçlı kullanılan çok gürültülü DEV logları, yeni `ASSISTANT_DEBUG` bayrağı arkasına taşındı. `APP_BUILD_MARKER` güncellendi.
   - Findeks PDF happy path, Non-PDF resilient polling block ve Guard regression testleri gerçek UAT ile doğrulandı.
-- Durum: Phase 7.2F-I Final UAT PASS.
+- Durum: Phase 7.2F-I Final UAT PASS. Final Smoke PASS. AI Assistant Findeks Auto-Summary LOCKED.
 
 ## Phase 7.2F-H — Resilient Polling Scope Hardening
 
