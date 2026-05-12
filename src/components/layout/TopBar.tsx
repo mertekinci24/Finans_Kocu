@@ -12,49 +12,49 @@ export default function TopBar(): JSX.Element {
   return (
     <header
       className={`fixed top-0 left-0 right-0 h-16 border-b flex items-center px-4 gap-4 z-40 no-print transition-colors duration-500 ${
-        isSimulated ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50' : 'bg-white dark:bg-slate-900 border-neutral-200 dark:border-neutral-800'
+        isSimulated ? 'bg-warning-50 dark:bg-warning-900/30 border-warning-200 dark:border-warning-800/50' : 'bg-card border-border'
       }`}
     >
       <button
         onClick={toggleSidebar}
-        className="p-2 hover:bg-neutral-100 rounded-md transition-colors lg:hidden"
+        className="p-2 hover:bg-muted rounded-md transition-colors lg:hidden"
         aria-label="Toggle menu"
       >
-        <svg className="w-5 h-5 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
       <div className="flex flex-col">
-        <span className="text-xl font-bold text-primary-600 tracking-tight leading-none">{APP_NAME}</span>
-        {isSimulated && <span className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-tighter">SİMÜLASYON MODU</span>}
+        <span className="text-xl font-bold text-primary tracking-tight leading-none">{APP_NAME}</span>
+        {isSimulated && <span className="text-[10px] font-black text-warning-600 dark:text-warning-500 uppercase tracking-tighter">SİMÜLASYON MODU</span>}
       </div>
 
       <button
         onClick={() => setCommandPaletteOpen(true)}
-        className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-500 rounded-lg transition-colors text-sm"
+        className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground rounded-lg transition-colors text-sm"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <span className="text-xs">Ara...</span>
-        <kbd className="text-xs bg-neutral-200 text-neutral-500 px-1 py-0.5 rounded ml-1">⌘K</kbd>
+        <kbd className="text-xs bg-card text-muted-foreground px-1 py-0.5 rounded ml-1 border border-border">⌘K</kbd>
       </button>
 
       <div className="flex-1" />
 
       {/* Time Machine UI */}
-      <div className="flex items-center gap-2 bg-neutral-100 dark:bg-zinc-800/50 p-1 rounded-xl border border-neutral-200 dark:border-zinc-800">
+      <div className="flex items-center gap-2 bg-muted p-1 rounded-xl border border-border">
         <input 
           type="date" 
           value={new Date(systemDate).toISOString().split('T')[0]}
           onChange={(e) => setSystemDate(new Date(e.target.value))}
-          className="bg-transparent text-[11px] font-bold text-neutral-600 dark:text-zinc-300 outline-none px-2 py-1"
+          className="bg-transparent text-[11px] font-bold text-foreground outline-none px-2 py-1"
         />
         {isSimulated && (
           <button 
             onClick={resetToRealTime}
-            className="p-1.5 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-500 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-warning-200 dark:hover:bg-warning-900/50 text-warning-700 dark:text-warning-500 rounded-lg transition-colors"
             title="Gerçek zamana dön"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,7 +66,7 @@ export default function TopBar(): JSX.Element {
 
       <div className="flex items-center gap-2">
         <ThemeSelector />
-        <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-semibold flex items-center justify-center text-sm hover:bg-primary-200 transition-colors cursor-pointer select-none">
+        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center text-sm hover:bg-primary/20 transition-colors cursor-pointer select-none">
           U
         </div>
       </div>

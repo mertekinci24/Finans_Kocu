@@ -28,7 +28,7 @@ export default function MainLayout(): JSX.Element {
   }, []);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-page)' }}>
+    <div className="min-h-screen bg-background transition-colors duration-200">
       <CommandPalette />
       <TopBar />
       <div className="flex pt-16">

@@ -18,23 +18,23 @@ export default function FinancialScoreCard({
 }: FinancialScoreCardProps): JSX.Element {
 
   const getScoreBg = (s: number): string => {
-    if (s >= 85) return 'bg-emerald-950/10 border-emerald-500/20 dark:bg-emerald-950/30 dark:border-emerald-500/30';
-    if (s >= 55) return 'bg-green-50/49 border-green-200 dark:bg-green-950/30 dark:border-green-800/50';
-    if (s >= 35) return 'bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800/50';
-    return 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800/50';
+    if (s >= 85) return 'bg-score-optimal-bg border-score-optimal/20';
+    if (s >= 55) return 'bg-score-normal-bg border-score-normal/20';
+    if (s >= 35) return 'bg-score-warning-bg border-score-warning/20';
+    return 'bg-score-crisis-bg border-score-crisis/20';
   };
 
   const currentScore = score.overallScore;
   const scoreBg = getScoreBg(currentScore);
 
-  // Dynamic color for UI elements
-  let scoreColor = 'text-red-600';
+  // Dynamic color for UI elements (fallback if not provided by assessment)
+  let scoreColor = 'text-score-crisis';
   if (currentScore >= 85) {
-    scoreColor = 'text-emerald-400';
+    scoreColor = 'text-score-optimal';
   } else if (currentScore >= 55) {
-    scoreColor = 'text-green-600';
+    scoreColor = 'text-score-normal';
   } else if (currentScore >= 35) {
-    scoreColor = 'text-orange-600';
+    scoreColor = 'text-score-warning';
   }
 
   // Impossible state guard (DEV-only)
@@ -61,7 +61,7 @@ export default function FinancialScoreCard({
     <div className={`border rounded-xl p-5 space-y-4 shadow-sm transition-all duration-499 ${scoreBg}`}>
       <div className="flex justify-between items-start">
         <div>
-          <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">
+          <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">
             Finansal Sağlık Skoru
           </div>
           <div className="flex items-baseline gap-2">
@@ -75,7 +75,7 @@ export default function FinancialScoreCard({
           </div>
         </div>
           <div className="flex flex-col items-end">
-          <div className="bg-white/60 dark:bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full border border-current border-opacity-10">
+          <div className="bg-card/50 backdrop-blur-sm px-3 py-1 rounded-full border border-border">
             <span className={`text-[10px] font-black uppercase ${color}`}>
               {finalBadgeLabel}
             </span>
@@ -83,37 +83,37 @@ export default function FinancialScoreCard({
         </div>
       </div>
 
-      <div className="h-3 bg-neutral-200/49 dark:bg-black/20 rounded-full overflow-hidden border border-black/5">
+      <div className="h-3 bg-card/40 rounded-full overflow-hidden border border-border/50">
         <div
           className={`h-full rounded-full transition-all duration-1000 ease-out ${scoreColor.replace('text-', 'bg-')}`}
           style={{ width: `${score.overallScore}%` }}
         />
       </div>
 
-      <div className="text-sm leading-relaxed font-bold text-neutral-800 dark:text-neutral-200 bg-white/40 dark:bg-black/10 p-3 rounded-lg border border-zinc-200/49">
+      <div className="text-sm leading-relaxed font-bold text-foreground bg-card/50 p-3 rounded-lg border border-border">
         {explanation}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-        <div className="bg-white/60 dark:bg-black/20 p-2.5 rounded-lg border border-black/5">
-          <div className="text-[9px] font-bold text-neutral-500 uppercase">Veri Güveni</div>
-          <div className="text-sm font-black text-neutral-800 dark:text-white">%{score.confidenceScore}</div>
+        <div className="bg-card/50 p-2.5 rounded-lg border border-border">
+          <div className="text-[9px] font-bold text-muted-foreground uppercase">Veri Güveni</div>
+          <div className="text-sm font-black text-foreground">%{score.confidenceScore}</div>
         </div>
-        <div className="bg-white/60 dark:bg-black/20 p-2.5 rounded-lg border border-black/5">
-          <div className="text-[9px] font-bold text-neutral-500 uppercase">Aylık Borç Yükü</div>
-          <div className="text-sm font-black text-neutral-800 dark:text-white">{assessment ? `%${(assessment.metrics.structuralDti * 100).toFixed(0)}` : `${(score.installmentBurdenRatio).toFixed(0)}%`}</div>
+        <div className="bg-card/50 p-2.5 rounded-lg border border-border">
+          <div className="text-[9px] font-bold text-muted-foreground uppercase">Aylık Borç Yükü</div>
+          <div className="text-sm font-black text-foreground">{assessment ? `%${(assessment.metrics.structuralDti * 100).toFixed(0)}` : `${(score.installmentBurdenRatio).toFixed(0)}%`}</div>
         </div>
-        <div className="bg-white/60 dark:bg-black/20 p-2.5 rounded-lg border border-black/5">
-          <div className="text-[9px] font-bold text-neutral-500 uppercase">Nakit Tamponu</div>
-          <div className="text-sm font-black text-neutral-800 dark:text-white">{score.cashBufferMonths.toFixed(1)} ay</div>
+        <div className="bg-card/50 p-2.5 rounded-lg border border-border">
+          <div className="text-[9px] font-bold text-muted-foreground uppercase">Nakit Tamponu</div>
+          <div className="text-sm font-black text-foreground">{score.cashBufferMonths.toFixed(1)} ay</div>
         </div>
-        <div className="bg-white/60 dark:bg-black/20 p-2.5 rounded-lg border border-black/5">
-          <div className="text-[9px] font-bold text-neutral-500 uppercase">Tasarruf Oranı</div>
-          <div className="text-sm font-black text-neutral-800 dark:text-white">%{score.savingsRate.toFixed(0)}</div>
+        <div className="bg-card/50 p-2.5 rounded-lg border border-border">
+          <div className="text-[9px] font-bold text-muted-foreground uppercase">Tasarruf Oranı</div>
+          <div className="text-sm font-black text-foreground">%{score.savingsRate.toFixed(0)}</div>
         </div>
       </div>
 
-      <div className="flex justify-between items-center text-[9px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-tighter pt-1 opacity-71">
+      <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-tighter pt-1 opacity-71">
         <span>Sürüm: v{assessment?.version || '6.1.1'} DSS Protocol</span>
         <span>
           Güncelleme: {score.lastCalculatedAt.toLocaleDateString('tr-TR', {
