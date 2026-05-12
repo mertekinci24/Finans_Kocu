@@ -4,6 +4,22 @@ Hata günlüğü ve öğrenimler.
 
 ## Kayıt Şablonu
 
+### 25. Skor, Rozet ve Durum Tutarsızlığı (Impossible State) (Phase SCORE-SSOT-2) (2026-05-13)
+
+**Semptom:** Dashboard skor widget'ında "Skor: 85, Durum: TEKNİK İFLAS, Badge: OPTİMAL DURUM, Borç/Gelir: 35.2x" şeklinde imkansız bir kombinasyon gösteriliyordu.
+**Root Cause:** 
+1. UI bileşeni (`FinancialScoreCard`), Engine'in kriz flag'ini dinlemeden, yalnızca `score >= 85` sayısına bakarak "Optimal Durum" rozeti üretiyordu (SSOT ihlali).
+2. Engine (`scoringEngine`), "WNW < 0" kriz durumunda skoru <=14 aralığına kilitlemesi gerekirken, esnek bir DTI bazlı formül (dynamicCrisisScore) ile 85'e kadar çıkartabiliyordu.
+3. UI'da "Borç/Gelir" diye gösterilen alan aslında (Toplam Borç / Aylık Gelir) idi, bu yüzden 35.2x gibi DTI olarak kafa karıştırıcı sayılar çıkıyordu.
+**Çözüm:**
+- `scoringEngine` refaktör edilerek `FinancialHealthAssessment` adında tek, bütünleşik bir çıktı (score, severity, badgeLabel, vs) sağlandı.
+- `wnw < 0` için `Math.max(0, Math.min(14, dynamicCrisisScore))` ile katı skor tavanı uygulandı.
+- UI bileşenlerindeki hesaplama mantıkları kaldırılarak sadece Engine'den gelen `assessment` objesi render edildi.
+- "Borç/Gelir" etiketi "Aylık Borç Yükü" olarak değiştirilip `structuralDti` (yüzde cinsinden) kullanıldı.
+- Impossible state'leri yakalayacak DEV-only bir guard UI içerisine kondu.
+**Değişen dosyalar:** `src/services/scoringEngine.ts`, `src/components/dashboard/widgets/FinancialScoreWidget.tsx`, `src/components/insights/FinancialScoreCard.tsx`
+**Durum:** DONE. Test senaryolarıyla WNW < 0 anında skorun 7 geldiği, badge'in KRİTİK SEVİYE olduğu doğrulandı.
+
 ### 24. Findeks Kredi Notu "0" / Missing Ayrımı & DEV Log Cleanup (Phase 7.2F-I) (2026-05-12)
 
 **Semptom:** Kredi notu 0 geldiğinde `!!creditScore` yapısı nedeniyle değer `false` kabul ediliyor ve "bulunamadı" / missing davranışı sergiliyordu. Ayrıca production console gürültüsü yüksekti.

@@ -16,6 +16,8 @@ export interface CrisisInfo {
   reason: string;
   action: string;
   overrideScore: number;
+  primaryRisk: string;
+  flags: string[];
   affectedLenders?: string[];
 }
 
@@ -30,6 +32,31 @@ export interface ScoringInput {
   scenarioType?: string;
 }
 
+export interface FinancialHealthAssessment {
+  overallScore: number;
+  severity: 'crisis' | 'critical' | 'warning' | 'normal' | 'optimal';
+  scoreBand: string;
+  statusLabel: string;
+  badgeLabel: string;
+  primaryRisk: string | null;
+  flags: string[];
+  metrics: {
+    wnw: number;
+    totalDebt: number;
+    structuralDti: number;
+    totalDebtToIncomeRatio: number;
+    nt: number;
+    savingsRate: number;
+    liquidityStress: number;
+    mre: number;
+    disposableCash: number;
+    minBalance: number;
+    truthScore: number;
+  };
+  explanation: string;
+  version: string;
+}
+
 export interface DetailedScore {
   score: FinancialScore;
   explanation: string;
@@ -38,6 +65,7 @@ export interface DetailedScore {
   crisis?: CrisisInfo;
   insights: string[];
   structuralDti: number;
+  assessment: FinancialHealthAssessment;
 }
 
 export class ScoringEngine {
@@ -195,30 +223,34 @@ export class ScoringEngine {
     // THE TRUE HONEST MATH (Logarithmic Curve)
     const dynamicCrisisScore = Math.max(12, Math.min(85, Math.round(65 / (structuralDti || 0.1))));
 
-    const isUnlocked = structuralDti < 0.45;
     const isRecovering = structuralDti < 2.0;
 
     // --- LAYER 0 ---
     if (wnw < 0) {
-      if (isUnlocked) return null;
+      // WNW < 0 is absolute crisis. Max score 14.
+      const overrideScore = Math.max(0, Math.min(14, dynamicCrisisScore));
       return {
         level: 'severe',
         title: isRecovering ? 'TEKNİK İFLAS (İyileşme Rotalı)' : 'TEKNİK İFLAS',
         reason: isRecovering ? 'Likidite ağırlıklı özsermaye negatif, ancak borç yükü rasyonel düşüş trendinde.' : 'Likidite ağırlıklı özsermaye negatif.',
         action: 'Yapılandırma planına sadık kalın ve acil nakit tamponu oluşturun.',
-        overrideScore: dynamicCrisisScore // NO TERNARY, NO SIMULATION CHECK
+        overrideScore,
+        primaryRisk: 'technical_insolvency',
+        flags: ['wnw_negative']
       };
     }
 
     // --- LAYER 1A ---
     if ((disposableCash < 0 || minBalance < 0) && nt < 1) {
-      if (isUnlocked) return null;
+      const overrideScore = Math.max(15, Math.min(25, dynamicCrisisScore));
       return {
         level: 'critical',
         title: 'LİKİDİTE KRİZİ',
         reason: '30 günlük nakit akışı zorlanıyor.',
         action: 'Ödeme günü ve nakit tampon planı yapın.',
-        overrideScore: Math.max(22, dynamicCrisisScore)
+        overrideScore,
+        primaryRisk: 'liquidity_crisis',
+        flags: ['cash_blockage']
       };
     }
 
@@ -230,7 +262,9 @@ export class ScoringEngine {
         title: 'TEMERRÜT',
         reason: 'Gecikmiş borç geçmişi tespit edildi.',
         action: 'Gecikmiş borçları kapatın.',
-        overrideScore: Math.max(24, dynamicCrisisScore)
+        overrideScore: Math.max(24, Math.min(45, dynamicCrisisScore)),
+        primaryRisk: 'delinquency',
+        flags: ['has_overdue']
       };
     }
 
@@ -354,6 +388,61 @@ export class ScoringEngine {
     const scoreLabel = crisis ? crisis.title : (finalScore >= 85 ? 'Finansal Prestij' : finalScore >= 55 ? 'Güvenli Bölge' : finalScore >= 35 ? 'Baskı Altında' : 'Kritik Risk');
     const scoreColor = crisis ? (crisis.level === 'severe' ? 'text-red-600' : 'text-orange-500') : (finalScore >= 85 ? 'text-emerald-400' : finalScore >= 55 ? 'text-green-500' : finalScore >= 35 ? 'text-orange-500' : 'text-red-600');
 
+    const roundedScore = Math.round(finalScore);
+    let badgeLabel = '🚨 KRİTİK SEVİYE';
+    let severity: 'crisis' | 'critical' | 'warning' | 'normal' | 'optimal' = 'critical';
+
+    if (crisis) {
+      if (crisis.level === 'severe') severity = 'crisis';
+      else severity = 'critical';
+      badgeLabel = '🚨 KRİTİK SEVİYE';
+    } else if (roundedScore >= 85) {
+      severity = 'optimal';
+      badgeLabel = '👑 Optimal Durum';
+    } else if (roundedScore >= 55) {
+      severity = 'normal';
+      badgeLabel = '✅ Güvenli Bölge';
+    } else if (roundedScore >= 35) {
+      severity = 'warning';
+      badgeLabel = '⚠️ Riskli Sinyal';
+    } else {
+      severity = 'critical';
+      badgeLabel = '🚨 KRİTİK SEVİYE';
+    }
+
+    const flags = crisis ? [...crisis.flags] : [];
+    if (!crisis && (projectedDisposableCash < 0 || forecast.minBalance < 0) && nt >= 1) {
+      if (severity === 'optimal' || severity === 'normal') {
+        severity = 'warning';
+      }
+      flags.push('cash_flow_warning');
+    }
+
+    const assessment = {
+      overallScore: roundedScore,
+      severity,
+      scoreBand: roundedScore >= 85 ? 'A' : roundedScore >= 55 ? 'B' : roundedScore >= 35 ? 'C' : 'D',
+      statusLabel: scoreLabel,
+      badgeLabel,
+      primaryRisk: crisis ? crisis.primaryRisk : null,
+      flags,
+      metrics: {
+        wnw,
+        totalDebt,
+        structuralDti,
+        totalDebtToIncomeRatio: totalDebt / income,
+        nt,
+        savingsRate: ((income - mre) / income) * 100,
+        liquidityStress,
+        mre,
+        disposableCash: projectedDisposableCash,
+        minBalance: forecast.minBalance,
+        truthScore: Math.round(confidence * 100),
+      },
+      explanation: insights.explanation,
+      version: '6.1.1'
+    };
+
     return {
       score,
       explanation: insights.explanation,
@@ -361,7 +450,8 @@ export class ScoringEngine {
       color: scoreColor,
       crisis: crisis || undefined,
       insights: insights.recommendations,
-      structuralDti: this.getStructuralDTI(input)
+      structuralDti,
+      assessment
     };
   }
 

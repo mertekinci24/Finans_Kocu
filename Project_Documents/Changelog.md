@@ -1,5 +1,19 @@
 # Changelog.md
 
+## Phase SCORE-SSOT-2 — Financial Health Score Consistency Patch
+
+- Görev No: Phase SCORE-SSOT-2
+- Modüller: `scoringEngine.ts`, `FinancialScoreCard.tsx`, `FinancialScoreWidget.tsx`
+- Root Cause: UI'ın skor sayısına göre (örn. >= 85) Engine'den bağımsız "Optimal Durum" badge'i üretmesi ve `scoringEngine.ts`'in WNW < 0 krizinde skoru 14'e kilitlemeyip düşük DTI durumunda 85'e kadar esnetmesi. Bu durum "Skor 85 + Teknik İflas + Optimal Durum" gibi tutarsız (impossible) state'lere yol açıyordu.
+- Yapılan İş:
+  - `scoringEngine.ts` `DetailedScore` arayüzüne `FinancialHealthAssessment` eklendi; tüm kararlar (score, severity, badgeLabel, statusLabel, flags vb.) merkezi objeye bağlandı (SSOT).
+  - WNW < 0 durumu için kesin invariant kilitleri (maks skor 14) uygulandı.
+  - Likidite krizi durumu için skor kilitleri (15-25) uygulandı.
+  - UI bileşenlerindeki hardcoded kararlar (badgeLabel, statusLabel hesaplaması) kaldırılarak yalnızca Engine'den gelen `assessment` render edilecek şekilde sadeleştirildi.
+  - UI'da "Borç/Gelir" metriğinin karmaşası giderildi; etiket "Aylık Borç Yükü" olarak güncellenip `structuralDti` yüzdesi gösterilmeye başlandı. "Güven Skoru" ibaresi "Veri Güveni" yapıldı.
+  - Impossible state guard (DEV-only) `FinancialScoreCard` içerisine eklendi.
+- Durum: DONE. (Test fixtures run & verified.)
+
 ## Phase 7.2F-I — Final Technical Debt Cleanup & Lock
 
 - Görev No: Phase 7.2F-I

@@ -358,3 +358,4 @@ Her 3 görevde bir gözden geçirilir.
 *Durum: AI Asistan Findeks Auto-Summary için açık kritik borç kalmamıştır (LOCKED).*
 - Production öncesi `ASSISTANT_DEBUG` (veya benzer debug flag) kullanımı kontrol edilecek.
 - Kredi skoru (ve benzeri nümerik finansal veriler) için yazılan truthy kontrolleri (`hasKnownValue` dahil) ileride proje geneli paylaşımlı bir utils helper'ı ile normalize edilebilir.
+- **Phase SCORE-SSOT-2 Notu:** v8.9 UI hardcoded versiyonu, Engine'in v6.1 dinamik çıktısıyla (`assessment.version`) değiştirildi. Farklı ekranlarda (örn. PDF görüntüleyici) eski `v8.9 Honest Math Protocol` referansları kalmış olabilir, test edilmeli.

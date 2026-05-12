@@ -1,17 +1,20 @@
 import type { FinancialScore } from '@/types';
+import type { FinancialHealthAssessment } from '@/services/scoringEngine';
 
 interface FinancialScoreCardProps {
   score: FinancialScore;
   explanation: string;
   label: string;
   color: string;
+  assessment?: FinancialHealthAssessment;
 }
 
 export default function FinancialScoreCard({ 
   score, 
   explanation, 
   label, 
-  color 
+  color,
+  assessment
 }: FinancialScoreCardProps): JSX.Element {
 
   const getScoreBg = (s: number): string => {
@@ -24,7 +27,7 @@ export default function FinancialScoreCard({
   const currentScore = score.overallScore;
   const scoreBg = getScoreBg(currentScore);
 
-  // Dynamic color for UI elements (v8.9 Strict Tiering)
+  // Dynamic color for UI elements
   let scoreColor = 'text-red-600';
   if (currentScore >= 85) {
     scoreColor = 'text-emerald-400';
@@ -33,6 +36,26 @@ export default function FinancialScoreCard({
   } else if (currentScore >= 35) {
     scoreColor = 'text-orange-600';
   }
+
+  // Impossible state guard (DEV-only)
+  if (import.meta.env.DEV && assessment) {
+    if (assessment.severity === 'crisis' && assessment.overallScore > 14) {
+      console.warn('[SSOT_GUARD] Impossible state: crisis severity with score > 14');
+    }
+    if (assessment.severity === 'critical' && assessment.overallScore > 25) {
+      console.warn('[SSOT_GUARD] Impossible state: critical severity with score > 25');
+    }
+    if (assessment.statusLabel.includes('Teknik İflas') && assessment.badgeLabel.includes('Optimal')) {
+      console.warn('[SSOT_GUARD] Impossible state: Teknik İflas with Optimal badge');
+    }
+    if (assessment.overallScore >= 85 && (assessment.severity === 'crisis' || assessment.severity === 'critical')) {
+      console.warn('[SSOT_GUARD] Impossible state: score >= 85 with crisis/critical severity');
+    }
+  }
+
+  // Use engine's badge if available, fallback for safety
+  const finalBadgeLabel = assessment?.badgeLabel || (currentScore >= 85 ? '👑 Optimal Durum' : currentScore >= 55 ? '✅ Güvenli Bölge' : currentScore >= 35 ? '⚠️ Riskli Sinyal' : '🚨 KRİTİK SEVİYE');
+  const finalStatusLabel = assessment?.statusLabel || label;
 
   return (
     <div className={`border rounded-xl p-5 space-y-4 shadow-sm transition-all duration-499 ${scoreBg}`}>
@@ -51,10 +74,10 @@ export default function FinancialScoreCard({
             {label}
           </div>
         </div>
-        <div className="flex flex-col items-end">
+          <div className="flex flex-col items-end">
           <div className="bg-white/60 dark:bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full border border-current border-opacity-10">
             <span className={`text-[10px] font-black uppercase ${color}`}>
-              {score.overallScore >= 85 ? '👑 Optimal Durum' : score.overallScore >= 55 ? '✅ Güvenli Bölge' : score.overallScore >= 35 ? '⚠️ Riskli Sinyal' : '🚨 KRİTİK SEVİYE'}
+              {finalBadgeLabel}
             </span>
           </div>
         </div>
@@ -73,12 +96,12 @@ export default function FinancialScoreCard({
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
         <div className="bg-white/60 dark:bg-black/20 p-2.5 rounded-lg border border-black/5">
-          <div className="text-[9px] font-bold text-neutral-500 uppercase">Güven Skoru</div>
+          <div className="text-[9px] font-bold text-neutral-500 uppercase">Veri Güveni</div>
           <div className="text-sm font-black text-neutral-800 dark:text-white">%{score.confidenceScore}</div>
         </div>
         <div className="bg-white/60 dark:bg-black/20 p-2.5 rounded-lg border border-black/5">
-          <div className="text-[9px] font-bold text-neutral-500 uppercase">Borç/Gelir</div>
-          <div className="text-sm font-black text-neutral-800 dark:text-white">{score.debtToIncomeRatio.toFixed(1)}x</div>
+          <div className="text-[9px] font-bold text-neutral-500 uppercase">Aylık Borç Yükü</div>
+          <div className="text-sm font-black text-neutral-800 dark:text-white">{assessment ? `%${(assessment.metrics.structuralDti * 100).toFixed(0)}` : `${(score.installmentBurdenRatio).toFixed(0)}%`}</div>
         </div>
         <div className="bg-white/60 dark:bg-black/20 p-2.5 rounded-lg border border-black/5">
           <div className="text-[9px] font-bold text-neutral-500 uppercase">Nakit Tamponu</div>
@@ -91,7 +114,7 @@ export default function FinancialScoreCard({
       </div>
 
       <div className="flex justify-between items-center text-[9px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-tighter pt-1 opacity-71">
-        <span>Sürüm: v8.9 Honest Math Protocol</span>
+        <span>Sürüm: v{assessment?.version || '6.1.1'} DSS Protocol</span>
         <span>
           Güncelleme: {score.lastCalculatedAt.toLocaleDateString('tr-TR', {
             month: 'short',

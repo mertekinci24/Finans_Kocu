@@ -35,7 +35,8 @@ export default function FinancialScoreWidget({
       score={score.score} 
       explanation={score.explanation} 
       label={score.label} 
-      color={score.color} 
+      color={score.color}
+      assessment={score.assessment}
     />
   );
 }
