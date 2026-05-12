@@ -4,6 +4,21 @@ Hata günlüğü ve öğrenimler.
 
 ## Kayıt Şablonu
 
+### 26. Final Scoring Hardening (Phase SCORE-SSOT-3) (2026-05-13)
+
+**Semptom:** Aktif borçların temerrüt sayılması, Cash Flow Warning olduğunda rozetin "Optimal Durum" kalması ve Teknik İflas durumunda koç açıklamasının pozitif bir ara cümle içermesi. Ayrıca UI'da çift versiyon (v8.9 ve v6.1.1) görünüyor olması.
+**Root Cause:** 
+- `hasOverdue` mantığı `remainingAmount > 0` şartı nedeniyle normal borçları kapsıyordu.
+- Cash Flow Warning `severity` değerini `warning` yapsa da `badgeLabel` değiştirilmemişti.
+- `generateInsights` içinde `explanation` string template'i kriz olsa bile pozitif durumu ekliyordu.
+- `FinancialScoreCard` `label` değişkenini okumaya devam ediyor ve başlıkta v8.9 hardcoded taşıyordu.
+**Çözüm:** 
+- `hasOverdue` sadece `status === 'overdue'` için aktif edildi.
+- Cash Flow Warning rozeti "⚠️ Nakit Akışı Uyarısı" olarak ayarlandı.
+- Versiyon karmaşası UI'dan temizlendi, sadece assessment versiyonu bırakıldı.
+- Kriz açıklamaları sadece saf kriz mesajını yansıtacak şekilde izole edildi.
+**Durum:** DONE. Test script ile 6A, 6B, 6C durumları doğrulandı.
+
 ### 25. Skor, Rozet ve Durum Tutarsızlığı (Impossible State) (Phase SCORE-SSOT-2) (2026-05-13)
 
 **Semptom:** Dashboard skor widget'ında "Skor: 85, Durum: TEKNİK İFLAS, Badge: OPTİMAL DURUM, Borç/Gelir: 35.2x" şeklinde imkansız bir kombinasyon gösteriliyordu.

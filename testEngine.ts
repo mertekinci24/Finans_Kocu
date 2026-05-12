@@ -21,31 +21,41 @@ console.log("Badge:", res1.assessment.badgeLabel);
 console.log("Status:", res1.assessment.statusLabel);
 console.log("Explanation:", res1.assessment.explanation);
 
-// Fixture 2 - Cash blockage
-console.log("\n--- Fixture 2: Cash Blockage ---");
-const res2 = engine.calculate({
-  accounts: [{ id: '1', name: 'Ziraat', balance: 1000, type: 'vadesiz', accountType: 'vadesiz' } as any],
+// Fixture 6A - Active debt but not overdue
+console.log("\n--- Fixture 6A: Active debt but not overdue ---");
+const res6a = engine.calculate({
+  accounts: [{ id: '1', name: 'Garanti', balance: 200000, type: 'vadesiz', accountType: 'vadesiz' } as any],
+  transactions: [],
+  debts: [{ id: '2', amount: 5000, remainingAmount: 5000, status: 'active', monthlyPayment: 500 } as any],
+  installments: [],
+  recurringFlows: [{ id: '3', type: 'gelir', amount: 30000, isActive: true } as any],
+});
+console.log("Primary Risk:", res6a.assessment.primaryRisk);
+console.log("Flags:", res6a.assessment.flags);
+
+// Fixture 6B - Real overdue
+console.log("\n--- Fixture 6B: Real overdue ---");
+const res6b = engine.calculate({
+  accounts: [{ id: '1', name: 'Garanti', balance: 200000, type: 'vadesiz', accountType: 'vadesiz' } as any],
+  transactions: [],
+  debts: [{ id: '2', amount: 5000, remainingAmount: 5000, status: 'overdue', monthlyPayment: 500 } as any],
+  installments: [],
+  recurringFlows: [{ id: '3', type: 'gelir', amount: 30000, isActive: true } as any],
+});
+console.log("Primary Risk:", res6b.assessment.primaryRisk);
+console.log("Flags:", res6b.assessment.flags);
+
+// Fixture 6C - Cash warning with high score
+console.log("\n--- Fixture 6C: Cash warning with high score ---");
+const res6c = engine.calculate({
+  accounts: [{ id: '1', name: 'Garanti', balance: 30000, type: 'vadesiz', accountType: 'vadesiz' } as any],
   transactions: [],
   debts: [],
-  installments: [{ id: '2', status: 'active', principal: 10000, monthlyPayment: 15000, firstPaymentDate: new Date() } as any],
-  recurringFlows: [{ id: '3', type: 'gelir', amount: 10000, isActive: true } as any],
+  installments: [{ id: '2', status: 'active', principal: 10000, monthlyPayment: 35000, firstPaymentDate: new Date() } as any],
+  recurringFlows: [{ id: '3', type: 'gelir', amount: 40000, isActive: true } as any],
 });
-console.log("Score:", res2.assessment.overallScore);
-console.log("Severity:", res2.assessment.severity);
-console.log("Badge:", res2.assessment.badgeLabel);
-console.log("Status:", res2.assessment.statusLabel);
-console.log("Flags:", res2.assessment.flags);
-
-// Fixture 4 - Strong User
-console.log("\n--- Fixture 4: Strong User ---");
-const res4 = engine.calculate({
-  accounts: [{ id: '1', name: 'Garanti', balance: 200000, type: 'vadesiz', accountType: 'vadesiz' } as any],
-  transactions: [{ id: '2', amount: 1000, type: 'gider', date: new Date() } as any],
-  debts: [],
-  installments: [],
-  recurringFlows: [{ id: '3', type: 'gelir', amount: 50000, isActive: true } as any],
-});
-console.log("Score:", res4.assessment.overallScore);
-console.log("Severity:", res4.assessment.severity);
-console.log("Badge:", res4.assessment.badgeLabel);
-console.log("Status:", res4.assessment.statusLabel);
+console.log("Score:", res6c.assessment.overallScore);
+console.log("Severity:", res6c.assessment.severity);
+console.log("Badge:", res6c.assessment.badgeLabel);
+console.log("Status:", res6c.assessment.statusLabel);
+console.log("Flags:", res6c.assessment.flags);

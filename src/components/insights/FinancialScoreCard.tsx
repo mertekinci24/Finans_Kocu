@@ -62,7 +62,7 @@ export default function FinancialScoreCard({
       <div className="flex justify-between items-start">
         <div>
           <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">
-            Finansal Sağlık Skoru v8.9
+            Finansal Sağlık Skoru
           </div>
           <div className="flex items-baseline gap-2">
             <div className={`text-6xl font-black tabular-nums transition-all duration-700 ${color}`}>
@@ -71,7 +71,7 @@ export default function FinancialScoreCard({
             <div className="text-sm font-bold opacity-40">/100</div>
           </div>
           <div className={`text-base font-black mt-1 uppercase tracking-tight ${color}`}>
-            {label}
+            {finalStatusLabel}
           </div>
         </div>
           <div className="flex flex-col items-end">

@@ -255,7 +255,7 @@ export class ScoringEngine {
     }
 
     // --- TRIGGER C (DELINQUENCY) ---
-    const hasOverdue = input.debts.some(d => d.status === 'overdue' || d.remainingAmount > 0);
+    const hasOverdue = input.debts.some(d => d.status === 'overdue');
     if (hasOverdue) {
       return {
         level: 'delinquency',
@@ -411,10 +411,12 @@ export class ScoringEngine {
     }
 
     const flags = crisis ? [...crisis.flags] : [];
+    let finalStatusLabel = scoreLabel;
+
     if (!crisis && (projectedDisposableCash < 0 || forecast.minBalance < 0) && nt >= 1) {
-      if (severity === 'optimal' || severity === 'normal') {
-        severity = 'warning';
-      }
+      severity = 'warning';
+      badgeLabel = '⚠️ Nakit Akışı Uyarısı';
+      finalStatusLabel = 'Nakit Akışı Uyarısı';
       flags.push('cash_flow_warning');
     }
 
@@ -422,7 +424,7 @@ export class ScoringEngine {
       overallScore: roundedScore,
       severity,
       scoreBand: roundedScore >= 85 ? 'A' : roundedScore >= 55 ? 'B' : roundedScore >= 35 ? 'C' : 'D',
-      statusLabel: scoreLabel,
+      statusLabel: finalStatusLabel,
       badgeLabel,
       primaryRisk: crisis ? crisis.primaryRisk : null,
       flags,
@@ -508,7 +510,11 @@ export class ScoringEngine {
     // 4. HİBRİT YÖNLENDİRME (CTA)
     const ctaPart = '. Daha detaylı bir çıkış planı ve senaryo simülasyonu için AI Asistan\'a danışabilirsiniz.';
 
-    explanation = `${statusPart}${reasonPart}${actionPart}${ctaPart}`;
+    if (crisis?.primaryRisk === 'technical_insolvency' || crisis?.primaryRisk === 'liquidity_crisis' || crisis?.primaryRisk === 'delinquency') {
+      explanation = `${crisis.title}: ${crisis.reason} ${crisis.action}${ctaPart}`;
+    } else {
+      explanation = `${statusPart}${reasonPart}${actionPart}${ctaPart}`;
+    }
 
     if (crisis) {
       warnings.push(crisis.reason);

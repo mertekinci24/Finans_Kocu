@@ -1,5 +1,18 @@
 # Changelog.md
 
+## Phase SCORE-SSOT-3 — Financial Health Score Final Hardening
+
+- Görev No: Phase SCORE-SSOT-3
+- Modüller: `scoringEngine.ts`, `FinancialScoreCard.tsx`
+- Root Cause: SSOT sonrası küçük hardening ihtiyaçları (Temerrüt/Delinquency bayrağının aktif borçlarda yanlış çalışması, Cash Flow Warning olduğunda optimal rozetin kalması ve kriz durumlarında olumlu koç önerisi gösterilmesi).
+- Yapılan İş:
+  - `hasOverdue` kontrolü `d.status === 'overdue'` ile sınırlandırıldı.
+  - Cash Flow Warning bayrağı aktif olduğunda, skor yüksek dahi olsa rozet "⚠️ Nakit Akışı Uyarısı", statusLabel "Nakit Akışı Uyarısı" ve severity "warning" yapıldı.
+  - UI'da Versiyon çakışması (v8.9 vs v6.1.1) giderildi, header sadeleştirildi.
+  - `generateInsights` içinde kriz durumunda "finansal hareket alanı kazandınız" gibi olumlu ara metinlerin eklenmesi engellendi, salt kriz mesajı basılması sağlandı.
+  - `FinancialScoreCard` içinde doğrudan `finalStatusLabel` render edilmeye başlandı.
+- Durum: DONE. (Test fixtures run & verified.)
+
 ## Phase SCORE-SSOT-2 — Financial Health Score Consistency Patch
 
 - Görev No: Phase SCORE-SSOT-2
