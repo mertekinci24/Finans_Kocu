@@ -354,6 +354,3 @@ Her 3 görevde bir gözden geçirilir.
   - `src/services/supabase/repositories/TransactionRepository.ts`
   - `src/utils/categoryPredictor.ts`
 
-## Phase 7.2F Final Technical Debt (Assistant.tsx)
-- `isFindeksResult` içindeki `!!creditScore` kontrolü ileride 0/missing ayrımı için iyileştirilecek.
-- Production öncesi DEV logları (import.meta.env.DEV) kodun kararlılığına göre azaltılabilir.

@@ -9,6 +9,13 @@ import { ChatSession, ChatMessage, SuggestedTransaction } from '@/types';
 
 type AssistantEntryMode = "findeks_bridge" | "general_finance";
 
+// Phase 7.2F-I: Debug flag to reduce noise in production
+const ASSISTANT_DEBUG = import.meta.env.DEV && import.meta.env.VITE_ASSISTANT_DEBUG === 'true';
+
+// Phase 7.2F-I: Explicitly treat 0 as a known value, while rejecting null/undefined/''
+const hasKnownValue = (value: unknown): boolean =>
+  value !== null && value !== undefined && value !== '';
+
 const getFieldValue = (field: any) => {
   if (field && typeof field === "object" && "value" in field) {
     return field.value ?? "bulunamadı";
@@ -111,8 +118,8 @@ const buildDeterministicIntentAnswer = (
     return (
       docType.includes('findeks') || 
       pType.includes('findeks') || 
-      !!sd?.fields?.creditScore || 
-      !!sd?.creditScore
+      hasKnownValue(sd?.fields?.creditScore) || 
+      hasKnownValue(sd?.creditScore)
     );
   });
 
@@ -132,7 +139,6 @@ const buildDeterministicIntentAnswer = (
 
   const reportDate = latestFields.reportDate ?? null;
   const scoreBand = buildScoreBand(score);
-  const isParsedData = !!latestFields.creditScore;
 
   // --- DETERMINISTIC INTENT GUARDS (PHASE 7.2D-UAT — PRIORITY ORDER) ---
 
@@ -247,8 +253,8 @@ Kısa koç yorumu: Uygulama kayıtlarına göre toplam kart borcunuz ₺${totalC
       latestDocumentType === 'findeks_full_risk_report' ||
       hasFullRiskFields(latestFields);
 
-    if (import.meta.env.DEV) {
-      console.log('[DETERMINISTIC_FINDEKS_SOURCE]', {
+    if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_FINDEKS_SOURCE]', {
         hasParsedAttachment: !!latestParsedFindeks,
         fileName: latestFileName,
         score,
@@ -312,7 +318,6 @@ export default function Assistant() {
   const isLoadingSessionsRef = useRef(false);
   const isCreatingSessionRef = useRef(false);
   const isRenamingRef = useRef(false);
-  const sidebarMenuRef = useRef<HTMLDivElement | null>(null);
   // Phase 7.2F: Prevent duplicate auto-summary for the same message
   const autoSummarizedMessageIdsRef = useRef<Set<string>>(new Set());
   // Phase 7.2F: Unmount guard to prevent setState on unmounted component
@@ -324,7 +329,7 @@ export default function Assistant() {
   useEffect(() => {
     isMountedRef.current = true;
 
-    if (import.meta.env.DEV) {
+    if (ASSISTANT_DEBUG) {
       console.log('[APP_BUILD_MARKER]', {
         phase: '7.2F-G-live-ui-fix',
         commit: '7f60bee',
@@ -382,7 +387,7 @@ export default function Assistant() {
       qNorm.includes('rapor') ||
       qNorm.includes('dosyay');
 
-    if (import.meta.env.DEV) {
+    if (ASSISTANT_DEBUG) {
       console.log('[7.2F_POLL_GATE]', { hasAttachment, originalText, isAutoSummaryCandidate });
     }
 
@@ -402,8 +407,8 @@ export default function Assistant() {
       return (
         docType.includes('findeks') ||
         pType.includes('findeks') ||
-        !!fields.creditScore ||
-        !!sd.creditScore
+        hasKnownValue(fields.creditScore) ||
+        hasKnownValue(sd.creditScore)
       );
     };
 
@@ -415,7 +420,7 @@ export default function Assistant() {
       if (status === 'failed') {
         const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
         if (!isCurrentSession) {
-          if (import.meta.env.DEV) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'failed', sessionId });
+          if (ASSISTANT_DEBUG) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'failed', sessionId });
           return;
         }
 
@@ -425,8 +430,8 @@ export default function Assistant() {
           undefined, undefined, 0
         );
 
-        if (import.meta.env.DEV) {
-          console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
+        if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
             isMounted: isMountedRef.current,
             activeSessionId: activeSessionIdRef.current,
             targetSessionId: sessionId,
@@ -439,8 +444,8 @@ export default function Assistant() {
           setMessages((prev) => {
             const alreadyExists = prev.some((m) => m.id === msg.id);
 
-            if (import.meta.env.DEV) {
-              console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
+            if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
                 prevCount: prev.length,
                 alreadyExists,
                 messageId: msg.id,
@@ -451,8 +456,8 @@ export default function Assistant() {
 
             const next = [...prev, msg];
 
-            if (import.meta.env.DEV) {
-              console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
+            if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
                 nextCount: next.length,
               });
             }
@@ -466,11 +471,11 @@ export default function Assistant() {
       }
 
       if (status === 'timeout') {
-        if (import.meta.env.DEV) console.log('[7.2F_TIMEOUT_REASON] lastPass=2, timeout=true');
+        if (ASSISTANT_DEBUG) console.log('[7.2F_TIMEOUT_REASON] lastPass=2, timeout=true');
         
         const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
         if (!isCurrentSession) {
-          if (import.meta.env.DEV) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'timeout', sessionId });
+          if (ASSISTANT_DEBUG) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'timeout', sessionId });
           return;
         }
 
@@ -480,8 +485,8 @@ export default function Assistant() {
           undefined, undefined, 0
         );
 
-        if (import.meta.env.DEV) {
-          console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
+        if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
             isMounted: isMountedRef.current,
             activeSessionId: activeSessionIdRef.current,
             targetSessionId: sessionId,
@@ -494,8 +499,8 @@ export default function Assistant() {
           setMessages((prev) => {
             const alreadyExists = prev.some((m) => m.id === msg.id);
 
-            if (import.meta.env.DEV) {
-              console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
+            if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
                 prevCount: prev.length,
                 alreadyExists,
                 messageId: msg.id,
@@ -506,8 +511,8 @@ export default function Assistant() {
 
             const next = [...prev, msg];
 
-            if (import.meta.env.DEV) {
-              console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
+            if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
                 nextCount: next.length,
               });
             }
@@ -524,7 +529,7 @@ export default function Assistant() {
       if (!isFindeksResult(structuredData)) {
         const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
         if (!isCurrentSession) {
-          if (import.meta.env.DEV) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'parsed_non_findeks', sessionId });
+          if (ASSISTANT_DEBUG) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'parsed_non_findeks', sessionId });
           return;
         }
 
@@ -534,8 +539,8 @@ export default function Assistant() {
           undefined, undefined, 0
         );
 
-        if (import.meta.env.DEV) {
-          console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
+        if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
             isMounted: isMountedRef.current,
             activeSessionId: activeSessionIdRef.current,
             targetSessionId: sessionId,
@@ -548,8 +553,8 @@ export default function Assistant() {
           setMessages((prev) => {
             const alreadyExists = prev.some((m) => m.id === msg.id);
 
-            if (import.meta.env.DEV) {
-              console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
+            if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
                 prevCount: prev.length,
                 alreadyExists,
                 messageId: msg.id,
@@ -560,8 +565,8 @@ export default function Assistant() {
 
             const next = [...prev, msg];
 
-            if (import.meta.env.DEV) {
-              console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
+            if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
                 nextCount: next.length,
               });
             }
@@ -574,7 +579,7 @@ export default function Assistant() {
         return;
       }
 
-      if (import.meta.env.DEV) console.log('[7.2F_HAS_STRUCTURED_DATA] True');
+      if (ASSISTANT_DEBUG) console.log('[7.2F_HAS_STRUCTURED_DATA] True');
 
       const baseContext = await buildUserContext(userId);
       const sd = structuredData as any;
@@ -586,7 +591,7 @@ export default function Assistant() {
         structured_data: structuredData
       };
 
-      if (import.meta.env.DEV) console.log('[7.2F_SYNTHETIC_ATTACHMENT_INJECTED]');
+      if (ASSISTANT_DEBUG) console.log('[7.2F_SYNTHETIC_ATTACHMENT_INJECTED]');
 
       const freshEnriched = { 
         ...baseContext, 
@@ -603,11 +608,11 @@ export default function Assistant() {
         undefined
       );
       
-      if (import.meta.env.DEV) console.log('[7.2F_SUMMARY_BUILT]', { ok: !!summary });
+      if (ASSISTANT_DEBUG) console.log('[7.2F_SUMMARY_BUILT]', { ok: !!summary });
 
       const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
       if (!isCurrentSession) {
-        if (import.meta.env.DEV) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'parsed_findeks', sessionId });
+        if (ASSISTANT_DEBUG) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'parsed_findeks', sessionId });
         return;
       }
 
@@ -617,8 +622,8 @@ export default function Assistant() {
         undefined, undefined, 0
       );
 
-        if (import.meta.env.DEV) {
-          console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
+        if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
             isMounted: isMountedRef.current,
             activeSessionId: activeSessionIdRef.current,
             targetSessionId: sessionId,
@@ -631,8 +636,8 @@ export default function Assistant() {
           setMessages((prev) => {
             const alreadyExists = prev.some((m) => m.id === autoMsg.id);
 
-            if (import.meta.env.DEV) {
-              console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
+            if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
                 prevCount: prev.length,
                 alreadyExists,
                 messageId: autoMsg.id,
@@ -643,8 +648,8 @@ export default function Assistant() {
 
             const next = [...prev, autoMsg];
 
-            if (import.meta.env.DEV) {
-              console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
+            if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
                 nextCount: next.length,
               });
             }
@@ -655,7 +660,7 @@ export default function Assistant() {
           await loadMessagesForSession(sessionId);
         }
     };
-    if (import.meta.env.DEV) console.log('[7.2F_POLL_START]', { messageId, storagePath, fileName, userId });
+    if (ASSISTANT_DEBUG) console.log('[7.2F_POLL_START]', { messageId, storagePath, fileName, userId });
 
     const uploadSinceWithTolerance = new Date(
       new Date(uploadStartedAt).getTime() - 2 * 60 * 1000
@@ -680,7 +685,7 @@ export default function Assistant() {
 
         if (byPath) {
           row = byPath;
-          if (import.meta.env.DEV) console.log('[7.2F_ROW_FOUND] Pass-1 (path)', row.status);
+          if (ASSISTANT_DEBUG) console.log('[7.2F_ROW_FOUND] Pass-1 (path)', row.status);
         }
 
         // PASS 2: file_name + updated_at window
@@ -700,7 +705,7 @@ export default function Assistant() {
 
           if (byName) {
             row = byName;
-            if (import.meta.env.DEV) console.log('[7.2F_ROW_FOUND] Pass-2 (file_name)', row.status);
+            if (ASSISTANT_DEBUG) console.log('[7.2F_ROW_FOUND] Pass-2 (file_name)', row.status);
           }
         }
 
@@ -708,7 +713,7 @@ export default function Assistant() {
         // We only rely on deterministic Pass-1 (path) and Pass-2 (file_name + time window).
 
         if (!row) {
-          if (import.meta.env.DEV) console.log('[POLL_PARSE] Attempt ' + (attempt + 1) + ': no completed row yet');
+          if (ASSISTANT_DEBUG) console.log('[7.2F_PARSE] Attempt ' + (attempt + 1) + ': no completed row yet');
           continue;
         }
 
@@ -755,7 +760,7 @@ export default function Assistant() {
         initialQuery: location.state.initialQuery,
       };
 
-      if (import.meta.env.DEV) {
+      if (ASSISTANT_DEBUG) {
         console.log("[ASSISTANT_BRIDGE_CAPTURED]", {
           documentType: location.state.findeksData?.documentType,
           parserVersion: location.state.findeksData?.parserVersion,
@@ -819,8 +824,8 @@ export default function Assistant() {
 
         pendingBridgeRef.current = null;
 
-        if (import.meta.env.DEV) {
-          console.log("[ASSISTANT_BRIDGE_SENT_DETERMINISTIC]", {
+        if (ASSISTANT_DEBUG) {
+        console.log("[ASSISTANT_BRIDGE_SENT_DETERMINISTIC]", {
             documentType: payload.findeksData?.documentType,
             missingFields: payload.findeksData?.missingFields,
           });
@@ -865,8 +870,8 @@ export default function Assistant() {
     if (isMountedRef.current && activeSessionIdRef.current === sid) {
       setMessages(sessionMessages);
 
-      if (import.meta.env.DEV) {
-        console.log('[7.2F_LOAD_MESSAGES_FALLBACK]', {
+      if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_LOAD_MESSAGES_FALLBACK]', {
           sid,
           count: sessionMessages.length,
         });
@@ -905,8 +910,8 @@ export default function Assistant() {
     });
 
     if (pendingMsg && pendingMsg.attachment && !isPollingRef.current.has(pendingMsg.id)) {
-      if (import.meta.env.DEV) {
-        console.log('[7.2F_RESILIENT_POLL_TRIGGER]', {
+      if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_RESILIENT_POLL_TRIGGER]', {
           messageId: pendingMsg.id,
           fileName: pendingMsg.attachment.name,
           activePolls: Array.from(isPollingRef.current)
@@ -1085,8 +1090,8 @@ export default function Assistant() {
             mimeType: attachmentMetadata.type
           })
         }).then((resp) => {
-          if (import.meta.env.DEV) {
-            console.log('[7.2F_PARSE_TRIGGER_RESPONSE]', { ok: resp.ok, status: resp.status });
+          if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_PARSE_TRIGGER_RESPONSE]', { ok: resp.ok, status: resp.status });
             if (!resp.ok) {
               resp.text().then((body) => {
                 console.warn('[7.2F_PARSE_TRIGGER_FAILED]', { status: resp.status, body: body.slice(0, 200) });
@@ -1100,8 +1105,8 @@ export default function Assistant() {
 
       const context = await buildUserContext(user.id);
       
-      if (import.meta.env.DEV) {
-        console.log('[ASSISTANT_CONTEXT_PARSED_ATTACHMENTS]', {
+      if (ASSISTANT_DEBUG) {
+      console.log('[7.2F_CONTEXT_PARSED_ATTACHMENTS]', {
           count: context.parsedAttachments?.length || 0,
           latest: context.parsedAttachments?.[0]?.structured_data,
         });

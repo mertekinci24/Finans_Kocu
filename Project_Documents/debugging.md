@@ -4,6 +4,19 @@ Hata günlüğü ve öğrenimler.
 
 ## Kayıt Şablonu
 
+### 24. Findeks Kredi Notu "0" / Missing Ayrımı & DEV Log Cleanup (Phase 7.2F-I) (2026-05-12)
+
+**Semptom:** Kredi notu 0 geldiğinde `!!creditScore` yapısı nedeniyle değer `false` kabul ediliyor ve "bulunamadı" / missing davranışı sergiliyordu. Ayrıca production console gürültüsü yüksekti.
+**Root Cause:**
+1. Truthy kontroller (`!!`) `0` ve `""` değerlerini aynı kefeye koyar. Finansal veride `0` gerçek bir değerdir.
+2. `import.meta.env.DEV` tüm development loglarını acar; çok fazla diagnostic log konsolu dolduruyordu.
+**Çözüm:**
+- `hasKnownValue(value)` helper'ı eklendi (`value !== null && value !== undefined && value !== ''`).
+- `buildDeterministicIntentAnswer` ve `isFindeksResult` fonksiyonlarındaki kontroller bu helper ile güncellendi.
+- Diagnostic loglar `ASSISTANT_DEBUG` (VITE_ASSISTANT_DEBUG) bayrağı arkasına alındı. `APP_BUILD_MARKER` güncellendi.
+**Değişen dosyalar:** `src/pages/Assistant.tsx`
+**Durum:** Phase 7.2F-I Final UAT PASS.
+
 ### 23. Resilient Polling Scope Leak & FK Conflict (2026-05-11)
 
 **Semptom:** Non-PDF dosyalar (Changelog.md vb.) için de polling tetiklenmesi ve Pass-3 latest fallback nedeniyle alakasız summary üretilmesi. Session değişimi sırasında `chat_messages_session_id_fkey` 409 conflict hatası.

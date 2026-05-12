@@ -1,5 +1,18 @@
 # Changelog.md
 
+## Phase 7.2F-I — Final Technical Debt Cleanup & Lock
+
+- Görev No: Phase 7.2F-I
+- Modüller: Assistant.tsx
+- Root Cause: 0/missing değer ayrımı eksikliği (`!!creditScore` kullanımı nedeniyle `0` değerinin `false` sayılması) ve `import.meta.env.DEV` kaynaklı production log gürültüsü potansiyeli.
+- Yapılan İş:
+  - `hasKnownValue` helper'ı eklendi; `0` artık missing sayılmıyor, sadece `null`/`undefined`/`''` missing sayılıyor.
+  - `buildDeterministicIntentAnswer` ve `isFindeksResult` içindeki `!!creditScore` kontrolleri `hasKnownValue` ile güncellendi.
+  - Kullanılmayan `isParsedData` ve `sidebarMenuRef` değişkenleri temizlendi.
+  - Sadece diagnostic amaçlı kullanılan çok gürültülü DEV logları, yeni `ASSISTANT_DEBUG` bayrağı arkasına taşındı. `APP_BUILD_MARKER` güncellendi.
+  - Findeks PDF happy path, Non-PDF resilient polling block ve Guard regression testleri gerçek UAT ile doğrulandı.
+- Durum: Phase 7.2F-I Final UAT PASS.
+
 ## Phase 7.2F-H — Resilient Polling Scope Hardening
 
 - Görev No: Phase 7.2F-H
