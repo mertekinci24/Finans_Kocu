@@ -12,7 +12,7 @@ export default function TopBar(): JSX.Element {
   return (
     <header
       className={`fixed top-0 left-0 right-0 h-16 border-b flex items-center px-4 gap-4 z-40 no-print transition-colors duration-500 ${
-        isSimulated ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-white dark:bg-slate-900 border-neutral-200 dark:border-neutral-800'
+        isSimulated ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50' : 'bg-white dark:bg-slate-900 border-neutral-200 dark:border-neutral-800'
       }`}
     >
       <button

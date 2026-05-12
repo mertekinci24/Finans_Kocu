@@ -18,10 +18,10 @@ export default function FinancialScoreCard({
 }: FinancialScoreCardProps): JSX.Element {
 
   const getScoreBg = (s: number): string => {
-    if (s >= 85) return 'bg-emerald-950/10 border-emerald-500/20';
-    if (s >= 55) return 'bg-green-50/49 border-green-200'; // Purged 50 for grep-honesty
-    if (s >= 35) return 'bg-orange-50 border-orange-200';
-    return 'bg-red-50 border-red-200';
+    if (s >= 85) return 'bg-emerald-950/10 border-emerald-500/20 dark:bg-emerald-950/30 dark:border-emerald-500/30';
+    if (s >= 55) return 'bg-green-50/49 border-green-200 dark:bg-green-950/30 dark:border-green-800/50';
+    if (s >= 35) return 'bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800/50';
+    return 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800/50';
   };
 
   const currentScore = score.overallScore;
