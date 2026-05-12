@@ -5,7 +5,21 @@ export default {
   theme: {
     extend: {
       colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        surface: 'hsl(var(--surface))',
+        'surface-elevated': 'hsl(var(--surface-elevated))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
         primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
           50: '#f0f7ff',
           100: '#e0effe',
           200: '#bae6fd',
@@ -17,6 +31,45 @@ export default {
           800: '#075985',
           900: '#0c3d66',
           950: '#051e3e',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        'score-crisis': {
+          DEFAULT: 'hsl(var(--score-crisis))',
+          bg: 'hsl(var(--score-crisis-bg))',
+        },
+        'score-critical': {
+          DEFAULT: 'hsl(var(--score-critical))',
+          bg: 'hsl(var(--score-critical-bg))',
+        },
+        'score-warning': {
+          DEFAULT: 'hsl(var(--score-warning))',
+          bg: 'hsl(var(--score-warning-bg))',
+        },
+        'score-normal': {
+          DEFAULT: 'hsl(var(--score-normal))',
+          bg: 'hsl(var(--score-normal-bg))',
+        },
+        'score-optimal': {
+          DEFAULT: 'hsl(var(--score-optimal))',
+          bg: 'hsl(var(--score-optimal-bg))',
         },
         success: {
           50: '#f0fdf4',
