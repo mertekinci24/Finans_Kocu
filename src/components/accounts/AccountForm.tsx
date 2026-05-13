@@ -81,6 +81,21 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
         statementDay: sDay,
         paymentDay: pDay,
       });
+    } catch (error: any) {
+      console.error('[ACCOUNT_CREATE_FAILED]', error);
+      
+      const isDuplicate = error?.code === '23505' || 
+                         (error?.message && error.message.includes('account_name_per_user'));
+      
+      if (isDuplicate) {
+        setErrors({ 
+          name: 'Bu isimde bir hesabınız zaten mevcut (aktif veya pasif). Lütfen farklı bir isim seçin.' 
+        });
+      } else {
+        setErrors({ 
+          form: 'Hesap oluşturulurken beklenmedik bir hata oluştu. Lütfen tekrar deneyin.' 
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -88,6 +103,11 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {errors.form && (
+        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold">
+          {errors.form}
+        </div>
+      )}
       <div>
         <label className="block text-sm font-medium text-muted-foreground mb-2">Hesap Türü</label>
         <div className="grid grid-cols-3 gap-2">
