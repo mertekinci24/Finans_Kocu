@@ -26,9 +26,12 @@ export interface IUserRepository {
 export interface IAccountRepository {
   getByUserId(userId: string): Promise<Account[]>;
   getById(id: string): Promise<Account | null>;
+  getByName(userId: string, name: string): Promise<Account | null>;
+  getInactiveByUserId(userId: string): Promise<Account[]>;
   create(account: Omit<Account, 'id' | 'createdAt'>): Promise<Account>;
   update(id: string, account: Partial<Account>): Promise<Account>;
   delete(id: string): Promise<void>;
+  reactivate(id: string): Promise<Account>;
   recalibrateBalance(id: string): Promise<Account>;
 }
 

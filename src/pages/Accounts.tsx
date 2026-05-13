@@ -5,16 +5,20 @@ import { dataSourceAdapter } from '@/services/supabase/adapter';
 import AccountCard from '@/components/accounts/AccountCard';
 import AccountForm from '@/components/accounts/AccountForm';
 import type { Account } from '@/types';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Accounts(): JSX.Element {
   const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [inactiveAccounts, setInactiveAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
       loadAccounts(user.id);
+      loadInactiveAccounts(user.id);
     }
   }, [user?.id]);
 
@@ -27,6 +31,15 @@ export default function Accounts(): JSX.Element {
       console.error('Hesaplar yüklenemedi:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadInactiveAccounts = async (userId: string) => {
+    try {
+      const data = await dataSourceAdapter.account.getInactiveByUserId(userId);
+      setInactiveAccounts(data);
+    } catch (err) {
+      console.error('Pasif hesaplar yüklenemedi:', err);
     }
   };
 
@@ -44,7 +57,22 @@ export default function Accounts(): JSX.Element {
 
   const handleDelete = async (id: string) => {
     await dataSourceAdapter.account.delete(id);
+    const deletedAccount = accounts.find(a => a.id === id);
     setAccounts((prev) => prev.filter((a) => a.id !== id));
+    if (deletedAccount) {
+      setInactiveAccounts(prev => [{ ...deletedAccount, isActive: false }, ...prev]);
+    }
+  };
+
+  const handleReactivate = async (id: string) => {
+    try {
+      const updated = await dataSourceAdapter.account.reactivate(id);
+      setInactiveAccounts((prev) => prev.filter((a) => a.id !== id));
+      setAccounts((prev) => [updated, ...prev]);
+      setShowForm(false);
+    } catch (err) {
+      console.error('Reactivation failed:', err);
+    }
   };
 
   const handleRecalibrate = async (id: string) => {
@@ -72,12 +100,12 @@ export default function Accounts(): JSX.Element {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-      <div className="h-10 w-48 bg-muted rounded" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-36 bg-muted rounded-xl" />
-        ))}
-      </div>
+        <div className="h-10 w-48 bg-muted rounded" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-36 bg-muted rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -91,15 +119,29 @@ export default function Accounts(): JSX.Element {
             {accounts.length} hesap · Tıklayarak düzenleyebilirsin
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-colors shadow-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Hesap Ekle
-        </button>
+        <div className="flex gap-2">
+          {inactiveAccounts.length > 0 && (
+            <button
+              onClick={() => setShowInactive(!showInactive)}
+              className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all border ${
+                showInactive 
+                  ? 'bg-muted text-foreground border-border' 
+                  : 'bg-transparent text-muted-foreground border-border/50 hover:border-border'
+              }`}
+            >
+              {showInactive ? 'Pasifleri Gizle' : `Arşiv (${inactiveAccounts.length})`}
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Hesap Ekle
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -115,12 +157,65 @@ export default function Accounts(): JSX.Element {
         </div>
       </div>
 
-      {showForm && (
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-foreground mb-4">Yeni Hesap</h2>
-          <AccountForm onSubmit={handleCreate} onCancel={() => setShowForm(false)} />
-        </div>
-      )}
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-card border border-border rounded-xl p-5 shadow-sm"
+          >
+            <h2 className="text-base font-semibold text-foreground mb-4">Yeni Hesap</h2>
+            <AccountForm 
+              userId={user?.id || ''} 
+              onSubmit={handleCreate} 
+              onReactivate={handleReactivate}
+              onCancel={() => setShowForm(false)} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Inactive Accounts Section */}
+      <AnimatePresence>
+        {showInactive && inactiveAccounts.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-muted/30 border border-border/50 rounded-2xl p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📦</span>
+                <h2 className="text-sm font-black text-muted-foreground uppercase tracking-widest">Arşivlenmiş Hesaplar</h2>
+                <div className="h-px flex-1 bg-border/50 ml-2" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {inactiveAccounts.map((account) => (
+                  <div 
+                    key={account.id} 
+                    className="bg-card/50 border border-border rounded-xl p-4 flex items-center justify-between opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-foreground">{account.name}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                        {account.type} • {formatCurrency(account.balance)}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleReactivate(account.id)}
+                      className="px-3 py-1.5 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-primary hover:text-primary-foreground transition-all"
+                    >
+                      Aktifleştir
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {accounts.length === 0 && !showForm ? (
         <div className="text-center py-16 bg-card rounded-xl border border-dashed border-border">

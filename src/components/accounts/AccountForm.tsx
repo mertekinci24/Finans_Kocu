@@ -2,9 +2,12 @@ import { useState, useMemo } from 'react';
 import type { Account } from '@/types';
 import { calculateCCDates, formatFullDate } from '@/utils/dateUtils';
 import { useTimeStore } from '@/stores/timeStore';
+import { dataSourceAdapter } from '@/services/supabase/adapter';
 
 interface AccountFormProps {
+  userId: string;
   onSubmit: (data: Omit<Account, 'id' | 'createdAt' | 'updatedAt' | 'isActive'>) => Promise<void>;
+  onReactivate?: (id: string) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -16,7 +19,7 @@ const TYPE_OPTIONS: Array<{ value: AccountType; label: string; desc: string }> =
   { value: 'kredi_kartı', label: 'Kredi Kartı', desc: 'Kredi kartı borcu' },
 ];
 
-export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): JSX.Element {
+export default function AccountForm({ userId, onSubmit, onReactivate, onCancel }: AccountFormProps): JSX.Element {
   const [type, setType] = useState<AccountType>('banka');
   const [name, setName] = useState('');
   const [bankName, setBankName] = useState('');
@@ -26,6 +29,7 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
   const [paymentDay, setPaymentDay] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [inactiveMatch, setInactiveMatch] = useState<Account | null>(null);
 
   const { systemDate } = useTimeStore();
 
@@ -64,6 +68,8 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
     e.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
+    setInactiveMatch(null);
+
     try {
       const bal = parseFloat(balance.replace(',', '.'));
       const lim = cardLimit ? parseFloat(cardLimit.replace(',', '.')) : undefined;
@@ -71,7 +77,7 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
       const pDay = paymentDay ? parseInt(paymentDay, 10) : undefined;
 
       await onSubmit({
-        userId: 'temp-user-id',
+        userId,
         name: name.trim(),
         type,
         balance: bal,
@@ -88,14 +94,39 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
                          (error?.message && error.message.includes('account_name_per_user'));
       
       if (isDuplicate) {
-        setErrors({ 
-          name: 'Bu isimde bir hesabınız zaten mevcut (aktif veya pasif). Lütfen farklı bir isim seçin.' 
-        });
+        // Check if there is an inactive account with this name
+        try {
+          const existing = await dataSourceAdapter.account.getByName(userId, name.trim());
+          if (existing && !existing.isActive) {
+            setInactiveMatch(existing);
+            setErrors({ 
+              name: `"${name.trim()}" adında arşivlenmiş bir hesabınız var. Yeni hesap açmak yerine onu aktifleştirmek ister misiniz?` 
+            });
+          } else {
+            setErrors({ 
+              name: 'Bu isimde aktif bir hesabınız zaten mevcut. Lütfen farklı bir isim seçin.' 
+            });
+          }
+        } catch (err) {
+          setErrors({ name: 'Bu isimde bir hesap zaten mevcut.' });
+        }
       } else {
         setErrors({ 
           form: 'Hesap oluşturulurken beklenmedik bir hata oluştu. Lütfen tekrar deneyin.' 
         });
       }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!inactiveMatch || !onReactivate) return;
+    setSubmitting(true);
+    try {
+      await onReactivate(inactiveMatch.id);
+    } catch (err) {
+      setErrors({ form: 'Hesap aktifleştirilemedi.' });
     } finally {
       setSubmitting(false);
     }
@@ -133,13 +164,31 @@ export default function AccountForm({ onSubmit, onCancel }: AccountFormProps): J
         <label className="block text-sm font-medium text-muted-foreground mb-1">Hesap Adı</label>
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
+            if (inactiveMatch) setInactiveMatch(null);
+          }}
           placeholder={type === 'nakit' ? 'ör. Cüzdan' : type === 'banka' ? 'ör. Garanti Maaş' : 'ör. Garanti Bonus'}
           className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background text-foreground ${
             errors.name ? 'border-destructive' : 'border-border'
           }`}
         />
-        {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
+        {errors.name && (
+          <div className="mt-2 space-y-2">
+            <p className="text-xs text-destructive font-medium">{errors.name}</p>
+            {inactiveMatch && (
+              <button
+                type="button"
+                onClick={handleReactivate}
+                disabled={submitting}
+                className="w-full py-2 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition-all disabled:opacity-50"
+              >
+                {submitting ? 'Aktifleştiriliyor...' : 'Arşivdeki Hesabı Aktifleştir'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {type !== 'nakit' && (

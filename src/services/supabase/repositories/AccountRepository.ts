@@ -84,6 +84,42 @@ export class SupabaseAccountRepository implements IAccountRepository {
     if (error) throw error;
   }
 
+  async reactivate(id: string): Promise<Account> {
+    const { data, error } = await this.client
+      .from('accounts')
+      .update({ is_active: true, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapToAccount(data);
+  }
+
+  async getInactiveByUserId(userId: string): Promise<Account[]> {
+    const { data, error } = await this.client
+      .from('accounts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', false)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(this.mapToAccount);
+  }
+
+  async getByName(userId: string, name: string): Promise<Account | null> {
+    const { data, error } = await this.client
+      .from('accounts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('name', name)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? this.mapToAccount(data) : null;
+  }
+
   async recalibrateBalance(id: string): Promise<Account> {
     // 1. Fetch account details to know the type
     const account = await this.getById(id);
