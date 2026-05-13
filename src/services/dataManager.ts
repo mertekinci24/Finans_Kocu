@@ -200,9 +200,19 @@ export const dataManager = {
           };
         });
 
-        console.log(`[DATA_IMPORT] Inserting ${sanitizedRows.length} rows into ${table}...`);
+        console.log(`[DATA_IMPORT] Processing ${sanitizedRows.length} rows for ${table}...`);
         
-        const { error } = await supabase.from(table).insert(sanitizedRows);
+        let result;
+        if (table === 'dashboard_layouts') {
+          // Dashboard layouts için upsert kullan (user_id unique olduğu için)
+          // Ayrıca id alanını temizle ki PK çakışması olmasın, user_id üzerinden eşleşsin
+          const layoutRows = sanitizedRows.map(({ id, ...r }) => r);
+          result = await supabase.from(table).upsert(layoutRows, { onConflict: 'user_id' });
+        } else {
+          result = await supabase.from(table).insert(sanitizedRows);
+        }
+        
+        const { error } = result;
         
         if (error) {
           console.error(`[DATA_IMPORT_ERROR] Table: ${table}`, {
