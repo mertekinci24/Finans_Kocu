@@ -16,6 +16,25 @@ export interface BackupData {
   };
 }
 
+export interface CloudBackup {
+  id: string;
+  user_id: string;
+  schema_version: string;
+  backup_type: string;
+  payload: BackupData;
+  summary: {
+    accounts: number;
+    transactions: number;
+    debts: number;
+    installments: number;
+    goals: number;
+    exportedAt: string;
+  };
+  size_bytes: number;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Kullanıcının hesap ID listesini getirir
  */
@@ -224,6 +243,115 @@ export const dataManager = {
           throw new Error(`${table} verileri geri yüklenirken hata oluştu: ${error.message}`);
         }
       }
+    }
+  },
+
+  /**
+   * Bulut Yedekleme İşlemleri
+   */
+  async createCloudBackup(userId: string): Promise<CloudBackup> {
+    try {
+      const payload = await this.exportData(userId);
+      const summary = {
+        accounts: payload.data.accounts.length,
+        transactions: payload.data.transactions.length,
+        debts: payload.data.debts.length,
+        installments: payload.data.installments.length,
+        goals: payload.data.savingGoals.length,
+        exportedAt: payload.exportedAt
+      };
+      const sizeBytes = new Blob([JSON.stringify(payload)]).size;
+
+      const { data, error } = await supabase
+        .from('user_backups')
+        .insert({
+          user_id: userId,
+          schema_version: payload.schemaVersion,
+          backup_type: 'manual',
+          payload,
+          summary,
+          size_bytes: sizeBytes
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Limit check: Keep only last 10 backups
+      await this.cleanupOldBackups(userId);
+
+      return data as CloudBackup;
+    } catch (error: any) {
+      console.error('[CLOUD_BACKUP_CREATE_ERROR]', error);
+      throw new Error('Bulut yedeği oluşturulurken hata oluştu.');
+    }
+  },
+
+  async listCloudBackups(userId: string): Promise<CloudBackup[]> {
+    const { data, error } = await supabase
+      .from('user_backups')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error('[CLOUD_BACKUP_LIST_ERROR]', error);
+      return [];
+    }
+
+    return data as CloudBackup[];
+  },
+
+  async restoreCloudBackup(userId: string, backupId: string): Promise<void> {
+    try {
+      const { data: backup, error } = await supabase
+        .from('user_backups')
+        .select('*')
+        .eq('id', backupId)
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !backup) throw new Error('Yedek bulunamadı.');
+
+      await this.importData(userId, backup.payload as BackupData);
+    } catch (error: any) {
+      console.error('[CLOUD_BACKUP_RESTORE_ERROR]', error);
+      throw error;
+    }
+  },
+
+  async deleteCloudBackup(userId: string, backupId: string): Promise<void> {
+    const { error } = await supabase
+      .from('user_backups')
+      .delete()
+      .eq('id', backupId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('[CLOUD_BACKUP_DELETE_ERROR]', error);
+      throw new Error('Yedek silinirken hata oluştu.');
+    }
+  },
+
+  async cleanupOldBackups(userId: string): Promise<void> {
+    try {
+      // Get all backups for user
+      const { data } = await supabase
+        .from('user_backups')
+        .select('id')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (data && data.length > 10) {
+        const idsToDelete = data.slice(10).map(b => b.id);
+        await supabase
+          .from('user_backups')
+          .delete()
+          .in('id', idsToDelete);
+      }
+    } catch (err) {
+      console.warn('[CLOUD_BACKUP_CLEANUP_WARNING]', err);
     }
   },
 
