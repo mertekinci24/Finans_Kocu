@@ -38,7 +38,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
 
       const attachmentNode = isImage ? (
         <div className="flex flex-col gap-2">
-          <div className="rounded-xl overflow-hidden border border-neutral-200 bg-neutral-50 shadow-inner">
+          <div className="rounded-xl overflow-hidden border border-border bg-muted shadow-inner">
             <img
               src={publicUrl}
               alt={attachment.name || 'Görsel'}
@@ -51,8 +51,8 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
       ) : (
         <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition-all ${
           isUser 
-            ? 'bg-blue-700/40 border-blue-400/20 text-white hover:bg-blue-700/60' 
-            : 'bg-white border-neutral-200 text-neutral-800 hover:border-neutral-300 shadow-sm'
+            ? 'bg-primary/20 border-primary/30 text-primary-foreground hover:bg-primary/30' 
+            : 'bg-card border-border text-foreground hover:border-muted shadow-sm'
         }`}>
           <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-neutral-200/20 flex items-center justify-center text-xl">
             📎
@@ -86,8 +86,8 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
       return (
         <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border text-sm transition-colors ${
           isUser 
-            ? 'bg-blue-700/50 border-blue-400/30 text-white hover:bg-blue-700/70' 
-            : 'bg-white border-neutral-200 text-neutral-800 hover:border-neutral-300 shadow-sm'
+            ? 'bg-primary/30 border-primary/40 text-primary-foreground hover:bg-primary/40' 
+            : 'bg-card border-border text-foreground hover:border-muted shadow-sm'
         }`}>
           <span className="text-xl">📎</span>
           <div className="flex flex-col min-w-0">
@@ -135,12 +135,12 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
       <div
         className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
           isUser
-            ? 'bg-blue-600 text-white rounded-br-none'
-            : 'bg-neutral-100 text-neutral-900 rounded-bl-none'
+            ? 'bg-primary text-primary-foreground rounded-br-none'
+            : 'bg-muted text-foreground rounded-bl-none'
         }`}
       >
         {renderContent()}
-        <p className={`text-[10px] mt-1 text-right font-medium opacity-70 ${isUser ? 'text-blue-100' : 'text-neutral-500'}`}>
+        <p className={`text-[10px] mt-1 text-right font-medium opacity-70 ${isUser ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
           {new Date(message.createdAt).toLocaleTimeString('tr-TR', {
             hour: '2-digit',
             minute: '2-digit',

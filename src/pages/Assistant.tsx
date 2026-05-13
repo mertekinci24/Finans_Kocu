@@ -41,7 +41,7 @@ const buildDeterministicFindeksWelcome = (data: any) => {
       : typeof score === "number" && score >= 1150
       ? "dengeli / orta"
       : typeof score === "number"
-      ? "gelişime açık veya kritik"
+      ? "dengeli / orta" // Fallback to avoid gap
       : "belirsiz";
 
   return `Findeks raporuna göre kredi notunuz ${score}. Bu skor ${scoreText} seviyesinde görünüyor.
@@ -143,11 +143,6 @@ const buildDeterministicIntentAnswer = (
   // --- DETERMINISTIC INTENT GUARDS (PHASE 7.2D-UAT — PRIORITY ORDER) ---
 
   // GUARD 0 (HIGHEST PRIORITY): New Calculation/Ratio Blocking Guard
-  // Must run BEFORE all other guards to prevent LLM fallback on dangerous queries.
-  // Normalized query examples:
-  //   "bana yeni bir risk orani hesapla" -> catches 'hesapla' and 'risk orani'
-  //   "oran uret" -> catches 'oran uret'
-  //   "risk skoru hesapla" -> catches 'hesapla'
   const isCalculationRequest = (
     q.includes('hesapla') ||
     q.includes('hesap yap') ||
@@ -180,7 +175,6 @@ const buildDeterministicIntentAnswer = (
   // GUARD 2: New file parse-in-progress guard
   if (context.isProcessingNewFile) {
     if (q.includes('findeks') || q.includes('kredi not') || q.includes('rapor') || q.includes('dosya') || q.includes('analiz')) {
-      // TODO Phase 7.2F: poll parse status and auto-send summary after parsed result is ready.
       return 'Dosyanız alındı ve analiz başlatıldı. Kısa süre sonra ‘Findeks raporumu yorumla’ diyerek rapor detaylarını alabilirsiniz. Analiz tamamlandığında rapordaki kredi notu, limit, borç ve gecikme bilgilerini varsayım yapmadan yorumlayacağım.';
     }
   }
@@ -225,7 +219,6 @@ Kısa koç yorumu: Uygulama kayıtlarına göre toplam kart borcunuz ₺${totalC
     } Sonraki adım olarak kart ekstre tarihlerini takip edelim.`;
   }
 
-  // FIX 2: Do not trigger Findeks deterministic answer for every message
   if (
     q.includes('findeks') ||
     q.includes('kredi not') ||
@@ -246,28 +239,9 @@ Kısa koç yorumu: Uygulama kayıtlarına göre toplam kart borcunuz ₺${totalC
     const worstPaymentStatus = latestFields.worstPaymentStatus ?? null;
     const currentLongestDelay = latestFields.currentLongestDelay ?? null;
 
-    // FIX: Robust full risk detection — documentType string alone is unreliable.
-    // A report qualifies as 'full risk' if its documentType matches OR if any
-    // risk-specific financial field is present in the parsed data.
     const isFullRiskReport =
       latestDocumentType === 'findeks_full_risk_report' ||
       hasFullRiskFields(latestFields);
-
-    if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_FINDEKS_SOURCE]', {
-        hasParsedAttachment: !!latestParsedFindeks,
-        fileName: latestFileName,
-        score,
-        reportDate,
-        documentType: latestDocumentType,
-        isFullRiskReport,
-        hasFullRiskFieldsResult: hasFullRiskFields(latestFields),
-        fieldsKeys: Object.keys(latestFields),
-        totalLimit,
-        totalDebt,
-        limitUsageRatio,
-      });
-    }
 
     if (latestParsedFindeks && isFullRiskReport) {
       return `Yüklediğiniz son Findeks Risk Raporuna göre kredi notunuz ${score ?? 'bilinmiyor'} ve bu seviye ${scoreBand} olarak yorumlanır.${reportDate ? ` Rapor tarihi: ${reportDate}.` : ''}
@@ -307,7 +281,6 @@ export default function Assistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-
   const [openSessionMenuId, setOpenSessionMenuId] = useState<string | null>(null);
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -318,32 +291,18 @@ export default function Assistant() {
   const isLoadingSessionsRef = useRef(false);
   const isCreatingSessionRef = useRef(false);
   const isRenamingRef = useRef(false);
-  // Phase 7.2F: Prevent duplicate auto-summary for the same message
   const autoSummarizedMessageIdsRef = useRef<Set<string>>(new Set());
-  // Phase 7.2F: Unmount guard to prevent setState on unmounted component
   const isMountedRef = useRef(true);
-  // Phase 7.2F: Ref to track active session ID — prevents stale closure in async finalize
   const activeSessionIdRef = useRef<string | null>(null);
   const isPollingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     isMountedRef.current = true;
-
-    if (ASSISTANT_DEBUG) {
-      console.log('[APP_BUILD_MARKER]', {
-        phase: '7.2F-G-live-ui-fix',
-        commit: '7f60bee',
-        hasLoadMessagesForSession: true,
-        builtAt: new Date().toISOString()
-      });
-    }
-
     return () => {
       isMountedRef.current = false;
     };
   }, []);
 
-  // Phase 7.2F: Keep activeSessionIdRef in sync
   useEffect(() => {
     activeSessionIdRef.current = activeSession?.id ?? null;
   }, [activeSession?.id]);
@@ -354,10 +313,6 @@ export default function Assistant() {
     initialQuery?: string;
   } | null>(null);
 
-  // Phase 7.2F: Poll parse result and auto-send deterministic summary
-  // Root cause of previous timeout: Edge Function uses onConflict='user_id,path',
-  // so if the same file was parsed before, message_id is NOT updated on upsert.
-  // Fix: Primary lookup by 'path' (unique per user+file), fallback by file_name.
   interface PollParseOpts {
     messageId: string;
     sessionId: string;
@@ -367,6 +322,7 @@ export default function Assistant() {
     fileName: string;
     uploadStartedAt: string;
   }
+
   const pollParseAndAutoSummary = async (opts: PollParseOpts) => {
     const { messageId, sessionId, userId, originalText, storagePath, fileName, uploadStartedAt } = opts;
 
@@ -374,365 +330,83 @@ export default function Assistant() {
     isPollingRef.current.add(messageId);
 
     try {
+      const qNorm = normalizeText(originalText);
+      const isAutoSummaryCandidate =
+        !!storagePath ||
+        qNorm.includes('analiz') ||
+        qNorm.includes('yorumla') ||
+        qNorm.includes('findeks') ||
+        qNorm.includes('rapor');
 
-    // Phase 7.2F Fix A: Attachment presence always qualifies for polling.
-    // Previous bug: text-only gate blocked polling when user sent file with unrelated text.
-    const hasAttachment = !!storagePath && !!fileName;
-    const qNorm = normalizeText(originalText);
-    const isAutoSummaryCandidate =
-      hasAttachment ||
-      qNorm.includes('analiz') ||
-      qNorm.includes('yorumla') ||
-      qNorm.includes('findeks') ||
-      qNorm.includes('rapor') ||
-      qNorm.includes('dosyay');
+      if (!isAutoSummaryCandidate) return;
+      if (autoSummarizedMessageIdsRef.current.has(messageId)) return;
 
-    if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_POLL_GATE]', { hasAttachment, originalText, isAutoSummaryCandidate });
-    }
+      const MAX_TRIES = 40;
+      const INTERVAL_MS = 1500;
 
-    if (!isAutoSummaryCandidate) return;
-    if (autoSummarizedMessageIdsRef.current.has(messageId)) return;
-
-    const MAX_TRIES = 40;
-    const INTERVAL_MS = 1500;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const isFindeksResult = (structured: any): boolean => {
-      if (!structured) return false;
-      const sd = structured.structured_data || structured;
-      const docType = (sd.documentType || sd.document_type || '').toLowerCase();
-      const pType = (sd.parserType || '').toLowerCase();
-      const fields = sd.fields || sd;
-      return (
-        docType.includes('findeks') ||
-        pType.includes('findeks') ||
-        hasKnownValue(fields.creditScore) ||
-        hasKnownValue(sd.creditScore)
-      );
-    };
-
-    const finalize = async (status: 'parsed' | 'failed' | 'timeout', structuredData: Record<string, unknown> | null) => {
-      const autoSummaryKey = `${messageId}_${storagePath}`;
-      if (autoSummarizedMessageIdsRef.current.has(autoSummaryKey)) return;
-      autoSummarizedMessageIdsRef.current.add(autoSummaryKey);
-
-      if (status === 'failed') {
-        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
-        if (!isCurrentSession) {
-          if (ASSISTANT_DEBUG) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'failed', sessionId });
-          return;
-        }
-
-        const msg = await dataSourceAdapter.chat.addMessage(
-          sessionId, userId, 'assistant',
-          'Dosya alındı ancak analiz tamamlanamadı. PDF metin katmanı olmayabilir veya format desteklenmiyor olabilir.',
-          undefined, undefined, 0
+      const isFindeksResult = (structured: any): boolean => {
+        if (!structured) return false;
+        const sd = structured.structured_data || structured;
+        const fields = sd.fields || sd;
+        return (
+          (sd.documentType || '').toLowerCase().includes('findeks') ||
+          hasKnownValue(fields.creditScore)
         );
-
-        if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
-            isMounted: isMountedRef.current,
-            activeSessionId: activeSessionIdRef.current,
-            targetSessionId: sessionId,
-            messageId: msg.id,
-            isCurrentSession,
-          });
-        }
-
-        if (isCurrentSession) {
-          setMessages((prev) => {
-            const alreadyExists = prev.some((m) => m.id === msg.id);
-
-            if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
-                prevCount: prev.length,
-                alreadyExists,
-                messageId: msg.id,
-              });
-            }
-
-            if (alreadyExists) return prev;
-
-            const next = [...prev, msg];
-
-            if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
-                nextCount: next.length,
-              });
-            }
-
-            return next;
-          });
-
-          await loadMessagesForSession(sessionId);
-        }
-        return;
-      }
-
-      if (status === 'timeout') {
-        if (ASSISTANT_DEBUG) console.log('[7.2F_TIMEOUT_REASON] lastPass=2, timeout=true');
-        
-        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
-        if (!isCurrentSession) {
-          if (ASSISTANT_DEBUG) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'timeout', sessionId });
-          return;
-        }
-
-        const msg = await dataSourceAdapter.chat.addMessage(
-          sessionId, userId, 'assistant',
-          'Analiz beklenenden uzun sürdü. Sonuç arka planda tamamlanabilir; biraz sonra "Findeks raporumu yorumla" yazarsanız hazır sonucu kullanarak yorumlayabilirim.',
-          undefined, undefined, 0
-        );
-
-        if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
-            isMounted: isMountedRef.current,
-            activeSessionId: activeSessionIdRef.current,
-            targetSessionId: sessionId,
-            messageId: msg.id,
-            isCurrentSession,
-          });
-        }
-
-        if (isCurrentSession) {
-          setMessages((prev) => {
-            const alreadyExists = prev.some((m) => m.id === msg.id);
-
-            if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
-                prevCount: prev.length,
-                alreadyExists,
-                messageId: msg.id,
-              });
-            }
-
-            if (alreadyExists) return prev;
-
-            const next = [...prev, msg];
-
-            if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
-                nextCount: next.length,
-              });
-            }
-
-            return next;
-          });
-
-          await loadMessagesForSession(sessionId);
-        }
-        return;
-      }
-
-      // status === 'parsed'
-      if (!isFindeksResult(structuredData)) {
-        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
-        if (!isCurrentSession) {
-          if (ASSISTANT_DEBUG) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'parsed_non_findeks', sessionId });
-          return;
-        }
-
-        const msg = await dataSourceAdapter.chat.addMessage(
-          sessionId, userId, 'assistant',
-          'Analiz tamamlandı, ancak bu dosya Findeks raporu gibi görünmüyor. Başka bir sorunuz varsa yardımcı olabilirim.',
-          undefined, undefined, 0
-        );
-
-        if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
-            isMounted: isMountedRef.current,
-            activeSessionId: activeSessionIdRef.current,
-            targetSessionId: sessionId,
-            messageId: msg.id,
-            isCurrentSession,
-          });
-        }
-
-        if (isCurrentSession) {
-          setMessages((prev) => {
-            const alreadyExists = prev.some((m) => m.id === msg.id);
-
-            if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
-                prevCount: prev.length,
-                alreadyExists,
-                messageId: msg.id,
-              });
-            }
-
-            if (alreadyExists) return prev;
-
-            const next = [...prev, msg];
-
-            if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
-                nextCount: next.length,
-              });
-            }
-
-            return next;
-          });
-
-          await loadMessagesForSession(sessionId);
-        }
-        return;
-      }
-
-      if (ASSISTANT_DEBUG) console.log('[7.2F_HAS_STRUCTURED_DATA] True');
-
-      const baseContext = await buildUserContext(userId);
-      const sd = structuredData as any;
-      
-      const syntheticAttachment = {
-        file_name: fileName,
-        document_type: (sd?.documentType || sd?.document_type || 'Unknown').toString().toLowerCase(),
-        status: 'parsed',
-        structured_data: structuredData
       };
 
-      if (ASSISTANT_DEBUG) console.log('[7.2F_SYNTHETIC_ATTACHMENT_INJECTED]');
+      const finalize = async (status: 'parsed' | 'failed' | 'timeout', structuredData: Record<string, unknown> | null) => {
+        const autoSummaryKey = `${messageId}_${storagePath}`;
+        if (autoSummarizedMessageIdsRef.current.has(autoSummaryKey)) return;
+        autoSummarizedMessageIdsRef.current.add(autoSummaryKey);
 
-      const freshEnriched = { 
-        ...baseContext, 
-        parsedAttachments: [
-          syntheticAttachment as any,
-          ...(baseContext.parsedAttachments ?? [])
-        ],
-        isProcessingNewFile: false 
+        const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
+        if (!isCurrentSession) return;
+
+        let responseText = '';
+        if (status === 'failed') {
+          responseText = 'Dosya alındı ancak analiz tamamlanamadı. PDF formatı desteklenmiyor olabilir.';
+        } else if (status === 'timeout') {
+          responseText = 'Analiz beklenenden uzun sürdü. Sonuç hazır olduğunda yorumlayabilirim.';
+        } else if (status === 'parsed' && !isFindeksResult(structuredData)) {
+          responseText = 'Analiz tamamlandı, ancak bu dosya Findeks raporu gibi görünmüyor.';
+        } else if (status === 'parsed') {
+          const baseContext = await buildUserContext(userId);
+          const syntheticAttachment = {
+            file_name: fileName,
+            document_type: (structuredData as any)?.documentType?.toLowerCase() || 'unknown',
+            status: 'parsed',
+            structured_data: structuredData
+          };
+          const freshEnriched = { 
+            ...baseContext, 
+            parsedAttachments: [syntheticAttachment as any, ...(baseContext.parsedAttachments ?? [])],
+            isProcessingNewFile: false 
+          };
+          responseText = buildDeterministicIntentAnswer('Findeks raporumu yorumla', freshEnriched) || 'Analiz hazır.';
+        }
+
+        const msg = await dataSourceAdapter.chat.addMessage(sessionId, userId, 'assistant', responseText, undefined, undefined, 0);
+        if (isMountedRef.current && activeSessionIdRef.current === sessionId) {
+          setMessages((prev) => [...prev, msg]);
+        }
       };
-      
-      const summary = buildDeterministicIntentAnswer(
-        'Findeks raporumu profesyonelce yorumlar mısın?',
-        freshEnriched,
-        undefined
-      );
-      
-      if (ASSISTANT_DEBUG) console.log('[7.2F_SUMMARY_BUILT]', { ok: !!summary });
 
-      const isCurrentSession = isMountedRef.current && activeSessionIdRef.current === sessionId;
-      if (!isCurrentSession) {
-        if (ASSISTANT_DEBUG) console.log('[7.2F_SKIP_MESSAGE_WRITE_NOT_CURRENT_SESSION]', { status: 'parsed_findeks', sessionId });
-        return;
-      }
-
-      const autoMsg = await dataSourceAdapter.chat.addMessage(
-        sessionId, userId, 'assistant',
-        summary ?? 'Analiz tamamlandı. Rapor detaylarını görmek için "Findeks raporumu yorumla" diyebilirsiniz.',
-        undefined, undefined, 0
-      );
-
-        if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_INJECT_ATTEMPT]', {
-            isMounted: isMountedRef.current,
-            activeSessionId: activeSessionIdRef.current,
-            targetSessionId: sessionId,
-            messageId: autoMsg.id,
-            isCurrentSession,
-          });
-        }
-
-        if (isCurrentSession) {
-          setMessages((prev) => {
-            const alreadyExists = prev.some((m) => m.id === autoMsg.id);
-
-            if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_SET_MESSAGES_ENTERED]', {
-                prevCount: prev.length,
-                alreadyExists,
-                messageId: autoMsg.id,
-              });
-            }
-
-            if (alreadyExists) return prev;
-
-            const next = [...prev, autoMsg];
-
-            if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_UI_STATE_SET_MESSAGES_RESULT]', {
-                nextCount: next.length,
-              });
-            }
-
-            return next;
-          });
-
-          await loadMessagesForSession(sessionId);
-        }
-    };
-    if (ASSISTANT_DEBUG) console.log('[7.2F_POLL_START]', { messageId, storagePath, fileName, userId });
-
-    const uploadSinceWithTolerance = new Date(
-      new Date(uploadStartedAt).getTime() - 2 * 60 * 1000
-    ).toISOString();
-
-    for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
-      await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
-
-      try {
-        let row = null;
-
-        // PASS 1: Exact match by storage path (most reliable -- path is unique per user+file in Edge Fn)
-        const { data: byPath, error: err1 } = await supabase
-          .from('attachment_parse_results')
-          .select('status, structured_data')
-          .eq('user_id', userId)
-          .eq('path', storagePath)
-          .in('status', ['parsed', 'failed'])
-          .maybeSingle();
-
-        if (err1 && import.meta.env.DEV) console.warn('[7.2F_PASS_1_PATH] Error:', err1.message);
-
+      const uploadSince = new Date(new Date(uploadStartedAt).getTime() - 120000).toISOString();
+      for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
+        const { data: byPath } = await supabase.from('attachment_parse_results').select('status, structured_data').eq('user_id', userId).eq('path', storagePath).in('status', ['parsed', 'failed']).maybeSingle();
         if (byPath) {
-          row = byPath;
-          if (ASSISTANT_DEBUG) console.log('[7.2F_ROW_FOUND] Pass-1 (path)', row.status);
+          if (byPath.status === 'failed') { await finalize('failed', null); return; }
+          if (byPath.status === 'parsed') { await finalize('parsed', byPath.structured_data); return; }
         }
-
-        // PASS 2: file_name + updated_at window
-        if (!row) {
-          const { data: byName, error: err2 } = await supabase
-            .from('attachment_parse_results')
-            .select('status, structured_data')
-            .eq('user_id', userId)
-            .eq('file_name', fileName)
-            .in('status', ['parsed', 'failed'])
-            .gte('updated_at', uploadSinceWithTolerance)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (err2 && import.meta.env.DEV) console.warn('[7.2F_PASS_2_FILENAME_UPDATED_AT] Error:', err2.message);
-
-          if (byName) {
-            row = byName;
-            if (ASSISTANT_DEBUG) console.log('[7.2F_ROW_FOUND] Pass-2 (file_name)', row.status);
-          }
-        }
-
-        // Pass-3 removed in 7.2F-H for auto-summary safety.
-        // We only rely on deterministic Pass-1 (path) and Pass-2 (file_name + time window).
-
-        if (!row) {
-          if (ASSISTANT_DEBUG) console.log('[7.2F_PARSE] Attempt ' + (attempt + 1) + ': no completed row yet');
-          continue;
-        }
-
-        if (row.status === 'failed') { await finalize('failed', null); return; }
-        if (row.status === 'parsed') { await finalize('parsed', row.structured_data); return; }
-
-      } catch (err) {
-        if (import.meta.env.DEV) console.warn('Unexpected poll error:', err);
       }
-    }
-
-    await finalize('timeout', null);
+      await finalize('timeout', null);
     } finally {
       isPollingRef.current.delete(messageId);
     }
   };
 
-  const entryMode: AssistantEntryMode =
-    location.state?.findeksData ? "findeks_bridge" : "general_finance";
+  const entryMode: AssistantEntryMode = location.state?.findeksData ? "findeks_bridge" : "general_finance";
 
   useEffect(() => {
     if (user && !hasBootstrappedSessionsRef.current) {
@@ -759,99 +433,45 @@ export default function Assistant() {
         findeksData: location.state.findeksData,
         initialQuery: location.state.initialQuery,
       };
-
-      if (ASSISTANT_DEBUG) {
-        console.log("[ASSISTANT_BRIDGE_CAPTURED]", {
-          documentType: location.state.findeksData?.documentType,
-          parserVersion: location.state.findeksData?.parserVersion,
-          missingFields: location.state.findeksData?.missingFields,
-        });
-      }
     }
   }, [location.state]);
 
   useEffect(() => {
-    if (activeSession) {
-      loadMessages();
-    }
+    if (activeSession) loadMessages();
   }, [activeSession]);
 
   useEffect(() => {
     const payload = pendingBridgeRef.current;
-
-    if (
-      activeSession &&
-      !hasTriggeredRef.current &&
-      !isLoading &&
-      payload?.mode === "findeks_bridge"
-    ) {
-      const initialQuery =
-        payload.initialQuery || buildDefaultFindeksQuery(payload.findeksData);
-
+    if (activeSession && !hasTriggeredRef.current && !isLoading && payload?.mode === "findeks_bridge") {
+      const initialQuery = payload.initialQuery || buildDefaultFindeksQuery(payload.findeksData);
       const timer = setTimeout(async () => {
-        if (hasTriggeredRef.current) return;
-        if (!user || !activeSession) return;
-
+        if (hasTriggeredRef.current || !user || !activeSession) return;
         hasTriggeredRef.current = true;
-
         setIsLoading(true);
         try {
-          const userMsg = await dataSourceAdapter.chat.addMessage(
-            activeSession.id,
-            user.id,
-            'user',
-            initialQuery,
-            undefined,
-            0
-          );
+          const userMsg = await dataSourceAdapter.chat.addMessage(activeSession.id, user.id, 'user', initialQuery, undefined, 0);
           setMessages((prev) => [...prev, userMsg]);
-
           const assistantText = buildDeterministicFindeksWelcome(payload.findeksData);
-          const assistantMsg = await dataSourceAdapter.chat.addMessage(
-            activeSession.id,
-            user.id,
-            'assistant',
-            assistantText,
-            undefined,
-            0
-          );
+          const assistantMsg = await dataSourceAdapter.chat.addMessage(activeSession.id, user.id, 'assistant', assistantText, undefined, 0);
           setMessages((prev) => [...prev, assistantMsg]);
-        } catch (error) {
-          console.error("Bridge message error:", error);
         } finally {
           setIsLoading(false);
         }
-
         pendingBridgeRef.current = null;
-
-        if (ASSISTANT_DEBUG) {
-        console.log("[ASSISTANT_BRIDGE_SENT_DETERMINISTIC]", {
-            documentType: payload.findeksData?.documentType,
-            missingFields: payload.findeksData?.missingFields,
-          });
-        }
       }, 800);
-
       return () => clearTimeout(timer);
     }
   }, [activeSession, isLoading]);
 
   const loadSessions = async () => {
     if (!user || isLoadingSessionsRef.current) return;
-
     isLoadingSessionsRef.current = true;
     try {
       const userSessions = await dataSourceAdapter.chat.getUserSessions(user.id);
-
       if (userSessions.length > 0) {
         setSessions(userSessions);
-        setActiveSession((prev) => prev ?? userSessions[0]);
-        return;
+        setActiveSession(userSessions[0]);
       }
-
-      setSessions([]);
-      setActiveSession(null);
-      setMessages([]);
     } finally {
       isLoadingSessionsRef.current = false;
     }
@@ -863,61 +483,16 @@ export default function Assistant() {
     setMessages(sessionMessages);
   };
 
-  // Phase 7.2F-G: Session-independent message reload for async finalize
-  const loadMessagesForSession = async (sid: string) => {
-    const sessionMessages = await dataSourceAdapter.chat.getMessages(sid);
-
-    if (isMountedRef.current && activeSessionIdRef.current === sid) {
-      setMessages(sessionMessages);
-
-      if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_LOAD_MESSAGES_FALLBACK]', {
-          sid,
-          count: sessionMessages.length,
-        });
-      }
-    }
-  };
-  
-  // Phase 7.2F-G: Lifecycle Resilient Polling Trigger
-  // Phase 7.2F-H: Hardened scope (PDF only, recent messages only, current session only)
   useEffect(() => {
     if (!user || !activeSession || !messages.length) return;
-
-    const FIVE_MINUTES = 5 * 60 * 1000;
     const now = Date.now();
-
-    // We look for the latest user message with an attachment
     const pendingMsg = [...messages].reverse().find(m => {
       if (m.role !== 'user' || !m.attachment?.path) return false;
-      
-      // Filter A: Already summarized in this instance
-      if (autoSummarizedMessageIdsRef.current.has(`${m.id}_${m.attachment.path}`)) return false;
-
-      // Filter B: File type (PDF only)
-      const fileName = (m.attachment.name || '').toLowerCase();
-      const isPdf = m.attachment.type === 'application/pdf' || fileName.endsWith('.pdf');
-      if (!isPdf) return false;
-
-      // Filter C: Recency (last 5 minutes)
       const createdAt = new Date(m.createdAt).getTime();
-      if (now - createdAt > FIVE_MINUTES) return false;
-
-      // Filter D: Current session ID (safety)
-      if (m.sessionId !== activeSession.id) return false;
-
-      return true;
+      return (now - createdAt < 300000) && (m.sessionId === activeSession.id);
     });
 
     if (pendingMsg && pendingMsg.attachment && !isPollingRef.current.has(pendingMsg.id)) {
-      if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_RESILIENT_POLL_TRIGGER]', {
-          messageId: pendingMsg.id,
-          fileName: pendingMsg.attachment.name,
-          activePolls: Array.from(isPollingRef.current)
-        });
-      }
-
       pollParseAndAutoSummary({
         messageId: pendingMsg.id,
         sessionId: activeSession.id,
@@ -925,27 +500,18 @@ export default function Assistant() {
         originalText: pendingMsg.content,
         storagePath: pendingMsg.attachment.path,
         fileName: pendingMsg.attachment.name,
-        uploadStartedAt: pendingMsg.createdAt instanceof Date 
-          ? pendingMsg.createdAt.toISOString() 
-          : new Date(pendingMsg.createdAt).toISOString()
+        uploadStartedAt: new Date(pendingMsg.createdAt).toISOString()
       });
     }
-  }, [messages, activeSession?.id, user?.id]);
+  }, [messages, activeSession?.id]);
 
   const createNewSession = async () => {
     if (!user || isCreatingSessionRef.current) return null;
-
     isCreatingSessionRef.current = true;
     try {
-      const title = `Sohbet ${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}`;
+      const title = `Sohbet ${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
       const newSession = await dataSourceAdapter.chat.createSession(user.id, title);
-      setSessions((prev) => {
-        if (prev.some((s) => s.id === newSession.id)) return prev;
-        return [newSession, ...prev];
-      });
+      setSessions(prev => [newSession, ...prev]);
       setActiveSession(newSession);
       setMessages([]);
       return newSession;
@@ -963,244 +529,63 @@ export default function Assistant() {
   const handleConfirmRename = async (sessionId: string) => {
     if (isRenamingRef.current) return;
     isRenamingRef.current = true;
-
     try {
       const trimmed = renameValue.trim();
-      if (!trimmed) {
-        setRenamingSessionId(null);
-        return;
+      if (trimmed) {
+        await dataSourceAdapter.chat.renameSession(sessionId, trimmed);
+        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, title: trimmed } : s));
+        if (activeSession?.id === sessionId) setActiveSession(prev => prev ? { ...prev, title: trimmed } : null);
       }
-
-      await dataSourceAdapter.chat.renameSession(sessionId, trimmed);
-
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, title: trimmed } : s))
-      );
-
-      if (activeSessionIdRef.current === sessionId) {
-        setActiveSession((prev) => (prev ? { ...prev, title: trimmed } : prev));
-      }
-    } catch (e) {
-      console.error(e);
     } finally {
       isRenamingRef.current = false;
       setRenamingSessionId(null);
-      setRenameValue('');
     }
   };
 
   const handleDeleteSession = async (sessionId: string) => {
-    const confirmed = window.confirm('Bu sohbet ve içindeki tüm mesajlar silinecek. Emin misiniz?');
-    if (!confirmed || deletingSessionId) return;
-
+    if (!window.confirm('Emin misiniz?')) return;
     setDeletingSessionId(sessionId);
-
     try {
       await dataSourceAdapter.chat.deleteSession(sessionId);
-
-      const remaining = sessions.filter((s) => s.id !== sessionId);
-
-      if (remaining.length > 0) {
-        setSessions(remaining);
-
-        if (activeSessionIdRef.current === sessionId) {
-          setActiveSession(remaining[0]);
-        }
-
-        return;
+      const remaining = sessions.filter(s => s.id !== sessionId);
+      setSessions(remaining);
+      if (activeSession?.id === sessionId) {
+        setActiveSession(remaining.length > 0 ? remaining[0] : null);
+        if (remaining.length === 0) setMessages([]);
       }
-
-      setSessions([]);
-      setActiveSession(null);
-      setMessages([]);
-      return;
     } finally {
       setDeletingSessionId(null);
       setOpenSessionMenuId(null);
     }
   };
 
-  const handleSendMessage = async (
-    text: string,
-    options?: {
-      findeksOverride?: any;
-      entryMode?: AssistantEntryMode;
-      file?: File;
-    }
-  ) => {
+  const handleSendMessage = async (text: string, options?: { file?: File }) => {
     if (!user || !activeSession) return;
-
     setIsLoading(true);
-
     try {
       let attachmentMetadata = undefined;
-
-      if (options?.file && options.file.size > 0) {
+      if (options?.file) {
         const file = options.file;
-        const safeFileName = file.name.replace(/[^\w.\-ğüşöçıİĞÜŞÖÇ]/g, '_');
-        const filePath = `${user.id}/${activeSession.id}/${Date.now()}-${safeFileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('chat-attachments')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: file.type || 'application/octet-stream',
-          });
-
-        if (uploadError) {
-          throw new Error(`Dosya yüklenemedi: ${uploadError.message}`);
-        }
-
-        attachmentMetadata = {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          path: filePath,
-          bucket: 'chat-attachments'
-        };
+        const filePath = `${user.id}/${activeSession.id}/${Date.now()}-${file.name}`;
+        await supabase.storage.from('chat-attachments').upload(filePath, file);
+        attachmentMetadata = { name: file.name, type: file.type, size: file.size, path: filePath, bucket: 'chat-attachments' };
       }
 
-      const userMsg = await dataSourceAdapter.chat.addMessage(
-        activeSession.id,
-        user.id,
-        'user',
-        text,
-        undefined,
-        attachmentMetadata,
-        0
-      );
-      setMessages((prev) => [...prev, userMsg]);
-
-      // Trigger server-side parsing (non-blocking) + Phase 7.2F auto-summary polling
-      if (attachmentMetadata) {
-        const uploadStartedAt = new Date().toISOString();
-        const sessionToken = (await supabase.auth.getSession()).data.session?.access_token;
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-gateway/ai/attachments/parse`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken}`
-          },
-          body: JSON.stringify({
-            messageId: userMsg.id,
-            bucket: attachmentMetadata.bucket,
-            path: attachmentMetadata.path,
-            fileName: attachmentMetadata.name,
-            mimeType: attachmentMetadata.type
-          })
-        }).then((resp) => {
-          if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_PARSE_TRIGGER_RESPONSE]', { ok: resp.ok, status: resp.status });
-            if (!resp.ok) {
-              resp.text().then((body) => {
-                console.warn('[7.2F_PARSE_TRIGGER_FAILED]', { status: resp.status, body: body.slice(0, 200) });
-              }).catch(() => {});
-            }
-          }
-        }).catch((err) => {
-          if (import.meta.env.DEV) console.warn('[7.2F_PARSE_TRIGGER_NETWORK_ERROR]', err);
-        });
-      }
+      const userMsg = await dataSourceAdapter.chat.addMessage(activeSession.id, user.id, 'user', text, undefined, attachmentMetadata, 0);
+      setMessages(prev => [...prev, userMsg]);
 
       const context = await buildUserContext(user.id);
-      
-      if (ASSISTANT_DEBUG) {
-      console.log('[7.2F_CONTEXT_PARSED_ATTACHMENTS]', {
-          count: context.parsedAttachments?.length || 0,
-          latest: context.parsedAttachments?.[0]?.structured_data,
-        });
-      }
-      
-      const enrichedContext = {
-        ...context,
-        findeksData: options?.findeksOverride ?? context.findeksData,
-        assistantEntryMode: options?.entryMode ?? entryMode,
-        isProcessingNewFile: !!attachmentMetadata, // Pass flag to deterministic guard
-      };
-
-      const deterministicAnswer = buildDeterministicIntentAnswer(
-        text,
-        enrichedContext,
-        options?.findeksOverride ?? location.state?.findeksData
-      );
+      const deterministicAnswer = buildDeterministicIntentAnswer(text, { ...context, isProcessingNewFile: !!attachmentMetadata });
 
       if (deterministicAnswer) {
-        const assistantMsg = await dataSourceAdapter.chat.addMessage(
-          activeSession.id,
-          user.id,
-          'assistant',
-          deterministicAnswer,
-          undefined, // suggestedTransaction
-          undefined, // attachment
-          0          // tokensUsed
-        );
-        setMessages((prev) => [...prev, assistantMsg]);
+        const assistantMsg = await dataSourceAdapter.chat.addMessage(activeSession.id, user.id, 'assistant', deterministicAnswer, undefined, undefined, 0);
+        setMessages(prev => [...prev, assistantMsg]);
         return;
       }
 
-      // SECURITY LAYER 2: Block LLM call entirely for calculation patterns
-      const qNorm = normalizeText(text);
-      const isBlockedLLMQuery = (
-        qNorm.includes('hesapla') ||
-        qNorm.includes('hesap yap') ||
-        qNorm.includes('oran uret') ||
-        qNorm.includes('skor uret') ||
-        qNorm.includes('yeni oran') ||
-        qNorm.includes('yeni risk') ||
-        qNorm.includes('calculate') ||
-        qNorm.includes('generate ratio')
-      );
-
-      if (isBlockedLLMQuery) {
-        const safeMsg = await dataSourceAdapter.chat.addMessage(
-          activeSession.id,
-          user.id,
-          'assistant',
-          'Yeni hesaplama yapamam. Sadece mevcut deterministik sonuçları yorumlayabilirim.',
-          undefined,
-          undefined,
-          0
-        );
-        setMessages((prev) => [...prev, safeMsg]);
-        return;
-      }
-
-      const response = await sendAssistantMessage(text, enrichedContext, messages);
-
-      // SECURITY LAYER 3: Prompt leak sanitizer
-      const LEAK_PATTERNS = [
-        'No JSON', 'internal thought', 'must not', 'deterministic summary',
-        'The user asks', 'According to deterministic', 'Write Turkish', 'max 900 chars',
-      ];
-      const hasLeak = LEAK_PATTERNS.some((p) => response.message.includes(p));
-      const safeResponse = hasLeak
-        ? 'Yanıt oluşturulurken bir sorun oluştu. Lütfen sorunuzu tekrar sorun.'
-        : response.message;
-
-      const assistantMsg = await dataSourceAdapter.chat.addMessage(
-        activeSession.id,
-        user.id,
-        'assistant',
-        safeResponse,
-        response.suggestedTransaction,
-        undefined, // attachment
-        response.tokensUsed
-      );
-      setMessages((prev) => [...prev, assistantMsg]);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Asistan hatası';
-      if (activeSession) {
-        const errorMsg = await dataSourceAdapter.chat.addMessage(
-          activeSession.id,
-          user.id,
-          'assistant',
-          `Hata: ${msg}`,
-          undefined,
-          0
-        );
-        setMessages((prev) => [...prev, errorMsg]);
-      }
+      const response = await sendAssistantMessage(text, context, messages);
+      const assistantMsg = await dataSourceAdapter.chat.addMessage(activeSession.id, user.id, 'assistant', response.message, response.suggestedTransaction, undefined, response.tokensUsed);
+      setMessages(prev => [...prev, assistantMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -1208,49 +593,21 @@ export default function Assistant() {
 
   const handleAcceptTransaction = async (transaction: SuggestedTransaction) => {
     if (!user) return;
-
     try {
       const accounts = await dataSourceAdapter.account.getByUserId(user.id);
-      const primaryAccount = accounts.find((a) => a.isActive) || accounts[0];
-
-      if (!primaryAccount) {
-        alert('Lütfen önce bir hesap oluşturun');
-        return;
-      }
-
-      await dataSourceAdapter.transaction.create({
-        accountId: primaryAccount.id,
-        amount: transaction.amount,
-        description: transaction.description,
-        category: transaction.category,
-        date: transaction.date,
-        type: transaction.type,
-      });
-
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.suggestedTransaction ? { ...msg, suggestedTransaction: undefined } : msg
-        )
-      );
-
-      alert('İşlem kaydedildi!');
-    } catch (error) {
-      alert('İşlem kaydedilirken hata oluştu');
-    }
+      const primaryAccount = accounts.find(a => a.isActive) || accounts[0];
+      if (!primaryAccount) return;
+      await dataSourceAdapter.transaction.create({ accountId: primaryAccount.id, amount: transaction.amount, description: transaction.description, category: transaction.category, date: transaction.date, type: transaction.type });
+      setMessages(prev => prev.map(msg => ({ ...msg, suggestedTransaction: undefined })));
+      alert('Kaydedildi!');
+    } catch (e) { alert('Hata!'); }
   };
 
   return (
-    <div className="flex h-[calc(100vh-2rem)] min-h-0 gap-4 overflow-hidden animate-fade-in">
-      <div className="w-64 bg-neutral-50 rounded-lg p-4 border border-neutral-200 flex flex-col min-h-0 overflow-hidden">
+    <div className="flex h-[calc(100vh-2rem)] min-h-0 gap-4 overflow-hidden animate-fade-in text-foreground">
+      <div className="w-64 bg-muted/30 rounded-lg p-4 border border-border flex flex-col min-h-0 overflow-hidden">
         <h2 className="text-lg font-bold mb-4">Sohbetler</h2>
-
-        <button
-          onClick={createNewSession}
-          className="w-full mb-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-        >
-          + Yeni Sohbet Başlat
-        </button>
-
+        <button onClick={createNewSession} className="w-full mb-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors">+ Yeni Sohbet Başlat</button>
         <div className="flex-1 space-y-2 overflow-y-auto min-h-0 pr-1">
           {sessions.map((session) => (
             <div key={session.id} className="relative group">
@@ -1258,7 +615,7 @@ export default function Assistant() {
                 <input
                   type="text"
                   autoFocus
-                  className="w-full text-left px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full text-left px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
                   onBlur={() => handleConfirmRename(session.id)}
@@ -1268,69 +625,20 @@ export default function Assistant() {
                   }}
                 />
               ) : (
-                <div
-                  className={`flex items-center rounded-lg pr-2 transition-colors ${
-                    activeSession?.id === session.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white hover:bg-neutral-100 text-neutral-900'
-                  }`}
-                >
+                <div className={`flex items-center rounded-lg pr-2 transition-colors ${activeSession?.id === session.id ? 'bg-primary text-primary-foreground' : 'bg-card hover:bg-muted text-foreground'}`}>
+                  <button onClick={() => setActiveSession(session)} className="flex-1 truncate text-left px-3 py-2 text-sm" title={session.title}>{session.title}</button>
                   <button
-                    onClick={() => {
-                      setActiveSession(session);
-                      setOpenSessionMenuId(null);
-                    }}
-                    className="flex-1 truncate text-left px-3 py-2"
-                    title={session.title}
-                  >
-                    {session.title}
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenSessionMenuId(
-                        openSessionMenuId === session.id ? null : session.id
-                      );
-                    }}
-                    className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-                      activeSession?.id === session.id
-                        ? 'hover:bg-blue-700 text-blue-100 hover:text-white'
-                        : 'hover:bg-neutral-200 text-neutral-400 hover:text-neutral-600'
-                    }`}
-                  >
-                    ⋮
-                  </button>
+                    onClick={(e) => { e.stopPropagation(); setOpenSessionMenuId(openSessionMenuId === session.id ? null : session.id); }}
+                    className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${activeSession?.id === session.id ? 'hover:bg-primary-foreground/20 text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
+                  >⋮</button>
                 </div>
               )}
-
               {openSessionMenuId === session.id && (
                 <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onPointerDown={() => setOpenSessionMenuId(null)}
-                    aria-hidden="true"
-                  />
-                  <div className="absolute right-0 top-10 z-20 w-40 rounded-lg border bg-white shadow-lg overflow-hidden py-1">
-                    <button
-                      className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartRename(session);
-                      }}
-                    >
-                      Yeniden adlandır
-                    </button>
-                    <button
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteSession(session.id);
-                      }}
-                      disabled={deletingSessionId === session.id}
-                    >
-                      {deletingSessionId === session.id ? 'Siliniyor...' : 'Sil'}
-                    </button>
+                  <div className="fixed inset-0 z-10" onPointerDown={() => setOpenSessionMenuId(null)} />
+                  <div className="absolute right-0 top-10 z-20 w-40 rounded-lg border border-border bg-card shadow-lg overflow-hidden py-1">
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-muted" onClick={() => handleStartRename(session)}>Yeniden adlandır</button>
+                    <button className="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10" onClick={() => handleDeleteSession(session.id)}>Sil</button>
                   </div>
                 </>
               )}
@@ -1342,22 +650,14 @@ export default function Assistant() {
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <div className="mb-4">
           <h1 className="text-2xl font-bold">AI Finansal Danışman</h1>
-          <p className="text-neutral-600 text-sm">
-            Doğal dille finansal sorularını sor, aksiyon al
-          </p>
+          <p className="text-muted-foreground text-sm">Doğal dille finansal sorularını sor, aksiyon al</p>
         </div>
-
         {activeSession ? (
-          <ChatInterface
-            messages={messages}
-            isLoading={isLoading}
-            onSendMessage={handleSendMessage}
-            onAcceptTransaction={handleAcceptTransaction}
-          />
+          <ChatInterface messages={messages} isLoading={isLoading} onSendMessage={handleSendMessage} onAcceptTransaction={handleAcceptTransaction} />
         ) : (
-          <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-neutral-500 border-2 border-dashed border-neutral-200 rounded-lg bg-neutral-50">
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border rounded-lg bg-muted/30">
             <div className="text-4xl mb-4">💬</div>
-            <p className="text-lg font-medium text-neutral-700">Henüz bir sohbet seçilmedi</p>
+            <p className="text-lg font-medium text-foreground">Henüz bir sohbet seçilmedi</p>
             <p className="text-sm mt-1">Sol menüdeki “+ Yeni Sohbet Başlat” butonuyla yeni bir sohbet oluşturabilirsiniz.</p>
           </div>
         )}

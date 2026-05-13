@@ -117,22 +117,22 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
     }
   };
 
-  const labelCls = "block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1";
+  const labelCls = "block text-sm font-medium text-muted-foreground mb-1";
   const inputCls = (field: string) =>
-    `w-full bg-white dark:bg-slate-900 border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 ${
-      errors[field] ? 'border-error-400' : 'border-neutral-300 dark:border-neutral-700'
+    `w-full bg-background border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors text-foreground placeholder-muted-foreground ${
+      errors[field] ? 'border-destructive' : 'border-border'
     }`;
 
-  const selectCls = "w-full bg-white dark:bg-slate-900 border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 text-neutral-900 dark:text-white";
+  const selectCls = "w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 text-foreground";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {submitError && (
-        <div className="p-3 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
-          <svg className="w-4 h-4 text-error-600 dark:text-error-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+          <svg className="w-4 h-4 text-destructive mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <div className="text-xs text-error-700 dark:text-error-300 font-medium">
+          <div className="text-xs text-destructive font-medium">
             {submitError}
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
               <option key={acc.id} value={acc.id}>{acc.name}</option>
             ))}
           </select>
-          <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400 italic">
+          <p className="mt-1 text-[10px] text-muted-foreground italic">
             Seçerseniz, ödeme günü geldiğinde bu hesabın bakiyesinden otomatik düşülür.
           </p>
         </div>
@@ -177,7 +177,7 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
           className={inputCls('lenderName')}
           autoFocus
         />
-        {errors.lenderName && <p className="text-xs text-error-600 mt-1">{errors.lenderName}</p>}
+        {errors.lenderName && <p className="text-xs text-destructive mt-1">{errors.lenderName}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -189,7 +189,7 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
             placeholder="ör. 850"
             className={inputCls('monthlyPayment')}
           />
-          {errors.monthlyPayment && <p className="text-xs text-error-600 mt-1">{errors.monthlyPayment}</p>}
+          {errors.monthlyPayment && <p className="text-xs text-destructive mt-1">{errors.monthlyPayment}</p>}
         </div>
         <div>
           <label className={labelCls}>Toplam Taksit Sayısı</label>
@@ -201,7 +201,7 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
             min="1"
             className={inputCls('totalMonths')}
           />
-          {errors.totalMonths && <p className="text-xs text-error-600 mt-1">{errors.totalMonths}</p>}
+          {errors.totalMonths && <p className="text-xs text-destructive mt-1">{errors.totalMonths}</p>}
         </div>
       </div>
 
@@ -216,7 +216,7 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
             min="1"
             className={inputCls('remainingMonths')}
           />
-          {errors.remainingMonths && <p className="text-xs text-error-600 mt-1">{errors.remainingMonths}</p>}
+          {errors.remainingMonths && <p className="text-xs text-destructive mt-1">{errors.remainingMonths}</p>}
         </div>
         <div>
           <label className={labelCls}>Anapara Tutarı (₺) — isteğe bağlı</label>
@@ -233,7 +233,7 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
         <div className={isCreditCard ? "opacity-40 pointer-events-none" : ""}>
           <label className={labelCls}>İlk Ödeme Tarihi</label>
           {isCreditCard && autoDate ? (
-            <div className="w-full bg-neutral-100 dark:bg-zinc-800 border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2.5 text-sm font-bold text-primary-600">
+            <div className="w-full bg-muted border border-border rounded-lg px-3 py-2.5 text-sm font-bold text-primary">
               {autoDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
           ) : (
@@ -245,7 +245,7 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
             />
           )}
           {isCreditCard && (
-            <p className="mt-1 text-[9px] text-primary-600 dark:text-primary-400 font-bold uppercase tracking-tight">
+            <p className="mt-1 text-[9px] text-primary font-bold uppercase tracking-tight">
               ✨ Kart döngüsüne göre otomatik hesaplandı
             </p>
           )}
@@ -265,8 +265,8 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
       </div>
 
       {monthlyPayment && remainingMonths && (
-        <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 text-sm">
-          <div className="flex justify-between text-primary-700 dark:text-primary-300">
+        <div className="bg-primary/5 rounded-lg p-3 text-sm border border-primary/20">
+          <div className="flex justify-between text-primary">
             <span>Toplam kalan ödeme:</span>
             <span className="font-semibold">
               ₺{(parseFloat(monthlyPayment.replace(',', '.') || '0') * parseInt(remainingMonths || '0', 10)).toLocaleString('tr-TR')}
@@ -279,14 +279,14 @@ export default function InstallmentForm({ accounts, onSubmit, onCancel }: Instal
         <button
           type="submit"
           disabled={submitting}
-          className="flex-1 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+          className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-colors disabled:opacity-50"
         >
           {submitting ? 'Kaydediliyor...' : 'Taksit Ekle'}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2.5 bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm hover:bg-neutral-200 dark:hover:bg-slate-700 transition-colors"
+          className="px-4 py-2.5 bg-muted text-muted-foreground rounded-lg text-sm hover:bg-muted/80 transition-colors"
         >
           İptal
         </button>

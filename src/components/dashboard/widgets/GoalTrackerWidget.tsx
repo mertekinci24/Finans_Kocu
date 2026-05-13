@@ -17,8 +17,8 @@ export default function GoalTrackerWidget({
   if (isLoading) {
     return (
       <div className="space-y-3 animate-pulse">
-        <div className="h-6 bg-neutral-200 rounded w-32" />
-        <div className="h-24 bg-neutral-200 rounded" />
+        <div className="h-6 bg-muted rounded w-32" />
+        <div className="h-24 bg-muted rounded" />
       </div>
     );
   }
@@ -30,11 +30,11 @@ export default function GoalTrackerWidget({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-neutral-900">🎯 Hedeflerim</h3>
+          <h3 className="text-sm font-semibold text-foreground">🎯 Hedeflerim</h3>
           {onNavigateToGoals && (
             <button
               onClick={onNavigateToGoals}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              className="text-xs text-primary hover:opacity-80 font-medium transition-colors"
             >
               Hedef Ekle →
             </button>
@@ -42,8 +42,8 @@ export default function GoalTrackerWidget({
         </div>
         <div className="text-center py-6">
           <div className="text-3xl mb-2">🎯</div>
-          <p className="text-xs text-neutral-500">Henüz hedef eklenmedi</p>
-          <p className="text-xs text-neutral-400 mt-1">İlk birikim hedefini oluştur!</p>
+          <p className="text-xs text-muted-foreground">Henüz hedef eklenmedi</p>
+          <p className="text-xs text-muted-foreground mt-1 opacity-70">İlk birikim hedefini oluştur!</p>
         </div>
       </div>
     );
@@ -56,11 +56,11 @@ export default function GoalTrackerWidget({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-neutral-900">🎯 Hedeflerim</h3>
+        <h3 className="text-sm font-semibold text-foreground">🎯 Hedeflerim</h3>
         {onNavigateToGoals && (
           <button
             onClick={onNavigateToGoals}
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            className="text-xs text-primary hover:opacity-80 font-medium transition-colors"
           >
             Tümü ({projections.length}) →
           </button>
@@ -75,19 +75,19 @@ export default function GoalTrackerWidget({
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg">{meta.icon}</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-neutral-900 truncate">{topGoal.goal.name}</p>
-            <p className="text-xs text-neutral-500">{meta.label} • {
+            <p className="text-sm font-semibold text-foreground truncate">{topGoal.goal.name}</p>
+            <p className="text-xs text-muted-foreground">{meta.label} • {
               topGoal.goal.priority === 'high' ? '🔴 Yüksek' :
               topGoal.goal.priority === 'medium' ? '🟡 Orta' : '🟢 Düşük'
             }</p>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-xs text-neutral-500">%{topGoal.progressPercent.toFixed(0)}</p>
+            <p className="text-xs text-muted-foreground">%{topGoal.progressPercent.toFixed(0)}</p>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="relative h-2.5 bg-neutral-200 rounded-full overflow-hidden mb-2">
+        <div className="relative h-2.5 bg-muted rounded-full overflow-hidden mb-2">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(100, topGoal.progressPercent)}%` }}
@@ -99,10 +99,10 @@ export default function GoalTrackerWidget({
 
         {/* Tutarlar */}
         <div className="flex justify-between text-xs">
-          <span className="text-neutral-600">
+          <span className="text-muted-foreground">
             {fmt(topGoal.goal.currentAmount)} / {fmt(topGoal.goal.targetAmount)}
           </span>
-          <span className={topGoal.isOnTrack ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+          <span className={topGoal.isOnTrack ? 'text-success font-medium' : 'text-error font-medium'}>
             {topGoal.isOnTrack ? '✅ Hedeftesin' : `⏰ ${Math.ceil(topGoal.delayDays / 30)} ay gecikme`}
           </span>
         </div>
@@ -116,9 +116,9 @@ export default function GoalTrackerWidget({
             return (
               <div key={proj.goal.id} className="flex items-center gap-2 text-xs">
                 <span>{m.icon}</span>
-                <span className="flex-1 text-neutral-700 truncate">{proj.goal.name}</span>
-                <span className="text-neutral-500">{proj.progressPercent.toFixed(0)}%</span>
-                <div className="w-12 h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                <span className="flex-1 text-foreground truncate">{proj.goal.name}</span>
+                <span className="text-muted-foreground">{proj.progressPercent.toFixed(0)}%</span>
+                <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{
@@ -135,8 +135,8 @@ export default function GoalTrackerWidget({
 
       {/* İlk önerisi */}
       {topGoal.recommendations.length > 0 && (
-        <div className="pt-2 border-t border-neutral-200">
-          <p className="text-xs text-neutral-600 italic">{topGoal.recommendations[0]}</p>
+        <div className="pt-2 border-t border-border">
+          <p className="text-xs text-muted-foreground italic">{topGoal.recommendations[0]}</p>
         </div>
       )}
     </div>

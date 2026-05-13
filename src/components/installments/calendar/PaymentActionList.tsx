@@ -34,7 +34,7 @@ export const PaymentActionList: React.FC<PaymentActionListProps> = ({
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   return (
-    <div className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-2 animate-in fade-in slide-in-from-top-1">
+    <div className="mt-3 pt-3 border-t border-border space-y-2 animate-in fade-in slide-in-from-top-1">
       {installments.map(inst => {
         const status = inst.paymentHistory?.[monthKey]?.status;
         const customAmount = inst.paymentHistory?.[monthKey]?.amount;
@@ -45,10 +45,10 @@ export const PaymentActionList: React.FC<PaymentActionListProps> = ({
         return (
           <div key={inst.id} className={`flex flex-col gap-1 py-1.5 px-2.5 rounded-xl border transition-all ${
             isHistoricalDelinquency 
-              ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/40' 
+              ? 'bg-destructive/10 border-destructive/20' 
               : inst.type === 'kredi_kartı_taksiti'
-                ? 'bg-amber-50/20 dark:bg-amber-900/10 border-amber-100/30'
-                : 'bg-neutral-50/50 dark:bg-zinc-800/50 border-neutral-100 dark:border-zinc-800/50 hover:border-neutral-200 dark:hover:border-zinc-700/50'
+                ? 'bg-score-warning-bg border-score-warning/20'
+                : 'bg-muted border-border hover:border-border/80'
           }`}>
             {(() => {
               const account = accounts.find(a => a.id === inst.accountId);
@@ -68,15 +68,15 @@ export const PaymentActionList: React.FC<PaymentActionListProps> = ({
                       <div className="flex items-center gap-1.5 min-w-0">
                         <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                           status === 'paid' 
-                            ? 'bg-success-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]' 
+                            ? 'bg-success shadow-[0_0_10px_hsl(var(--success)/0.4)]' 
                             : isHistoricalDelinquency 
-                              ? 'bg-red-500 animate-pulse' 
-                              : isCC ? 'bg-amber-500' : 'bg-blue-500'
+                              ? 'bg-destructive animate-pulse' 
+                              : isCC ? 'bg-score-warning' : 'bg-primary'
                         }`} />
-                        <span className={`text-[11px] font-bold truncate ${isHistoricalDelinquency ? 'text-red-700 dark:text-red-400' : 'text-neutral-600 dark:text-zinc-100'}`}>
+                        <span className={`text-[11px] font-bold truncate ${isHistoricalDelinquency ? 'text-destructive' : 'text-foreground'}`}>
                           {inst.lenderName}
                         </span>
-                        <span className="text-[9px] font-bold text-neutral-400 dark:text-zinc-500 tabular-nums">
+                        <span className="text-[9px] font-bold text-muted-foreground tabular-nums">
                           {dueDateLabel}
                         </span>
                       </div>
@@ -85,26 +85,26 @@ export const PaymentActionList: React.FC<PaymentActionListProps> = ({
                           {TYPE_LABELS[inst.type || 'kredi_kartı_taksiti']}
                         </div>
                         {account && (
-                          <span className="text-[8px] font-bold text-neutral-400 dark:text-zinc-500 opacity-80 uppercase tracking-[0.1em]">
+                          <span className="text-[8px] font-bold text-muted-foreground opacity-80 uppercase tracking-[0.1em]">
                              • {account.name}
                           </span>
                         )}
                       </div>
                       {finishing.some(f => f.id === inst.id) && (
-                        <span className="text-[9px] text-amber-500 font-bold pl-3 mt-1 animate-pulse">Taksit Bitimi</span>
+                        <span className="text-[9px] text-score-warning font-bold pl-3 mt-1 animate-pulse">Taksit Bitimi</span>
                       )}
                     </div>
                     <span className={`text-xs font-black ${
                       status === 'paid' 
-                        ? isCC ? 'text-emerald-500 line-through opacity-90' : 'text-success-600/80 line-through opacity-70' 
-                        : 'text-neutral-900 dark:text-zinc-100'
+                        ? isCC ? 'text-emerald-500 line-through opacity-90' : 'text-success/80 line-through opacity-70' 
+                        : 'text-foreground'
                     }`}>
                       {fmt(customAmount ?? inst.monthlyPayment)}
                     </span>
                   </div>
 
                   {note && (
-                    <div className="pl-3.5 text-[9px] italic text-neutral-500 dark:text-zinc-300 truncate">
+                    <div className="pl-3.5 text-[9px] italic text-muted-foreground truncate">
                       📝 {note}
                     </div>
                   )}
@@ -118,7 +118,7 @@ export const PaymentActionList: React.FC<PaymentActionListProps> = ({
                             onEdit(inst, String(customAmount ?? inst.monthlyPayment), note || '');
                           }}
                           disabled={isProcessing}
-                          className="p-1 text-neutral-400 dark:text-zinc-400 hover:text-primary-600 hover:bg-white dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-1 text-muted-foreground hover:text-primary hover:bg-card rounded-lg transition-colors disabled:opacity-50"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -130,7 +130,7 @@ export const PaymentActionList: React.FC<PaymentActionListProps> = ({
                             onMarkPaid(inst);
                           }}
                           disabled={isProcessing}
-                          className="p-1 text-neutral-400 dark:text-zinc-400 hover:text-success-600 hover:bg-white dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-1 text-muted-foreground hover:text-success hover:bg-card rounded-lg transition-colors disabled:opacity-50"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -145,7 +145,7 @@ export const PaymentActionList: React.FC<PaymentActionListProps> = ({
                           onUndo(inst);
                         }}
                         disabled={isProcessing}
-                        className="text-[10px] font-bold text-neutral-400 hover:text-neutral-600 dark:text-zinc-400 dark:hover:text-zinc-100 uppercase px-2 py-1 disabled:opacity-50"
+                        className="text-[10px] font-bold text-muted-foreground hover:text-foreground uppercase px-2 py-1 disabled:opacity-50"
                       >
                         {isProcessing ? '...' : 'Geri Al'}
                       </button>

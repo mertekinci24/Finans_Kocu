@@ -21,7 +21,7 @@ export default function AccountBalanceWidget({
   if (accounts.length === 0) {
     return (
       <div className="text-center py-4">
-        <p className="text-sm text-neutral-600">Hesap bulunmuyor</p>
+        <p className="text-sm text-muted-foreground">Hesap bulunmuyor</p>
       </div>
     );
   }
@@ -30,19 +30,19 @@ export default function AccountBalanceWidget({
 
   return (
     <div className="space-y-3">
-      <div className="bg-blue-50 border border-blue-200 rounded p-3">
-        <p className="text-xs text-neutral-600">Toplam Bakiye</p>
-        <p className="text-lg font-bold text-blue-900">{fmt(totalBalance)}</p>
+      <div className="bg-primary/10 border border-primary/20 rounded p-3">
+        <p className="text-xs text-muted-foreground">Toplam Bakiye</p>
+        <p className="text-lg font-bold text-primary">{fmt(totalBalance)}</p>
       </div>
 
       <div className="space-y-2">
         {accounts.map((acc) => (
-          <div key={acc.id} className="flex justify-between items-center p-2 border-b border-neutral-100 last:border-0">
+          <div key={acc.id} className="flex justify-between items-center p-2 border-b border-border last:border-0">
             <div>
-              <p className="text-xs font-medium text-neutral-900">{acc.name}</p>
-              <p className="text-xs text-neutral-600">{acc.type}</p>
+              <p className="text-xs font-medium text-foreground">{acc.name}</p>
+              <p className="text-xs text-muted-foreground">{acc.type}</p>
             </div>
-            <p className="text-sm font-bold text-neutral-900">{fmt(acc.balance)}</p>
+            <p className="text-sm font-bold text-foreground">{fmt(acc.balance)}</p>
           </div>
         ))}
       </div>

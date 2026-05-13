@@ -15,6 +15,10 @@ import {
   type PlanLimits,
 } from '@/services/payment/subscriptionPlans';
 
+export type CheckoutResult = 
+  | { ok: true; url: string }
+  | { ok: false; error: string; code?: string };
+
 interface UseSubscriptionReturn {
   subscription: UserSubscription | null;
   planType: PlanType;
@@ -26,7 +30,7 @@ interface UseSubscriptionReturn {
     limit: number;
     remaining: number;
   };
-  startCheckout: (billingPeriod: 'monthly' | 'annual') => Promise<string | null>;
+  startCheckout: (billingPeriod: 'monthly' | 'annual') => Promise<CheckoutResult>;
   cancelSubscription: () => Promise<boolean>;
   refresh: () => Promise<void>;
 }
@@ -83,8 +87,10 @@ export function useSubscription(): UseSubscriptionReturn {
 
   // Checkout başlat
   const startCheckout = useCallback(
-    async (billingPeriod: 'monthly' | 'annual'): Promise<string | null> => {
-      if (!user?.id || !user?.email) return null;
+    async (billingPeriod: 'monthly' | 'annual'): Promise<CheckoutResult> => {
+      if (!user?.id || !user?.email) {
+        return { ok: false, error: 'Oturum bilgisi bulunamadı. Lütfen tekrar giriş yapın.' };
+      }
 
       const result = await iyzicoAdapter.createCheckoutSession({
         userId: user.id,
@@ -94,10 +100,14 @@ export function useSubscription(): UseSubscriptionReturn {
       });
 
       if (result.status === 'success' && result.paymentPageUrl) {
-        return result.paymentPageUrl;
+        return { ok: true, url: result.paymentPageUrl };
       }
 
-      return null;
+      return { 
+        ok: false, 
+        error: result.errorMessage || 'Ödeme bağlantısı oluşturulamadı. Lütfen daha sonra tekrar deneyin.',
+        code: result.errorCode
+      };
     },
     [user]
   );

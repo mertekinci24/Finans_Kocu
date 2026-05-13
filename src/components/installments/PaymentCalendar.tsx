@@ -68,7 +68,7 @@ export default function PaymentCalendar({ installments, accounts, onUpdateInstal
 
   if (active.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
+      <div className="text-center py-8 text-muted-foreground text-sm">
         Aktif taksit yok — takvim görüntülenecek bir şey bulunamadı.
       </div>
     );
@@ -414,15 +414,15 @@ export default function PaymentCalendar({ installments, accounts, onUpdateInstal
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
-          <h3 className="text-sm font-bold text-neutral-800 dark:text-zinc-100 italic">
+          <h3 className="text-sm font-bold text-foreground italic">
             {months[0].label} - {months[11].label} Perspektifi
           </h3>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">12 Aylık Finansal Öngörü</p>
+          <p className="text-[10px] text-muted-foreground font-medium">12 Aylık Finansal Öngörü</p>
         </div>
-        <div className="flex items-center gap-1.5 p-1 bg-neutral-100 dark:bg-zinc-800/50 rounded-xl border border-neutral-200 dark:border-zinc-800">
+        <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl border border-border">
           <button 
             onClick={() => setMonthOffset(p => p - 12)}
-            className="p-1.5 hover:bg-white dark:hover:bg-zinc-800 rounded-lg text-neutral-500 dark:text-zinc-400 transition-all hover:text-primary-600"
+            className="p-1.5 hover:bg-card rounded-lg text-muted-foreground transition-all hover:text-primary"
             title="Önceki Yıl"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -431,13 +431,13 @@ export default function PaymentCalendar({ installments, accounts, onUpdateInstal
           </button>
           <button 
             onClick={() => setMonthOffset(0)}
-            className="px-2 py-0.5 text-[9px] font-black uppercase text-primary-600 dark:text-primary-400 bg-white dark:bg-zinc-800 rounded-md border border-neutral-200 dark:border-zinc-700 hover:shadow-sm"
+            className="px-2 py-0.5 text-[9px] font-black uppercase text-primary bg-card rounded-md border border-border hover:shadow-sm"
           >
             BU YIL
           </button>
           <button 
             onClick={() => setMonthOffset(p => p + 12)}
-            className="p-1.5 hover:bg-white dark:hover:bg-zinc-800 rounded-lg text-neutral-500 dark:text-zinc-400 transition-all hover:text-primary-600"
+            className="p-1.5 hover:bg-card rounded-lg text-muted-foreground transition-all hover:text-primary"
             title="Sonraki Yıl"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -458,23 +458,23 @@ export default function PaymentCalendar({ installments, accounts, onUpdateInstal
               onClick={() => setSelectedMonth(selectedMonth === m.monthKey ? null : m.monthKey)}
               className={`rounded-2xl p-3 border-2 transition-all cursor-pointer relative overflow-hidden group ${
                 m.isPaid
-                  ? 'border-success-200 bg-success-50/50 dark:border-success-900/30 dark:bg-success-900/10 opacity-60'
+                  ? 'border-success/20 bg-success/10 opacity-60'
                   : isCurrentMonth
-                    ? 'border-primary-400 bg-primary-50 dark:border-primary-800 dark:bg-primary-900/20'
+                    ? 'border-primary/40 bg-primary/5'
                     : m.finishing.length > 0
-                      ? 'border-warning-300 bg-warning-50 dark:border-warning-900/30 dark:bg-warning-900/10'
-                      : 'border-neutral-100 bg-white dark:border-zinc-800 dark:bg-zinc-900/50'
-              } ${selectedMonth === m.monthKey ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-slate-950 shadow-lg scale-[1.02]' : 'hover:border-neutral-300 dark:hover:border-zinc-700'}`}
+                      ? 'border-score-warning/30 bg-score-warning-bg'
+                      : 'border-border bg-card'
+              } ${selectedMonth === m.monthKey ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background shadow-lg scale-[1.02]' : 'hover:border-border/80'}`}
             >
               {m.isPaid && (
-                <div className="absolute top-0 right-0 bg-success-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-bl-lg shadow-sm">
+                <div className="absolute top-0 right-0 bg-success text-success-foreground text-[8px] font-bold px-2 py-0.5 rounded-bl-lg shadow-sm">
                   ÖDENDİ
                 </div>
               )}
 
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isCurrentMonth ? 'text-primary-700 dark:text-primary-300' : 'text-slate-500 dark:text-zinc-300'}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isCurrentMonth ? 'text-primary' : 'text-muted-foreground'}`}>
                     {m.label}
                   </span>
                   {m.hasDelinquency && (
@@ -491,7 +491,7 @@ export default function PaymentCalendar({ installments, accounts, onUpdateInstal
                   {!m.isPaid && m.active.length > 0 && (
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleMarkPaid(m); }}
-                      className="p-1 bg-success-100 dark:bg-success-900/40 text-success-600 dark:text-success-400 rounded-md hover:bg-success-200"
+                      className="p-1 bg-success/10 text-success rounded-md hover:bg-success/20"
                       title="Tümünü Ödendi İşaretle"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -505,18 +505,18 @@ export default function PaymentCalendar({ installments, accounts, onUpdateInstal
               <div className="flex items-end gap-1 h-12 mb-2">
                 <div
                   className={`w-full rounded-md transition-all ${
-                    m.isPaid ? 'bg-success-400 dark:bg-success-600' : isCurrentMonth ? 'bg-blue-700 dark:bg-blue-400' : 'bg-blue-600 dark:bg-blue-500'
+                    m.isPaid ? 'bg-success/60' : isCurrentMonth ? 'bg-primary/80' : 'bg-primary/60'
                   }`}
                   style={{ height: `${barHeight}px` }}
                 />
               </div>
 
-              <div className="text-sm font-black text-neutral-900 dark:text-white">
+              <div className="text-sm font-black text-foreground">
                 {m.total === 0 && !m.isPaid ? '—' : fmt(m.total)}
               </div>
               
               <div className="flex items-center justify-between mt-1">
-                <div className="text-[10px] font-bold text-neutral-700 dark:text-zinc-200">
+                <div className="text-[10px] font-bold text-muted-foreground">
                   {m.active.length} Taksit
                 </div>
                 {m.finishing.length > 0 && (

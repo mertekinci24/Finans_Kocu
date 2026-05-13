@@ -2,6 +2,26 @@
 
 Hata günlüğü ve öğrenimler.
 
+### 28. Professional Theme Refactor & Vite CSS Error (Phase THEME-DS-1) (2026-05-13)
+
+**Semptom:** 
+1. Koyu ve AMOLED temalarda kontrast sorunları (bazı metinlerin okunmaması).
+2. AMOLED temanın Tailwind dark mode dışına taşması.
+3. [plugin:vite:css] [postcss] src/index.css:1:1: The `bg-background` class does not exist.
+
+**Root Cause:**
+1. Global bir semantik token mimarisi (background, card, primary, muted etc.) eksikliği.
+2. `darkMode` selector'ının AMOLED'i kapsamaması.
+3. Vite/Tailwind processing sırasında `index.css` içindeki `@apply` direktiflerinin değişkenlere veya utility'lere ulaşılamadan önce çalıştırılmaya çalışılması (Tailwind content array ve layer order sorunları).
+
+**Çözüm:**
+1. **Semantic Token Architecture**: `index.css` :root bloğuna tüm semantik HSL değişkenleri eklendi.
+2. **Tailwind Config Update**: `extend.colors` altına bu tokenlar bağlandı. `darkMode` selector'ına amoled eklendi.
+3. **Compile Error Fix**: `tailwind.config.js` content dizisine `index.css` eklendi. `index.css` içindeki layer sıralaması (Variables -> @tailwind -> @layer base) düzeltildi.
+4. **Component Migration**: `FinancialScoreCard`, `TopBar`, `ChatInterface`, `ChatBubble` ve `WidgetGrid` gibi kritik bileşenler semantik tokenlara (bg-card, bg-background, text-foreground, bg-primary) geçirildi.
+
+**Durum:** DONE (LOCKED). Build geçiyor, CSS hatası çözüldü, tema kontrastı her üç modda da stabil.
+
 ## Kayıt Şablonu
 
 ### 27. Final Regression UAT (2026-05-13)

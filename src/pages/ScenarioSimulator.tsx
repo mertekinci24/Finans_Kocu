@@ -169,8 +169,8 @@ export default function ScenarioSimulatorPage(): JSX.Element {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-neutral-600">Yükleniyor...</p>
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Yükleniyor...</p>
         </div>
       </div>
     );
@@ -181,14 +181,14 @@ export default function ScenarioSimulatorPage(): JSX.Element {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-900">🔮 Senaryo Simülatörü</h1>
-          <p className="text-neutral-600 mt-1 text-sm">
+          <h1 className="text-3xl font-bold text-foreground">🔮 Senaryo Simülatörü</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Finansal kararlarının geleceğe etkisini test et
           </p>
         </div>
         <button
           onClick={() => navigate(ROUTES.DASHBOARD)}
-          className="px-3 py-1.5 text-xs font-medium bg-neutral-100 text-neutral-600 rounded-lg hover:bg-neutral-200 transition-colors border border-neutral-200"
+          className="px-3 py-1.5 text-xs font-medium bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors border border-border"
         >
           ← Kontrol Paneli
         </button>
@@ -204,13 +204,13 @@ export default function ScenarioSimulatorPage(): JSX.Element {
             onClick={() => { setSelectedType(type); setResult(null); setCoachComment(''); }}
             className={`p-5 rounded-xl border-2 text-left transition-all ${
               selectedType === type
-                ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md shadow-blue-100'
-                : 'border-neutral-200 bg-white hover:border-neutral-300 hover:shadow-sm'
+                ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                : 'border-border bg-card hover:border-border/80 hover:shadow-sm'
             }`}
           >
             <div className="text-3xl mb-2">{SCENARIO_LABELS[type].icon}</div>
-            <div className="text-sm font-semibold text-neutral-900">{SCENARIO_LABELS[type].title}</div>
-            <div className="text-xs text-neutral-500 mt-1">{SCENARIO_LABELS[type].description}</div>
+            <div className="text-sm font-semibold text-card-foreground">{SCENARIO_LABELS[type].title}</div>
+            <div className="text-xs text-muted-foreground mt-1">{SCENARIO_LABELS[type].description}</div>
           </motion.button>
         ))}
       </div>
@@ -218,9 +218,9 @@ export default function ScenarioSimulatorPage(): JSX.Element {
       {/* Parametre Formu */}
       <motion.div
         layout
-        className="bg-white border border-neutral-200 rounded-xl p-6 space-y-5"
+        className="bg-card border border-border rounded-xl p-6 space-y-5"
       >
-        <h2 className="text-sm font-semibold text-neutral-900 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <span>{SCENARIO_LABELS[selectedType].icon}</span>
           {SCENARIO_LABELS[selectedType].title} — Parametreler
         </h2>
@@ -267,11 +267,11 @@ export default function ScenarioSimulatorPage(): JSX.Element {
         <button
           onClick={handleSimulate}
           disabled={isSimulating}
-          className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:opacity-90 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSimulating ? (
             <span className="flex items-center justify-center gap-2">
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               Hesaplanıyor...
             </span>
           ) : (
@@ -291,21 +291,23 @@ export default function ScenarioSimulatorPage(): JSX.Element {
             className="space-y-6"
           >
             {/* Grafik */}
-            <div className="bg-white border border-neutral-200 rounded-xl p-6">
-              <h2 className="text-sm font-semibold text-neutral-900 mb-4">6 Aylık Nakit Akışı Karşılaştırması</h2>
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h2 className="text-sm font-semibold text-foreground mb-4">6 Aylık Nakit Akışı Karşılaştırması</h2>
               <FullChart
                 baseline={result.baselineForecast}
                 scenario={result.scenarioForecast}
               />
               <div className="flex items-center gap-6 mt-3 text-xs">
+              <div className="flex items-center gap-6 mt-3 text-xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-0.5 bg-emerald-500 rounded" />
-                  <span className="text-neutral-600">Mevcut Durum</span>
+                  <div className="w-6 h-0.5 bg-score-normal rounded" />
+                  <span className="text-muted-foreground">Mevcut Durum</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 border-t-2 border-dashed border-orange-500" />
-                  <span className="text-neutral-600">Senaryo Durumu</span>
+                  <div className="w-6 border-t-2 border-dashed border-score-warning" />
+                  <span className="text-muted-foreground">Senaryo Durumu</span>
                 </div>
+              </div>
               </div>
             </div>
 
@@ -344,12 +346,12 @@ export default function ScenarioSimulatorPage(): JSX.Element {
 
             {/* Öneriler */}
             {result.recommendations.length > 0 && (
-              <div className="bg-white border border-neutral-200 rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-neutral-900 mb-3">📋 Motor Önerileri</h3>
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-foreground mb-3">📋 Motor Önerileri</h3>
                 <ul className="space-y-2">
                   {result.recommendations.map((rec, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-neutral-700">
-                      <span className="text-blue-500 text-xs mt-0.5">●</span>
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="text-primary text-xs mt-0.5">●</span>
                       {rec}
                     </li>
                   ))}
@@ -362,20 +364,20 @@ export default function ScenarioSimulatorPage(): JSX.Element {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 border border-indigo-200 rounded-xl p-6"
+              className="bg-primary/5 border border-primary/20 rounded-xl p-6"
             >
-              <h3 className="text-sm font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
                 🤖 Koç Yorumu
                 {isAnalyzing && (
-                  <span className="text-xs text-indigo-500 animate-pulse">Analiz ediliyor...</span>
+                  <span className="text-xs text-primary/60 animate-pulse">Analiz ediliyor...</span>
                 )}
               </h3>
               {coachComment ? (
-                <div className="text-sm text-neutral-800 whitespace-pre-line leading-relaxed">
+                <div className="text-sm text-foreground whitespace-pre-line leading-relaxed">
                   {coachComment}
                 </div>
               ) : (
-                <div className="text-sm text-neutral-500 italic">
+                <div className="text-sm text-muted-foreground italic">
                   Simülasyonu çalıştırın, koç yorumunu burada göreceksiniz.
                 </div>
               )}
@@ -402,12 +404,12 @@ function DebtPayoffForm({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-medium text-neutral-700 mb-1.5">Ödeme Tutarı</label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Ödeme Tutarı</label>
         <input
           type="number"
           value={paymentAmount}
           onChange={(e) => setPaymentAmount(Number(e.target.value))}
-          className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+          className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-primary transition-colors text-sm text-foreground"
           min={0}
           step={5000}
         />
@@ -416,7 +418,7 @@ function DebtPayoffForm({
             <button
               key={preset}
               onClick={() => setPaymentAmount(preset)}
-              className="px-3 py-1 text-xs bg-neutral-100 text-neutral-600 rounded-md hover:bg-neutral-200 transition-colors"
+              className="px-3 py-1 text-xs bg-muted text-muted-foreground rounded-md hover:bg-muted/80 transition-colors"
             >
               {fmt(preset)}
             </button>
@@ -424,10 +426,10 @@ function DebtPayoffForm({
         </div>
       </div>
       {activeDebts.length > 0 && (
-        <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-200">
-          <p className="text-xs font-medium text-neutral-700 mb-2">Aktif Borçlarınız:</p>
+        <div className="bg-muted/30 p-3 rounded-lg border border-border">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Aktif Borçlarınız:</p>
           {activeDebts.slice(0, 3).map((d) => (
-            <div key={d.id} className="flex justify-between text-xs text-neutral-600 py-1">
+            <div key={d.id} className="flex justify-between text-xs text-muted-foreground py-1">
               <span>{d.creditorName}</span>
               <span className="font-medium">{fmt(d.remainingAmount)} (₺{d.monthlyPayment.toLocaleString('tr-TR')}/ay)</span>
             </div>
@@ -461,22 +463,22 @@ function BigPurchaseForm({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-medium text-neutral-700 mb-1.5">Alım Tutarı (₺)</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Alım Tutarı (₺)</label>
           <input
             type="number"
             value={purchaseAmount}
             onChange={(e) => setPurchaseAmount(Number(e.target.value))}
-            className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-primary transition-colors text-sm text-foreground"
             min={0}
             step={10000}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-neutral-700 mb-1.5">Taksit Sayısı</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Taksit Sayısı</label>
           <select
             value={installmentMonths}
             onChange={(e) => setInstallmentMonths(Number(e.target.value))}
-            className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm bg-white"
+            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-primary transition-colors text-sm text-foreground"
           >
             {[3, 6, 9, 12, 18, 24, 36].map((m) => (
               <option key={m} value={m}>{m} Taksit</option>
@@ -484,19 +486,19 @@ function BigPurchaseForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-neutral-700 mb-1.5">Aylık Faiz (%)</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Aylık Faiz (%)</label>
           <input
             type="number"
             value={interestRate}
             onChange={(e) => setInterestRate(Number(e.target.value))}
-            className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-primary transition-colors text-sm text-foreground"
             min={0}
             step={0.1}
           />
         </div>
       </div>
-      <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-        <p className="text-xs text-amber-800">
+      <div className="bg-score-warning-bg p-3 rounded-lg border border-score-warning/20">
+        <p className="text-xs text-score-warning">
           Aylık Taksit: <span className="font-bold">{fmt(Math.round(monthlyPayment))}</span> × {installmentMonths} ay =
           Toplam <span className="font-bold">{fmt(Math.round(monthlyPayment * installmentMonths))}</span>
         </p>
@@ -520,30 +522,30 @@ function ExtraIncomeForm({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-neutral-700 mb-1.5">Aylık Ek Gelir (₺)</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Aylık Ek Gelir (₺)</label>
           <input
             type="number"
             value={monthlyAmount}
             onChange={(e) => setMonthlyAmount(Number(e.target.value))}
-            className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-primary transition-colors text-sm text-foreground"
             min={0}
             step={1000}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-neutral-700 mb-1.5">Süre (Ay)</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Süre (Ay)</label>
           <input
             type="number"
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
-            className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+            className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-primary transition-colors text-sm text-foreground"
             min={1}
             max={24}
           />
         </div>
       </div>
-      <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-        <p className="text-xs text-green-800">
+      <div className="bg-score-normal-bg p-3 rounded-lg border border-score-normal/20">
+        <p className="text-xs text-score-normal">
           Toplam Ek Gelir: <span className="font-bold">{fmt(monthlyAmount * duration)}</span> ({duration} ay × {fmt(monthlyAmount)})
         </p>
       </div>
@@ -589,33 +591,35 @@ function FullChart({
   }
 
   return (
-    <div className="h-56 bg-neutral-50 rounded-lg border border-neutral-200 overflow-hidden">
+    <div className="h-56 bg-muted/20 rounded-lg border border-border overflow-hidden">
       <svg viewBox="0 0 800 200" className="w-full h-full" preserveAspectRatio="none">
         {/* Grid çizgileri */}
         {[0, 40, 80, 120, 160].map((y) => (
-          <line key={y} x1="0" y1={y + 10} x2="800" y2={y + 10} stroke="#e5e7eb" strokeWidth="0.5" />
+          <line key={y} x1="0" y1={y + 10} x2="800" y2={y + 10} stroke="currentColor" className="text-border" strokeWidth="0.5" />
         ))}
 
         {/* Sıfır çizgisi */}
         {minBalanceVal < 0 && (
-          <line x1="0" y1={zeroLine} x2="800" y2={zeroLine} stroke="#ef4444" strokeWidth="1" strokeDasharray="6,3" />
+          <line x1="0" y1={zeroLine} x2="800" y2={zeroLine} stroke="currentColor" className="text-destructive" strokeWidth="1" strokeDasharray="6,3" />
         )}
 
-        {/* Baseline (Yeşil, düz) */}
+        {/* Baseline (Mevcut, düz) */}
         <polyline
           points={toPoints(sampledBaseline)}
           fill="none"
-          stroke="#10b981"
+          stroke="currentColor"
+          className="text-score-normal"
           strokeWidth="3"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
 
-        {/* Senaryo (Turuncu, kesikli) */}
+        {/* Senaryo (Kesikli) */}
         <polyline
           points={toPoints(sampledScenario)}
           fill="none"
-          stroke="#f97316"
+          stroke="currentColor"
+          className="text-score-warning"
           strokeWidth="2.5"
           strokeDasharray="8,5"
           strokeLinejoin="round"
@@ -629,7 +633,8 @@ function FullChart({
             x={ml.x + 10}
             y="195"
             fontSize="10"
-            fill="#9ca3af"
+            fill="currentColor"
+            className="text-muted-foreground"
             fontFamily="system-ui"
           >
             {ml.label}
@@ -643,26 +648,26 @@ function FullChart({
 // ─── Küçük Yardımcı Bileşenler ─────────────────────────────────────
 function ScoreDelta({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   const getColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-blue-600';
-    if (score >= 40) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 80) return 'text-score-optimal';
+    if (score >= 60) return 'text-score-normal';
+    if (score >= 40) return 'text-score-warning';
+    return 'text-score-crisis';
   };
 
   return (
-    <div className={`bg-white border rounded-xl p-5 text-center ${highlight ? 'border-blue-300 shadow-md shadow-blue-50' : 'border-neutral-200'}`}>
-      <p className="text-xs text-neutral-500 mb-2">{label}</p>
+    <div className={`bg-card border rounded-xl p-5 text-center ${highlight ? 'border-primary shadow-md shadow-primary/10' : 'border-border'}`}>
+      <p className="text-xs text-muted-foreground mb-2">{label}</p>
       <p className={`text-4xl font-bold ${getColor(value)}`}>{value}</p>
-      <p className="text-xs text-neutral-400 mt-1">/ 100</p>
+      <p className="text-xs text-muted-foreground mt-1">/ 100</p>
     </div>
   );
 }
 
 function ScoreDeltaArrow({ delta, riskLevel }: { delta: number; riskLevel: string }) {
   const riskColors: Record<string, string> = {
-    safe: 'bg-green-100 text-green-700 border-green-200',
-    moderate: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    risky: 'bg-red-100 text-red-700 border-red-200',
+    safe: 'bg-score-normal-bg text-score-normal border-score-normal/20',
+    moderate: 'bg-score-warning-bg text-score-warning border-score-warning/20',
+    risky: 'bg-score-crisis-bg text-score-crisis border-score-crisis/20',
   };
   const riskLabels: Record<string, string> = {
     safe: '✅ Güvenli',
@@ -677,12 +682,12 @@ function ScoreDeltaArrow({ delta, riskLevel }: { delta: number; riskLevel: strin
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 15 }}
         className={`text-2xl font-bold ${
-          delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-neutral-500'
+          delta > 0 ? 'text-score-normal' : delta < 0 ? 'text-score-crisis' : 'text-muted-foreground'
         }`}
       >
         {delta > 0 ? `+${delta}` : delta === 0 ? '±0' : delta}
       </motion.div>
-      <span className="text-xs text-neutral-500">puan farkı</span>
+      <span className="text-xs text-muted-foreground">puan farkı</span>
       <span className={`px-3 py-1 rounded-full text-xs font-medium border ${riskColors[riskLevel]}`}>
         {riskLabels[riskLevel]}
       </span>
@@ -692,14 +697,14 @@ function ScoreDeltaArrow({ delta, riskLevel }: { delta: number; riskLevel: strin
 
 function DetailCard({ label, value, color }: { label: string; value: string; color: string }) {
   const colorMap: Record<string, string> = {
-    blue: 'bg-blue-50 border-blue-200 text-blue-900',
-    green: 'bg-green-50 border-green-200 text-green-900',
-    red: 'bg-red-50 border-red-200 text-red-900',
+    blue: 'bg-primary/10 border-primary/20 text-primary',
+    green: 'bg-score-normal-bg border-score-normal/20 text-score-normal',
+    red: 'bg-score-crisis-bg border-score-crisis/20 text-score-crisis',
   };
 
   return (
     <div className={`p-3 rounded-lg border ${colorMap[color]}`}>
-      <p className="text-xs text-neutral-600 mb-1">{label}</p>
+      <p className="text-xs text-muted-foreground opacity-80 mb-1">{label}</p>
       <p className="text-sm font-bold">{value}</p>
     </div>
   );

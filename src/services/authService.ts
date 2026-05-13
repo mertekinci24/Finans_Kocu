@@ -44,6 +44,18 @@ export const authService = {
     if (error) throw error;
   },
 
+  async updateProfile({ firstName, lastName }: { firstName?: string; lastName?: string }) {
+    const { data, error } = await supabase.auth.updateUser({
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+      },
+    });
+
+    if (error) throw error;
+    return data;
+  },
+
   async getCurrentSession() {
     try {
       const { data, error } = await supabase.auth.getSession();

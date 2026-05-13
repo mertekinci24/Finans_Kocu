@@ -24,7 +24,7 @@ export default function FinancialScoreWidget({
   if (!score) {
     return (
       <div className="h-48 flex items-center justify-center">
-        <p className="text-neutral-500 text-center uppercase font-black text-[10px] tracking-widest">Veri Bulunamadı</p>
+        <p className="text-muted-foreground text-center uppercase font-black text-[10px] tracking-widest">Veri Bulunamadı</p>
       </div>
     );
   }

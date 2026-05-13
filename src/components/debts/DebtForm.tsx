@@ -57,12 +57,12 @@ export default function DebtForm({ onSubmit, onCancel }: DebtFormProps): JSX.Ele
   };
 
   const inputCls = (field: string) =>
-    `w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 ${errors[field] ? 'border-error-400' : 'border-neutral-300'}`;
+    `w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background text-foreground ${errors[field] ? 'border-destructive' : 'border-border'}`;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-neutral-700 mb-1">Alacaklı Adı</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-1">Alacaklı Adı</label>
         <input
           value={creditorName}
           onChange={(e) => setCreditorName(e.target.value)}
@@ -70,12 +70,12 @@ export default function DebtForm({ onSubmit, onCancel }: DebtFormProps): JSX.Ele
           className={inputCls('creditorName')}
           autoFocus
         />
-        {errors.creditorName && <p className="text-xs text-error-600 mt-1">{errors.creditorName}</p>}
+        {errors.creditorName && <p className="text-xs text-destructive mt-1">{errors.creditorName}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">Toplam Borç (₺)</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">Toplam Borç (₺)</label>
           <input
             value={amount}
             onChange={(e) => handleAmountChange(e.target.value)}
@@ -85,7 +85,7 @@ export default function DebtForm({ onSubmit, onCancel }: DebtFormProps): JSX.Ele
           {errors.amount && <p className="text-xs text-error-600 mt-1">{errors.amount}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">Kalan Tutar (₺)</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">Kalan Tutar (₺)</label>
           <input
             value={remainingAmount}
             onChange={(e) => setRemainingAmount(e.target.value)}
@@ -98,17 +98,17 @@ export default function DebtForm({ onSubmit, onCancel }: DebtFormProps): JSX.Ele
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">Aylık Ödeme (₺)</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">Aylık Ödeme (₺)</label>
           <input
             value={monthlyPayment}
             onChange={(e) => setMonthlyPayment(e.target.value)}
             placeholder="ör. 2500"
-            className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+            className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
-          <p className="text-xs text-neutral-400 mt-1">Risk analizi için gerekli</p>
+          <p className="text-xs text-muted-foreground mt-1">Risk analizi için gerekli</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">Faiz Oranı (%) — isteğe bağlı</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">Faiz Oranı (%) — isteğe bağlı</label>
           <input
             value={interestRate}
             onChange={(e) => setInterestRate(e.target.value)}
@@ -116,25 +116,25 @@ export default function DebtForm({ onSubmit, onCancel }: DebtFormProps): JSX.Ele
             type="number"
             min="0"
             step="0.01"
-            className="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+            className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-neutral-700 mb-1">Vade Tarihi</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-1">Vade Tarihi</label>
         <input
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
           className={inputCls('dueDate')}
         />
-        {errors.dueDate && <p className="text-xs text-error-600 mt-1">{errors.dueDate}</p>}
+        {errors.dueDate && <p className="text-xs text-destructive mt-1">{errors.dueDate}</p>}
       </div>
 
       {monthlyPayment && remainingAmount && (
-        <div className="bg-primary-50 rounded-lg p-3 text-sm">
-          <div className="flex justify-between text-primary-700">
+        <div className="bg-primary/5 rounded-lg p-3 text-sm border border-primary/20">
+          <div className="flex justify-between text-primary">
             <span>Tahmini kapanış:</span>
             <span className="font-semibold">
               {(() => {
@@ -155,14 +155,14 @@ export default function DebtForm({ onSubmit, onCancel }: DebtFormProps): JSX.Ele
         <button
           type="submit"
           disabled={submitting}
-          className="flex-1 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+          className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-colors disabled:opacity-50"
         >
           {submitting ? 'Kaydediliyor...' : 'Borç Ekle'}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2.5 bg-neutral-100 text-neutral-700 rounded-lg text-sm hover:bg-neutral-200 transition-colors"
+          className="px-4 py-2.5 bg-muted text-muted-foreground rounded-lg text-sm hover:bg-muted/80 transition-colors"
         >
           İptal
         </button>

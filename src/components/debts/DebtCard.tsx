@@ -18,9 +18,9 @@ const STATUS_LABELS: Record<Debt['status'], string> = {
 };
 
 const STATUS_COLORS: Record<Debt['status'], string> = {
-  active: 'bg-primary-100 text-primary-700',
-  paid_off: 'bg-success-100 text-success-700',
-  overdue: 'bg-error-100 text-error-700',
+  active: 'bg-primary/10 text-primary',
+  paid_off: 'bg-success/10 text-success',
+  overdue: 'bg-destructive/10 text-destructive',
 };
 
 export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDelete, onPay }: DebtCardProps): JSX.Element {
@@ -123,9 +123,9 @@ export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDe
 
   if (deleted) {
     return (
-      <div className="bg-neutral-50 border-2 border-dashed border-neutral-300 rounded-xl p-4 flex items-center justify-between">
-        <span className="text-sm text-neutral-400">Borç silindi</span>
-        <button onClick={handleUndo} className="text-xs font-medium text-primary-600 px-3 py-1.5 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
+      <div className="bg-muted/50 border-2 border-dashed border-border rounded-xl p-4 flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">Borç silindi</span>
+        <button onClick={handleUndo} className="text-xs font-medium text-primary px-3 py-1.5 bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors">
           Geri Al (5sn)
         </button>
       </div>
@@ -134,39 +134,39 @@ export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDe
 
   if (editing) {
     return (
-      <div className="bg-white border-2 border-primary-400 rounded-xl p-4 space-y-3 shadow-sm">
+      <div className="bg-card border-2 border-primary rounded-xl p-4 space-y-3 shadow-sm">
         <input
           ref={nameRef}
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
           placeholder="Alacaklı adı"
-          className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+          className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
         />
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="text-xs text-neutral-500 mb-1 block">Kalan Tutar (₺)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Kalan Tutar (₺)</label>
             <input
               value={editRemaining}
               onChange={(e) => setEditRemaining(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-              className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+              className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
           <div className="flex-1">
-            <label className="text-xs text-neutral-500 mb-1 block">Aylık Ödeme (₺)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Aylık Ödeme (₺)</label>
             <input
               value={editMonthly}
               onChange={(e) => setEditMonthly(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-              className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+              className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
         </div>
         <select
           value={editStatus}
           onChange={(e) => setEditStatus(e.target.value as Debt['status'])}
-          className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+          className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
         >
           <option value="active">Aktif</option>
           <option value="paid_off">Kapandı</option>
@@ -176,11 +176,11 @@ export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDe
           <button
             onClick={saveEdit}
             disabled={saving}
-            className="flex-1 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 font-medium"
+            className="flex-1 py-2 bg-primary text-primary-foreground text-sm rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 font-medium"
           >
             {saving ? 'Kaydediliyor...' : 'Kaydet'}
           </button>
-          <button onClick={cancelEdit} className="px-4 py-2 bg-neutral-100 text-neutral-700 text-sm rounded-lg hover:bg-neutral-200 transition-colors">
+          <button onClick={cancelEdit} className="px-4 py-2 bg-muted text-muted-foreground text-sm rounded-lg hover:bg-muted/80 transition-colors">
             İptal
           </button>
         </div>
@@ -190,23 +190,23 @@ export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDe
 
   return (
     <div
-      className={`bg-[#000000] border border-zinc-800 rounded-3xl p-6 transition-all duration-500 group relative overflow-hidden shadow-2xl hover:border-zinc-700 ${
-        debt.status === 'overdue' ? 'ring-1 ring-red-500/20 shadow-red-500/10' : ''
+      className={`bg-card border border-border rounded-3xl p-6 transition-all duration-500 group relative overflow-hidden shadow-xl hover:shadow-2xl hover:border-primary/30 ${
+        debt.status === 'overdue' ? 'ring-1 ring-destructive/20 shadow-destructive/10' : ''
       }`}
       onClick={startEdit}
       title="Düzenlemek için tıkla"
     >
       {/* Background Decor */}
-      <div className="absolute -right-10 -top-10 w-40 h-40 bg-zinc-900/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -right-10 -top-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-neutral-900 text-sm truncate">{debt.creditorName}</div>
+          <div className="font-semibold text-foreground text-sm truncate">{debt.creditorName}</div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[debt.status]}`}>
               {STATUS_LABELS[debt.status]}
             </span>
             {isRisk && monthlyIncome > 0 && (
-              <span className="text-xs bg-warning-100 text-warning-700 px-2 py-0.5 rounded-full font-medium">
+              <span className="text-xs bg-score-warning-bg text-score-warning px-2 py-0.5 rounded-full font-medium border border-score-warning/20">
                 Yüksek Risk
               </span>
             )}
@@ -216,14 +216,14 @@ export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDe
           {debt.status !== 'paid_off' && !showPayment && (
             <button
               onClick={(e) => { e.stopPropagation(); setShowPayment(true); }}
-              className="px-3 py-1 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20"
+              className="px-3 py-1 bg-success text-success-foreground text-[10px] font-bold uppercase tracking-wider rounded-lg hover:opacity-90 transition-all shadow-lg shadow-success/20"
             >
               Ödeme Yap
             </button>
           )}
           <button
             onClick={handleDeleteClick}
-            className="opacity-0 group-hover:opacity-100 p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg transition-all flex-shrink-0"
+            className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all flex-shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -234,27 +234,27 @@ export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDe
 
       {showPayment && (
         <div 
-          className="mt-4 p-4 bg-zinc-900/50 border border-emerald-500/30 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300"
+          className="mt-4 p-4 bg-muted/50 border border-success/30 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-3">Hızlı Ödeme</div>
+          <div className="text-[10px] font-bold text-success uppercase tracking-widest mb-3">Hızlı Ödeme</div>
           <form onSubmit={handlePaySubmit} className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] text-zinc-500 uppercase font-bold mb-1 block">Miktar</label>
+                <label className="text-[9px] text-muted-foreground uppercase font-bold mb-1 block">Miktar</label>
                 <input
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-success"
                 />
               </div>
               <div>
-                <label className="text-[9px] text-zinc-500 uppercase font-bold mb-1 block">Hesap</label>
+                <label className="text-[9px] text-muted-foreground uppercase font-bold mb-1 block">Hesap</label>
                 <select
                   value={selectedAccountId}
                   onChange={(e) => setSelectedAccountId(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-2 py-2 text-xs focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-background border border-border text-foreground rounded-lg px-2 py-2 text-xs focus:outline-none focus:border-success"
                 >
                   <option value="">Seçiniz...</option>
                   {accounts.filter(a => a.type !== 'kredi_kartı').map(a => (
@@ -267,14 +267,14 @@ export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDe
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 py-2 bg-emerald-600 text-white text-[10px] font-bold uppercase rounded-lg hover:bg-emerald-700 transition-all disabled:opacity-50"
+                className="flex-1 py-2 bg-success text-success-foreground text-[10px] font-bold uppercase rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
               >
                 {saving ? 'İŞLENİYOR...' : 'ONAYLA'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowPayment(false)}
-                className="px-4 py-2 bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase rounded-lg hover:bg-zinc-700 transition-all"
+                className="px-4 py-2 bg-muted text-muted-foreground text-[10px] font-bold uppercase rounded-lg hover:bg-muted/80 transition-all"
               >
                 İPTAL
               </button>
@@ -285,26 +285,26 @@ export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDe
 
       <div className="mt-3 flex items-end justify-between">
         <div>
-          <div className="text-xs text-neutral-400">Kalan Borç</div>
-          <div className="text-2xl font-bold text-neutral-900">{fmt(debt.remainingAmount)}</div>
+          <div className="text-xs text-muted-foreground">Kalan Borç</div>
+          <div className="text-2xl font-bold text-foreground">{fmt(debt.remainingAmount)}</div>
         </div>
         {debt.monthlyPayment > 0 && (
           <div className="text-right">
-            <div className="text-xs text-neutral-400">Aylık Ödeme</div>
-            <div className="text-sm font-semibold text-neutral-700">{fmt(debt.monthlyPayment)}</div>
+            <div className="text-xs text-muted-foreground">Aylık Ödeme</div>
+            <div className="text-sm font-semibold text-muted-foreground">{fmt(debt.monthlyPayment)}</div>
           </div>
         )}
       </div>
 
       {debt.amount > 0 && (
         <div className="mt-3">
-          <div className="flex justify-between text-xs text-neutral-400 mb-1">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1">
             <span>Ödeme ilerleme</span>
             <span>%{progressPct}</span>
           </div>
-          <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${debt.status === 'paid_off' ? 'bg-success-500' : 'bg-primary-500'}`}
+              className={`h-full rounded-full transition-all ${debt.status === 'paid_off' ? 'bg-success' : 'bg-primary'}`}
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -312,14 +312,14 @@ export default function DebtCard({ debt, accounts, monthlyIncome, onUpdate, onDe
       )}
 
       {payoffDate && debt.status === 'active' && (
-        <div className="mt-2 text-xs text-neutral-500">
-          Tahmini kapanış: <span className="font-medium text-neutral-700">{payoffDate}</span>
-          {payoffMonths && <span className="text-neutral-400"> ({payoffMonths} ay)</span>}
+        <div className="mt-2 text-xs text-muted-foreground">
+          Tahmini kapanış: <span className="font-medium text-foreground">{payoffDate}</span>
+          {payoffMonths && <span className="text-muted-foreground/60"> ({payoffMonths} ay)</span>}
         </div>
       )}
 
       {isRisk && monthlyIncome > 0 && (
-        <div className="mt-2 text-xs text-warning-700">
+        <div className="mt-2 text-xs text-warning">
           Bu borç aylık gelirinizin %{debtToIncomeRatio.toFixed(0)}'ini alıyor — risk eşiği %35
         </div>
       )}

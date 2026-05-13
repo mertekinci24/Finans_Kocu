@@ -16,10 +16,10 @@ export function RecentTransactionsWidget({
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center mb-1">
-        <h3 className="text-[11px] font-black text-neutral-800 uppercase tracking-widest">Son İşlemler</h3>
+        <h3 className="text-[11px] font-black text-foreground uppercase tracking-widest">Son İşlemler</h3>
         <button
           onClick={onNavigate}
-          className="text-[9px] font-bold text-primary-600 hover:underline tracking-widest uppercase"
+          className="text-[9px] font-bold text-primary hover:underline tracking-widest uppercase"
         >
           Tümü »
         </button>
@@ -29,15 +29,15 @@ export function RecentTransactionsWidget({
           {transactions.map((tx) => (
             <div
               key={tx.id}
-              className="flex items-center justify-between p-2 bg-neutral-50/50 rounded-lg hover:bg-neutral-100 transition-colors border border-neutral-100"
+              className="flex items-center justify-between p-2 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors border border-border"
             >
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-bold text-neutral-900 truncate">{tx.description}</div>
-                <div className="text-[8px] text-neutral-400 font-bold uppercase">{tx.category}</div>
+                <div className="text-[10px] font-bold text-foreground truncate">{tx.description}</div>
+                <div className="text-[8px] text-muted-foreground font-bold uppercase">{tx.category}</div>
               </div>
               <div
                 className={`text-[11px] font-black ml-2 ${
-                  tx.type === 'gelir' ? 'text-emerald-600' : 'text-rose-600'
+                  tx.type === 'gelir' ? 'text-success' : 'text-error'
                 }`}
               >
                 {tx.type === 'gelir' ? '+' : '-'}{fmt(tx.amount)}
@@ -46,7 +46,7 @@ export function RecentTransactionsWidget({
           ))}
         </div>
       ) : (
-        <div className="text-center py-4 text-neutral-400 text-[10px] font-bold uppercase">
+        <div className="text-center py-4 text-muted-foreground text-[10px] font-bold uppercase">
           İşlem Bulunmuyor
         </div>
       )}
@@ -69,12 +69,12 @@ export function ActiveInstallmentsWidget({
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center mb-1">
-        <h2 className="text-[11px] font-black text-neutral-800 uppercase tracking-widest">
+        <h2 className="text-[11px] font-black text-foreground uppercase tracking-widest">
           Aktif Taksitler
         </h2>
         <button
           onClick={onNavigate}
-          className="text-[9px] font-bold text-primary-600 hover:underline tracking-widest uppercase"
+          className="text-[9px] font-bold text-primary hover:underline tracking-widest uppercase"
         >
           Pazaryeri »
         </button>
@@ -84,22 +84,22 @@ export function ActiveInstallmentsWidget({
           {installments.slice(0, 5).map((inst) => (
             <div
               key={inst.id}
-              className="flex items-center justify-between p-2 bg-neutral-50/50 rounded-lg border border-neutral-100"
+              className="flex items-center justify-between p-2 bg-muted/30 rounded-lg border border-border"
             >
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-bold text-neutral-900 truncate">{inst.lenderName}</div>
-                <div className="text-[8px] text-neutral-400 font-bold uppercase">
+                <div className="text-[10px] font-bold text-foreground truncate">{inst.lenderName}</div>
+                <div className="text-[8px] text-muted-foreground font-bold uppercase">
                   {inst.remainingMonths} Taksit Mevcut
                 </div>
               </div>
-              <div className="text-[11px] font-black text-primary-600 ml-2">
+              <div className="text-[11px] font-black text-primary ml-2">
                 {fmt(inst.monthlyPayment)}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-4 text-neutral-400 text-[10px] font-bold uppercase">
+        <div className="text-center py-4 text-muted-foreground text-[10px] font-bold uppercase">
           Aktif Taksit Bulunmuyor
         </div>
       )}

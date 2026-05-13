@@ -47,8 +47,8 @@ export default function CashFlowForecastWidget({
   if (isLoading || !forecast) {
     return (
       <div className="space-y-3 animate-pulse">
-        <div className="h-6 bg-neutral-200 rounded w-32" />
-        <div className="h-40 bg-neutral-200 rounded" />
+        <div className="h-6 bg-muted rounded w-32" />
+        <div className="h-40 bg-muted rounded" />
       </div>
     );
   }
@@ -59,17 +59,17 @@ export default function CashFlowForecastWidget({
   const hasScenarioData = scenarioResult !== null && scenarioResult !== undefined;
 
   return (
-    <div className="space-y-4 bg-[#000000] p-4 lg:p-5 rounded-3xl border border-zinc-800 relative shadow-2xl overflow-hidden group hover:border-zinc-700 transition-colors">
+    <div className="space-y-4 bg-card p-4 lg:p-5 rounded-3xl border border-border relative shadow-2xl overflow-hidden group hover:border-border/80 transition-colors">
       {/* Background Accent */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32" />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
         <div className="flex items-center gap-2">
-          <h3 className="text-[13px] font-black text-zinc-100 tracking-wider uppercase">Nakit Akışı Navigatörü</h3>
+          <h3 className="text-[13px] font-black text-foreground tracking-wider uppercase">Nakit Akışı Navigatörü</h3>
           <button 
             onClick={() => setShowTheoryModal(true)}
-            className="w-5 h-5 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+            className="w-5 h-5 flex items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
             title="Nasıl Çalışır?"
           >
             <span className="text-[10px] font-bold italic">i</span>
@@ -80,8 +80,8 @@ export default function CashFlowForecastWidget({
             onClick={() => setScenarioMode(!scenarioMode)}
             className={`px-2.5 py-1 text-xs rounded-md font-medium transition-all ${
               scenarioMode
-                ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm'
-                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
             title="Senaryo simülatörü"
           >
@@ -90,7 +90,7 @@ export default function CashFlowForecastWidget({
           {onNavigateToSimulator && (
             <button
               onClick={onNavigateToSimulator}
-              className="px-2 py-1 text-xs rounded-md font-medium bg-neutral-100 text-neutral-500 hover:bg-neutral-200 transition-colors"
+              className="px-2 py-1 text-xs rounded-md font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
               title="Detaylı Simülatör"
             >
               ↗
@@ -115,12 +115,12 @@ export default function CashFlowForecastWidget({
       {hasScenarioData && (
         <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-wider relative z-10 pt-2">
           <div className="flex items-center gap-1.5">
-            <div className="w-4 h-0.5 bg-[#10b981] rounded shadow-[0_0_5px_#10b981]" />
-            <span className="text-zinc-400">Mevcut Durum</span>
+            <div className="w-4 h-0.5 bg-chart-positive rounded shadow-[0_0_5px_hsl(var(--chart-positive)/0.5)]" />
+            <span className="text-muted-foreground">Mevcut Durum</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-4 h-0.5 bg-[#f97316] rounded border-t border-dashed border-[#f97316] shadow-[0_0_5px_#f97316]" />
-            <span className="text-zinc-400">Senaryo</span>
+            <div className="w-4 h-0.5 bg-chart-warning rounded border-t border-dashed border-chart-warning shadow-[0_0_5px_hsl(var(--chart-warning)/0.5)]" />
+            <span className="text-muted-foreground">Senaryo</span>
           </div>
         </div>
       )}
@@ -143,7 +143,7 @@ export default function CashFlowForecastWidget({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="border-t border-zinc-800 pt-3 space-y-3 relative z-10"
+            className="border-t border-border pt-3 space-y-3 relative z-10"
           >
             {/* Senaryo Tip Seçici */}
             <div className="flex gap-1.5">
@@ -153,8 +153,8 @@ export default function CashFlowForecastWidget({
                   onClick={() => setActiveScenario(type)}
                   className={`flex-1 px-2 py-1.5 text-xs rounded-xl font-bold uppercase tracking-wider transition-all border ${
                     activeScenario === type
-                      ? 'bg-zinc-800 text-white border-zinc-600 shadow-sm'
-                      : 'bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:text-zinc-300'
+                      ? 'bg-muted text-foreground border-border shadow-sm'
+                      : 'bg-muted/30 text-muted-foreground border-transparent hover:text-foreground'
                   }`}
                 >
                   <span className="block text-base">{SCENARIO_LABELS[type].icon}</span>
@@ -179,7 +179,7 @@ export default function CashFlowForecastWidget({
                 />
               ) : (
                 <>
-                  <label className="text-[10px] font-bold text-zinc-500 block uppercase tracking-wider">
+                  <label className="text-[10px] font-bold text-muted-foreground block uppercase tracking-wider">
                     {activeScenario === 'debt_payoff' && 'Ödeme Tutarı (₺)'}
                     {activeScenario === 'big_purchase' && 'Alım Tutarı (₺)'}
                     {activeScenario === 'extra_income' && 'Aylık Ek Gelir (₺)'}
@@ -189,7 +189,7 @@ export default function CashFlowForecastWidget({
                       type="number"
                       value={amount}
                       onChange={(e) => setAmount(Number(e.target.value))}
-                      className="flex-1 px-3 py-1.5 text-xs font-black border border-zinc-700 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-zinc-900 text-white placeholder-zinc-600"
+                      className="flex-1 px-3 py-1.5 text-xs font-black border border-border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary transition-colors bg-background text-foreground placeholder:text-muted-foreground"
                       min={0}
                       step={1000}
                       placeholder="Tutar girin..."
@@ -201,12 +201,12 @@ export default function CashFlowForecastWidget({
                         }
                       }}
                       disabled={amount <= 0}
-                      className="px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-lg hover:from-orange-600 hover:to-rose-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_10px_rgba(249,115,22,0.3)]"
+                      className="px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                     >
                       Test Et
                     </button>
                   </div>
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                     ⓘ {SCENARIO_LABELS[activeScenario].description}
                   </p>
                 </>
@@ -223,12 +223,12 @@ export default function CashFlowForecastWidget({
 
       {/* Tavsiyeler */}
       {forecast.recommendations.length > 0 && !scenarioMode && (
-        <div className="border-t border-zinc-800 pt-3 relative z-10">
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Tavsiyeler</p>
+        <div className="border-t border-border pt-3 relative z-10">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Tavsiyeler</p>
           <ul className="space-y-1.5">
             {forecast.recommendations.slice(0, 2).map((rec, i) => (
-              <li key={i} className="text-xs text-zinc-500 flex gap-2 items-start">
-                <span className="text-orange-500 mt-0.5 text-[10px]">♦</span>
+              <li key={i} className="text-xs text-muted-foreground flex gap-2 items-start">
+                <span className="text-warning mt-0.5 text-[10px]">♦</span>
                 <span>{rec}</span>
               </li>
             ))}
@@ -236,8 +236,8 @@ export default function CashFlowForecastWidget({
         </div>
       )}
 
-      <div className="flex items-center justify-between relative z-10 pt-2 border-t border-zinc-800/50">
-        <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">
+      <div className="flex items-center justify-between relative z-10 pt-2 border-t border-border/50">
+        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">
           ⓘ Tahminler tekrarlayan işlemlere dayanır
         </p>
       </div>
@@ -402,7 +402,7 @@ function InteractiveCashFlowChart({
       tabIndex={0}
     >
       {/* Chart Canvas */}
-      <div className="h-52 relative bg-black rounded-xl border border-zinc-900 shadow-inner overflow-visible">
+      <div className="h-52 relative bg-background rounded-xl border border-border shadow-inner overflow-visible">
         <svg 
           viewBox="0 0 400 150" 
           className="w-full h-full pb-2" 
@@ -433,20 +433,20 @@ function InteractiveCashFlowChart({
           <rect x="350" y="0" width="50" height="150" fill="url(#securityFog)" className="pointer-events-none" />
 
           {/* Grid lines (Optimized for contrast) */}
-          <line x1="0" y1="20" x2="400" y2="20" stroke="#1f2937" strokeWidth="0.5" strokeDasharray="3,3" strokeOpacity="0.5" />
-          <line x1="0" y1="80" x2="400" y2="80" stroke="#1f2937" strokeWidth="0.5" strokeDasharray="3,3" strokeOpacity="0.5" />
+          <line x1="0" y1="20" x2="400" y2="20" stroke="hsl(var(--chart-grid))" strokeWidth="0.5" strokeDasharray="3,3" strokeOpacity="0.5" />
+          <line x1="0" y1="80" x2="400" y2="80" stroke="hsl(var(--chart-grid))" strokeWidth="0.5" strokeDasharray="3,3" strokeOpacity="0.5" />
           
           {/* Baseline */}
           <motion.polyline
             initial={false}
             animate={{ points: baselinePoints }}
             fill="none"
-            stroke="#10b981"
+            stroke="hsl(var(--chart-positive))"
             strokeWidth="4"
             strokeLinejoin="round"
             strokeLinecap="round"
             filter="url(#neonGlowGreen)"
-            style={{ filter: 'drop-shadow(0 0 4px rgba(16, 185, 129, 0.4))' }}
+            style={{ filter: 'drop-shadow(0 0 6px hsl(var(--chart-positive) / 0.45))' }}
           />
 
           {/* Scenario */}
@@ -455,7 +455,7 @@ function InteractiveCashFlowChart({
               initial={false}
               animate={{ points: scenarioPoints }}
               fill="none"
-              stroke="#f97316"
+              stroke="hsl(var(--chart-warning))"
               strokeWidth="2"
               strokeDasharray="4,4"
               strokeLinejoin="round"
@@ -467,7 +467,7 @@ function InteractiveCashFlowChart({
           {forecast.hasCashTightness && (
             <line
               x1="0" y1="100" x2="400" y2="100"
-              stroke="#FF4D4D"
+              stroke="hsl(var(--chart-negative))"
               strokeWidth="1"
               strokeDasharray="4,4"
               filter="url(#neonGlowRed)"
@@ -493,7 +493,7 @@ function InteractiveCashFlowChart({
                 
                 {/* Active Indicator Line */}
                 {activePoint === i && (
-                  <line x1={x} y1="0" x2={x} y2="120" stroke="#3f3f46" strokeWidth="1" strokeDasharray="2,2" className="pointer-events-none" />
+                  <line x1={x} y1="0" x2={x} y2="120" stroke="currentColor" strokeWidth="1" strokeDasharray="2,2" strokeOpacity="0.3" className="pointer-events-none" />
                 )}
               </g>
             );
@@ -516,14 +516,14 @@ function InteractiveCashFlowChart({
                 key={`label-${i}`}
                 x={x}
                 y={130}
-                fill="currentColor"
+                fill="hsl(var(--chart-axis))"
                 fontSize="10"
                 fontWeight="300"
                 fontFamily="Inter, system-ui, sans-serif"
                 style={{ fontStyle: 'normal' }}
                 textAnchor="start"
                 transform={`rotate(45, ${x}, 130) translate(-10, 10)`}
-                className="pointer-events-none select-none uppercase tracking-tighter text-zinc-400/80 dark:text-zinc-500/80"
+                className="pointer-events-none select-none uppercase tracking-tighter"
               >
                 {dateStr}
               </text>
@@ -554,58 +554,58 @@ function InteractiveCashFlowChart({
                 maxWidth: 'calc(100% - 20px)'
               }}
             >
-              <div ref={tooltipRef} className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-3 shadow-2xl backdrop-blur-xl w-60 text-left">
+              <div ref={tooltipRef} className="bg-chart-tooltip border border-border rounded-xl p-3 shadow-2xl backdrop-blur-xl w-60 text-left">
                 {/* TOOLTIP HEADER */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm">{getCategoryIcon(activeDay.description)}</span>
-                    <span className="text-[10px] font-black text-zinc-400 tracking-widest uppercase">
+                    <span className="text-[10px] font-black text-chart-tooltip-foreground/60 tracking-widest uppercase">
                       {new Date(activeDay.date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}{zoomLevel < 30 ? ' 15:00' : ''}
                     </span>
                   </div>
-                  <div className={`w-2.5 h-2.5 rounded-full ${activeDay.balance < 0 ? 'bg-[#FF4D4D] shadow-[0_0_8px_#FF4D4D]' : activeDay.balance < currentBalance * 0.2 ? 'bg-[#FFA500] shadow-[0_0_8px_#FFA500]' : 'bg-[#10b981] shadow-[0_0_8px_#10b981]'}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full ${activeDay.balance < 0 ? 'bg-chart-negative shadow-[0_0_8px_hsl(var(--chart-negative))]' : activeDay.balance < currentBalance * 0.2 ? 'bg-chart-warning shadow-[0_0_8px_hsl(var(--chart-warning))]' : 'bg-chart-positive shadow-[0_0_8px_hsl(var(--chart-positive))]'}`} />
                 </div>
 
                 {/* TOOLTIP MAIN DETAIL */}
                 <div className="mb-3">
-                  <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-tighter mb-0.5">Tahmini Bakiye</div>
-                  <div className="text-xl font-black text-white leading-none">
+                  <div className="text-[9px] font-bold text-chart-tooltip-foreground/50 uppercase tracking-tighter mb-0.5">Tahmini Bakiye</div>
+                  <div className="text-xl font-black text-chart-tooltip-foreground leading-none">
                     {fmt(activeDay.balance)}
                   </div>
                 </div>
                 
                 {activeDay.description !== 'Sıradan Gün' && (
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-2 rounded-lg mb-3 border border-emerald-500/20">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-chart-positive bg-chart-positive/10 px-2 py-2 rounded-lg mb-3 border border-chart-positive/20">
                     <span className="truncate">{activeDay.description}</span>
                   </div>
                 )}
 
                 {/* TOOLTIP METRICS GRID */}
                 <div className="grid grid-cols-2 gap-2 text-[9px] mb-2 font-bold uppercase tracking-wider">
-                  <div className="bg-zinc-800/80 p-2 rounded-lg flex flex-col gap-1 border border-zinc-700/30">
-                    <span className="text-zinc-500">Gelir Etkisi</span>
-                    <span className={activeDay.netExpense > 0 ? "text-orange-400" : "text-emerald-400"}>
+                  <div className="bg-muted/50 p-2 rounded-lg flex flex-col gap-1 border border-border/30">
+                    <span className="text-chart-tooltip-foreground/60">Gelir Etkisi</span>
+                    <span className={activeDay.netExpense > 0 ? "text-chart-warning" : "text-chart-positive"}>
                       {activeDay.netExpense > 0 && monthlyIncome > 0 
                         ? `%${((activeDay.netExpense / monthlyIncome) * 100).toFixed(1)}` 
                         : 'Stabil'}
                     </span>
                   </div>
-                  <div className="bg-zinc-800/80 p-2 rounded-lg flex flex-col gap-1 border border-zinc-700/30">
-                    <span className="text-zinc-500">Tampon (NT)</span>
-                    <span className={activeDay.balance < 0 ? "text-red-400" : "text-emerald-400"}>
+                  <div className="bg-muted/50 p-2 rounded-lg flex flex-col gap-1 border border-border/30">
+                    <span className="text-chart-tooltip-foreground/60">Tampon (NT)</span>
+                    <span className={activeDay.balance < 0 ? "text-chart-negative" : "text-chart-positive"}>
                       {(activeDay.balance / (monthlyIncome || 1)).toFixed(1)} AY
                     </span>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-800/50 text-[10px] font-black">
+                <div className="flex justify-between items-center mt-2 pt-2 border-t border-border/50 text-[10px] font-black">
                   <div className="flex flex-col">
-                    <span className="text-[8px] text-zinc-600 uppercase">Giriş</span>
-                    <span className="text-emerald-500">+{fmt(activeDay.netIncome)}</span>
+                    <span className="text-[8px] text-chart-tooltip-foreground/40 uppercase">Giriş</span>
+                    <span className="text-chart-positive">+{fmt(activeDay.netIncome)}</span>
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="text-[8px] text-zinc-600 uppercase">Çıkış</span>
-                    <span className="text-red-500">-{fmt(activeDay.netExpense)}</span>
+                    <span className="text-[8px] text-chart-tooltip-foreground/40 uppercase">Çıkış</span>
+                    <span className="text-chart-negative">-{fmt(activeDay.netExpense)}</span>
                   </div>
                 </div>
               </div>
@@ -616,13 +616,13 @@ function InteractiveCashFlowChart({
 
       {/* Control Bar */}
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-1 bg-zinc-900 rounded-lg p-0.5 border border-zinc-800">
-          <button onClick={() => handlePan(-1)} disabled={panIndex === 0} className="px-2 py-1 text-zinc-400 hover:text-white disabled:opacity-30">‹</button>
-          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-1">Zaman</span>
-          <button onClick={() => handlePan(1)} disabled={panIndex === maxPan} className="px-2 py-1 text-zinc-400 hover:text-white disabled:opacity-30">›</button>
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5 border border-border">
+          <button onClick={() => handlePan(-1)} disabled={panIndex === 0} className="px-2 py-1 text-muted-foreground hover:text-foreground disabled:opacity-30">‹</button>
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest px-1">Zaman</span>
+          <button onClick={() => handlePan(1)} disabled={panIndex === maxPan} className="px-2 py-1 text-muted-foreground hover:text-foreground disabled:opacity-30">›</button>
         </div>
         
-        <div className="flex items-center gap-1 bg-zinc-900 rounded-lg p-0.5 border border-zinc-800">
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5 border border-border">
           {[7, 14, 30].map(zoom => (
             <button
               key={zoom}
@@ -630,7 +630,7 @@ function InteractiveCashFlowChart({
                 setZoomLevel(zoom as 7|14|30);
                 setPanIndex(0); // Reset pan on zoom
               }}
-              className={`px-2 py-1 text-[9px] font-black uppercase rounded transition-colors ${zoomLevel === zoom ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+              className={`px-2 py-1 text-[9px] font-black uppercase rounded transition-colors ${zoomLevel === zoom ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
               {zoom === 30 ? '1 AY' : zoom === 14 ? '2 HFT' : '1 HFT'}
             </button>
@@ -645,29 +645,29 @@ function InteractiveCashFlowChart({
 function TheoryModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/60 backdrop-blur-sm">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-black border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden relative"
+        className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden relative"
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-white">✕</button>
+        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">✕</button>
         <div className="p-6">
-          <h3 className="text-xl font-black text-white mb-2 tracking-tight">Nakit Akışı Formülü</h3>
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-6">Katman 1.1 Motor Özellikleri</p>
+          <h3 className="text-xl font-black text-foreground mb-2 tracking-tight">Nakit Akışı Formülü</h3>
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-6">Katman 1.1 Motor Özellikleri</p>
           
           <div className="space-y-4">
-            <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
-              <span className="text-emerald-400 font-mono text-sm block mb-1">$$Db(t+1) = Db(t) + I(t) - E(t)$$</span>
-              <p className="text-xs text-zinc-300 leading-relaxed mt-2">
+            <div className="bg-muted p-4 rounded-xl border border-border">
+              <span className="text-success font-mono text-sm block mb-1">$$Db(t+1) = Db(t) + I(t) - E(t)$$</span>
+              <p className="text-xs text-foreground/80 leading-relaxed mt-2">
                 Her gün için mevcut bakiye (Db(t)), o güne ait beklenen gelirler I(t) eklenip, kesinleşmiş ödemeler ve kredi kartı ekstreleri E(t) düşülerek hesaplanır. Günlük hesaplama (Intra-month) sayesinde ay sonunu beklemeden "Nakit Tıkanıklığı" aylar öncesinden tespit edilir.
               </p>
             </div>
             
-            <div className="bg-neutral-950/40 p-4 rounded-xl border border-zinc-800">
-              <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1.5 block">Pratik Analiz Örneği:</span>
-              <p className="text-xs text-zinc-400 leading-relaxed italic">
+            <div className="bg-background/40 p-4 rounded-xl border border-border">
+              <span className="text-[10px] font-black text-warning uppercase tracking-widest mb-1.5 block">Pratik Analiz Örneği:</span>
+              <p className="text-xs text-muted-foreground leading-relaxed italic">
                 "25 Nisan'daki ₺26.277'lik düşüş, Akbank kredi kartınızın son ödeme günüdür. Bu harcama aylık gelirinizin %52'sine denk gelmektedir."
               </p>
             </div>
@@ -693,25 +693,25 @@ function MetricCards({
   fmt: (n: number) => string;
 }) {
   const getMinBalColor = (val: number) => {
-    if (val < 0) return 'bg-red-950/20 border-red-900/50 text-red-400';
-    if (val < currentBalance * 0.2) return 'bg-orange-950/20 border-orange-900/50 text-orange-400';
-    return 'bg-emerald-950/20 border-emerald-900/50 text-emerald-400';
+    if (val < 0) return 'bg-chart-negative/10 border-chart-negative/20 text-chart-negative';
+    if (val < currentBalance * 0.2) return 'bg-chart-warning/10 border-chart-warning/20 text-chart-warning';
+    return 'bg-chart-positive/10 border-chart-positive/20 text-chart-positive';
   };
 
   return (
     <div className="grid grid-cols-3 gap-2">
-      <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-xl bg-opacity-70 group-hover:bg-opacity-90 transition-all">
-        <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Mevcut</p>
-        <p className="font-black text-white text-base tracking-tight">{fmt(currentBalance)}</p>
+      <div className="bg-muted border border-border p-3 rounded-xl bg-opacity-70 group-hover:bg-opacity-90 transition-all">
+        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Mevcut</p>
+        <p className="font-black text-foreground text-base tracking-tight">{fmt(currentBalance)}</p>
       </div>
       
       <div className={`${getMinBalColor(forecast.projectedEndBalance)} p-3 rounded-xl border transition-all duration-500`}>
         <p className="text-[10px] uppercase font-bold tracking-wider opacity-60">30G Sonra</p>
-        <p className="font-black text-white text-base tracking-tight">{fmt(forecast.projectedEndBalance)}</p>
+        <p className="font-black text-foreground text-base tracking-tight">{fmt(forecast.projectedEndBalance)}</p>
         {hasScenarioData && scenarioResult && (
           <motion.p 
             initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
-            className="text-[10px] text-orange-400 font-bold mt-1 tracking-wider uppercase flex items-center gap-1"
+            className="text-[10px] text-warning font-bold mt-1 tracking-wider uppercase flex items-center gap-1"
           >
             <span>→</span> {fmt(scenarioResult.summary.scenarioEndBalance)}
           </motion.p>
@@ -720,13 +720,13 @@ function MetricCards({
 
       <div className={`${getMinBalColor(forecast.minBalance)} p-3 rounded-xl border transition-all duration-500`}>
         <p className="text-[10px] uppercase font-bold tracking-wider opacity-60">En Düşük</p>
-        <p className="font-black text-white text-base tracking-tight">
+        <p className="font-black text-foreground text-base tracking-tight">
           {forecast.minBalance >= 0 ? fmt(forecast.minBalance) : `−${fmt(Math.abs(forecast.minBalance))}`}
         </p>
         {hasScenarioData && scenarioResult && (
           <motion.p 
             initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
-            className="text-[10px] text-orange-400 font-bold mt-1 tracking-wider uppercase flex items-center gap-1"
+            className="text-[10px] text-warning font-bold mt-1 tracking-wider uppercase flex items-center gap-1"
           >
             <span>→</span> {scenarioResult.summary.scenarioMinBalance >= 0
               ? fmt(scenarioResult.summary.scenarioMinBalance)

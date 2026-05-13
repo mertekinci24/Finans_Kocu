@@ -7,10 +7,28 @@ interface ReportData {
   transactions: Transaction[];
   debts: Debt[];
   installments: Installment[];
-  score: DetailedScore | null;
-  month: Date;
+  score?: DetailedScore | null;
+  detailedScore?: DetailedScore | null;
+  month?: Date | string | number | null;
   userEmail?: string;
+  useRealValue?: boolean;
 }
+
+const toSafeDate = (value: unknown, fallback = new Date()): Date => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return fallback;
+};
+
+const formatDateTR = (value: unknown, options?: Intl.DateTimeFormatOptions): string =>
+  toSafeDate(value).toLocaleDateString('tr-TR', options || {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
 
 function fmt(n: number): string {
   return `${CURRENCY_SYMBOL}${n.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
@@ -44,15 +62,20 @@ function categoryBreakdown(transactions: Transaction[]): { name: string; amount:
 }
 
 export function generateMonthlyReport(data: ReportData): void {
-  const { accounts, transactions, debts, installments, score, month, userEmail } = data;
-
-  const monthLabel = month.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
-  const now = new Date().toLocaleDateString('tr-TR', { dateStyle: 'long' });
+  const { accounts, transactions, debts, installments, userEmail } = data;
+  
+  // Normalize score
+  const score = data.score || data.detailedScore || null;
+  
+  // Normalize month
+  const reportDate = toSafeDate(data.month || score?.score.lastCalculatedAt);
+  const monthLabel = formatDateTR(reportDate, { month: 'long', year: 'numeric' });
+  const now = formatDateTR(new Date());
 
   const income    = transactions.filter((t) => t.type === 'gelir').reduce((s, t) => s + t.amount, 0);
   const expenses  = transactions.filter((t) => t.type === 'gider').reduce((s, t) => s + t.amount, 0);
   const net       = income - expenses;
-  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+  const totalBalance = accounts.reduce((s, a) => s + (a.type === 'kredi_kartı' ? -a.balance : a.balance), 0);
   const totalDebt = debts.filter((d) => d.status === 'active').reduce((s, d) => s + d.remainingAmount, 0);
   const monthlyInstallment = installments.filter((i) => i.status === 'active').reduce((s, i) => s + i.monthlyPayment, 0);
 
@@ -192,7 +215,7 @@ export function generateMonthlyReport(data: ReportData): void {
         <tbody>
           ${recentTx.map((tx) => `
             <tr>
-              <td>${new Date(tx.date).toLocaleDateString('tr-TR')}</td>
+              <td>${formatDateTR(tx.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
               <td>${tx.description}</td>
               <td style="color:#6b7280">${tx.category}</td>
               <td style="text-align:right; font-weight:600; color:${tx.type === 'gelir' ? '#16a34a' : '#dc2626'}">

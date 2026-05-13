@@ -13,6 +13,8 @@ import Assistant from '@/pages/Assistant';
 import ScenarioSimulator from '@/pages/ScenarioSimulator';
 import Goals from '@/pages/Goals';
 import Upgrade from '@/pages/Upgrade';
+import Profile from '@/pages/Profile';
+import Settings from '@/pages/Settings';
 import SignIn from '@/pages/SignIn';
 import SignUp from '@/pages/SignUp';
 import { ROUTES } from '@/constants';
@@ -96,6 +98,8 @@ export default function App(): JSX.Element {
           <Route path={ROUTES.SCENARIO} element={<ScenarioSimulator />} />
           <Route path={ROUTES.GOALS} element={<Goals />} />
           <Route path={ROUTES.UPGRADE} element={<Upgrade />} />
+          <Route path={ROUTES.PROFILE} element={<Profile />} />
+          <Route path={ROUTES.SETTINGS} element={<Settings />} />
         </Route>
       </Routes>
     </Router>

@@ -148,11 +148,11 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
 
   if (undo.visible) {
     return (
-      <div className="bg-neutral-100 dark:bg-neutral-800 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 p-4 flex items-center justify-between">
-        <span className="text-neutral-500 dark:text-neutral-400 text-sm">Hesap silindi</span>
+      <div className="bg-muted rounded-xl border-2 border-dashed border-border p-4 flex items-center justify-between">
+        <span className="text-muted-foreground text-sm">Hesap silindi</span>
         <button
           onClick={handleUndo}
-          className="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors font-medium"
+          className="px-3 py-1.5 bg-primary text-primary-foreground text-sm rounded-lg hover:opacity-90 transition-colors font-medium"
         >
           Geri Al (5sn)
         </button>
@@ -162,10 +162,10 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
 
   if (editing) {
     return (
-      <div className="bg-white dark:bg-neutral-900 rounded-xl border-2 border-primary-400 p-4 shadow-sm space-y-3">
+      <div className="bg-card rounded-xl border-2 border-primary p-4 shadow-sm space-y-3">
         <div className="flex items-center gap-3 mb-1">
           <BankLogo account={{ ...account, bankName: editBankName || account.bankName }} size="md" />
-          <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">{getAccountTypeLabel(account.type)}</span>
+          <span className="text-xs text-muted-foreground font-medium">{getAccountTypeLabel(account.type)}</span>
         </div>
         <input
           ref={nameRef}
@@ -173,87 +173,89 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
           onChange={(e) => setEditName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
           placeholder="Hesap adı"
-          className="w-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+          className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
         />
         {account.type !== 'nakit' && (
-          <input
-            value={editBankName}
-            onChange={(e) => setEditBankName(e.target.value)}
-            placeholder="Banka adı (ör. Garanti, Akbank)"
-            className="w-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
-          />
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Banka Adı</label>
+            <input
+              value={editBankName}
+              onChange={(e) => setEditBankName(e.target.value)}
+              placeholder="ör. Garanti BBVA, Akbank, İş Bankası"
+              className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
         )}
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">Bakiye / Borç</label>
+          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest pl-1">Bakiye / Borç</label>
           <input
             value={editBalance}
             onChange={(e) => setEditBalance(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
             placeholder="Bakiye"
             type="text"
-            className="w-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+            className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
 
         {account.type === 'kredi_kartı' && (
-          <div className="space-y-3 pt-2 border-t border-neutral-100 dark:border-neutral-800">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">Kart Limiti</label>
-              <input
-                value={editCardLimit}
-                onChange={(e) => setEditCardLimit(e.target.value)}
-                placeholder="Limit"
-                type="text"
-                className="w-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 font-bold"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">Kesim Günü</label>
-                <input
-                  value={editStatementDay}
-                  onChange={(e) => setEditStatementDay(e.target.value)}
-                  placeholder="1-31"
-                  type="number"
-                  min="1"
-                  max="31"
-                  className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 ${
-                    errors.statementDay ? 'border-error-400' : 'border-neutral-300'
-                  }`}
-                />
-                {errors.statementDay && <p className="text-xs text-error-600 mt-1">{errors.statementDay}</p>}
-                {nextStatement && (
-                  <p className="text-[9px] text-zinc-500 mt-1.5 font-medium">
-                    Hedef ekstre: {formatFullDate(nextStatement.statementDate)}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest pl-1">Ödeme Günü</label>
-                <input
-                  value={editPaymentDay}
-                  onChange={(e) => setEditPaymentDay(e.target.value)}
-                  placeholder="1-31"
-                  type="number"
-                  min="1"
-                  max="31"
-                  className="w-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
-                />
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-xl border border-border">
+          <div className="col-span-2">
+            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5">Kart Limiti (₺)</label>
+            <input
+              value={editCardLimit}
+              onChange={(e) => setEditCardLimit(e.target.value)}
+              placeholder="ör. 25000"
+              type="text"
+              className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background text-foreground ${
+                errors.cardLimit ? 'border-destructive' : 'border-border'
+              }`}
+            />
           </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest pl-1">Kesim Günü</label>
+            <input
+              value={editStatementDay}
+              onChange={(e) => setEditStatementDay(e.target.value)}
+              placeholder="1-31"
+              type="number"
+              min="1"
+              max="31"
+              className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background text-foreground ${
+                errors.statementDay ? 'border-destructive' : 'border-border'
+              }`}
+            />
+            {nextStatement && (
+              <p className="text-[9px] text-muted-foreground mt-1.5 font-medium">
+                Hedef ekstre: {formatFullDate(nextStatement.statementDate)}
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest pl-1">Ödeme Günü</label>
+            <input
+              value={editPaymentDay}
+              onChange={(e) => setEditPaymentDay(e.target.value)}
+              placeholder="1-31"
+              type="number"
+              min="1"
+              max="31"
+              className="w-full border border-border bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
+        </div>
         )}
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-2">
           <button
             onClick={saveEdit}
             disabled={saving}
-            className="flex-1 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 font-medium"
+            className="flex-1 py-2 bg-primary text-primary-foreground text-sm rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 font-medium"
           >
             {saving ? 'Kaydediliyor...' : 'Kaydet'}
           </button>
           <button
             onClick={cancelEdit}
-            className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-sm rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+            className="px-4 py-2 bg-muted text-muted-foreground text-sm rounded-lg hover:bg-muted/80 transition-colors"
           >
             İptal
           </button>
@@ -268,29 +270,29 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
 
   return (
     <div
-      className={`bg-[#000000] border border-zinc-900 rounded-[2.5rem] p-7 transition-all duration-700 group cursor-pointer relative overflow-hidden ${shadowClass} hover:border-zinc-800 shadow-2xl`}
+      className={`bg-card border border-border rounded-[2.5rem] p-7 transition-all duration-700 group cursor-pointer relative overflow-hidden ${shadowClass} hover:border-primary/30 shadow-2xl`}
       onClick={startEdit}
       title="Düzenlemek için tıkla"
     >
       {/* Premium Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-zinc-900/10 via-transparent to-zinc-900/10 opacity-50" />
-      <div className="absolute -right-20 -top-20 w-64 h-64 bg-zinc-900/20 rounded-full blur-[80px] pointer-events-none group-hover:bg-zinc-800/30 transition-all duration-1000" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-muted/10 via-transparent to-muted/10 opacity-50" />
+      <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-[80px] pointer-events-none group-hover:bg-primary/10 transition-all duration-1000" />
       
       <div className="flex flex-col h-full relative z-10">
         {/* Header Section */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-5">
-            <div className="p-3.5 rounded-2xl bg-[#0a0a0a] border border-zinc-800 shadow-2xl group-hover:border-zinc-700 transition-colors duration-500">
+            <div className="p-3.5 rounded-2xl bg-muted/50 border border-border shadow-2xl group-hover:border-primary/20 transition-colors duration-500">
               <BankLogo account={account} size="md" />
             </div>
             <div className="space-y-1.5">
-              <div className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em] leading-none">
+              <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.4em] leading-none">
                 {getAccountTypeLabel(account.type)}
               </div>
-              <div className="font-bold text-white text-lg tracking-tight flex items-center gap-3">
+              <div className="font-bold text-foreground text-lg tracking-tight flex items-center gap-3">
                 {account.name}
                 {ccDates?.isTodayPayment && (
-                  <span className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded-full font-black animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.4)]">
+                  <span className="bg-destructive text-destructive-foreground text-[8px] px-2 py-0.5 rounded-full font-black animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.4)]">
                     BUGÜN ÖDEME
                   </span>
                 )}
@@ -300,7 +302,7 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
 
           <button
             onClick={(e) => { e.stopPropagation(); handleDeleteClick(); }}
-            className="opacity-0 group-hover:opacity-100 p-2 text-zinc-700 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-all duration-300"
+            className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all duration-300"
             title="Hesabı sil"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,28 +314,28 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
         {/* Dynamic Dates Section - Center Focus for Credit Cards */}
         {account.type === 'kredi_kartı' && ccDates && (
           <div className="mt-8 grid grid-cols-2 gap-3">
-            <div className="bg-[#050505] border border-zinc-900/50 rounded-2xl p-4 transition-all hover:border-zinc-800 group/date">
-              <div className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-2 flex items-center justify-between">
+            <div className="bg-muted/30 border border-border/50 rounded-2xl p-4 transition-all hover:border-border group/date">
+              <div className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-2 flex items-center justify-between">
                 <span>Hesap Kesim</span>
                 {ccDates.isTodayStatement && (
-                  <span className="text-primary-500 animate-pulse">●</span>
+                  <span className="text-primary animate-pulse">●</span>
                 )}
               </div>
-              <div className="text-sm font-bold text-zinc-100 tracking-tight flex items-center gap-2">
+              <div className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
                 {formatFullDate(ccDates.statementDate)}
-                {ccDates.isTodayStatement && <span className="text-[8px] bg-primary-500/10 text-primary-500 px-1.5 py-0.5 rounded uppercase">Bugün</span>}
+                {ccDates.isTodayStatement && <span className="text-[8px] bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">Bugün</span>}
               </div>
             </div>
-            <div className="bg-[#050505] border border-zinc-900/50 rounded-2xl p-4 transition-all hover:border-zinc-800 group/date">
-              <div className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-2 flex items-center justify-between">
+            <div className="bg-muted/30 border border-border/50 rounded-2xl p-4 transition-all hover:border-border group/date">
+              <div className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-2 flex items-center justify-between">
                 <span>Son Ödeme</span>
                 {ccDates.isTodayPayment && (
-                  <span className="text-red-500 animate-pulse">●</span>
+                  <span className="text-destructive animate-pulse">●</span>
                 )}
               </div>
-              <div className="text-sm font-bold text-zinc-100 tracking-tight flex items-center gap-2">
+              <div className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
                 {formatFullDate(ccDates.paymentDate)}
-                {ccDates.isTodayPayment && <span className="text-[8px] bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded uppercase font-black">Bugün</span>}
+                {ccDates.isTodayPayment && <span className="text-[8px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded uppercase font-black">Bugün</span>}
               </div>
             </div>
           </div>
@@ -344,27 +346,27 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
           <div className="flex-1">
             {account.type === 'kredi_kartı' ? (
               <div className="space-y-1">
-                <div className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${account.balance < 0 ? 'text-emerald-500' : 'text-zinc-500'}`}>
+                <div className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${account.balance < 0 ? 'text-success' : 'text-muted-foreground'}`}>
                   {account.balance < 0 ? 'ARTI BAKİYE (FAZLA ÖDEME)' : 'EKSTRE BORCU (ÖDENECEK)'}
                 </div>
-                <div className="text-5xl font-black text-white tracking-tighter transition-all duration-500 group-hover:scale-[1.02] origin-left">
+                <div className="text-5xl font-black text-foreground tracking-tighter transition-all duration-500 group-hover:scale-[1.02] origin-left">
                   {formatCurrency(account.balance < 0 ? Math.abs(account.balance) : statementData.statementBalance)}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <div className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider">
+                  <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                     Dönem İçi Harcama:
                   </div>
-                  <div className="text-sm font-black text-zinc-400">
+                  <div className="text-sm font-black text-muted-foreground/80">
                     {formatCurrency(statementData.pendingBalance)}
                   </div>
                 </div>
               </div>
             ) : (
               <div>
-                <div className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.2em] mb-2 pr-6">
+                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-2 pr-6">
                   MEVCUT VARLIK
                 </div>
-                <div className="text-5xl font-black text-white tracking-tighter transition-all duration-500 group-hover:scale-[1.02] origin-left">
+                <div className="text-5xl font-black text-foreground tracking-tighter transition-all duration-500 group-hover:scale-[1.02] origin-left">
                   {formatCurrency(account.balance)}
                 </div>
               </div>
@@ -373,8 +375,8 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
           
           {account.type === 'kredi_kartı' && account.cardLimit && (
             <div className="text-right pb-1 ml-4">
-              <div className="text-[9px] text-zinc-600 font-black uppercase tracking-wider mb-1 pr-1">Kalan Limit</div>
-              <div className="text-xl font-bold text-zinc-300 tracking-tight">
+              <div className="text-[9px] text-muted-foreground font-black uppercase tracking-wider mb-1 pr-1">Kalan Limit</div>
+              <div className="text-xl font-bold text-foreground/80 tracking-tight">
                 {formatCurrency(account.cardLimit - account.balance)}
               </div>
             </div>
@@ -386,22 +388,22 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
           <div className="mt-8">
             <div className="flex justify-between items-center mb-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em]">LİMİT DURUMU</span>
-                <span className="w-1 h-1 bg-zinc-800 rounded-full" />
-                <span className="text-[9px] text-zinc-400 font-black">
+                <span className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.3em]">LİMİT DURUMU</span>
+                <span className="w-1 h-1 bg-muted rounded-full" />
+                <span className="text-[9px] text-muted-foreground/60 font-black">
                   {formatCurrency(account.cardLimit)} TOTAL
                 </span>
               </div>
-              <span className="text-[10px] font-black text-white bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-800 shadow-inner">
+              <span className="text-[10px] font-black text-foreground bg-muted px-2.5 py-1 rounded-lg border border-border shadow-inner">
                 {((account.balance / account.cardLimit) * 100).toFixed(0)}%
               </span>
             </div>
-            <div className="h-1.5 bg-[#0a0a0a] rounded-full overflow-hidden border border-zinc-900/50">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden border border-border/50">
               <div
                 className={`h-full rounded-full transition-all duration-[1500ms] ease-out ${
                   (account.balance / account.cardLimit) > 0.8 
-                    ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
-                    : 'bg-gradient-to-r from-zinc-100 to-zinc-400 select-none'
+                    ? 'bg-destructive shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
+                    : 'bg-primary'
                 }`}
                 style={{ width: `${Math.min(100, (account.balance / account.cardLimit) * 100)}%` }}
               />
@@ -410,13 +412,13 @@ export default function AccountCard({ account, onUpdate, onDelete }: AccountCard
         )}
 
         <div className="mt-6 flex items-center justify-between">
-          <div className="text-[9px] text-zinc-700 uppercase tracking-widest font-black group-hover:text-zinc-500 transition-colors">
+          <div className="text-[9px] text-muted-foreground uppercase tracking-widest font-black group-hover:text-foreground transition-colors">
             Tap to customize
           </div>
           <div className="flex -space-x-2">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="w-6 h-6 rounded-full border-2 border-[#000000] bg-zinc-900 flex items-center justify-center overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-transparent opacity-50" />
+              <div key={i} className="w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center overflow-hidden">
+                <div className="w-full h-full bg-gradient-to-br from-muted/50 to-transparent opacity-50" />
               </div>
             ))}
           </div>

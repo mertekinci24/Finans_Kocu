@@ -72,21 +72,21 @@ export default function WidgetGrid({
                   isDragMode={isDragMode}
                 >
                   {isLoading ? (
-                    <div className="h-48 animate-pulse bg-neutral-100 dark:bg-zinc-800 rounded-xl" />
+                    <div className="h-48 animate-pulse bg-muted rounded-xl" />
                   ) : widgetComponent ? (
                     widgetComponent
                   ) : (
-                    <div className="h-full min-h-[180px] bg-rose-50 dark:bg-rose-900/10 border-2 border-rose-200 dark:border-rose-800/30 rounded-xl flex flex-col items-center justify-center p-6 text-center group">
-                      <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-900/20 flex items-center justify-center text-rose-600 mb-3 group-hover:scale-110 transition-transform">
+                    <div className="h-full min-h-[180px] bg-destructive/10 border-2 border-destructive/20 rounded-xl flex flex-col items-center justify-center p-6 text-center group">
+                      <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center text-destructive mb-3 group-hover:scale-110 transition-transform">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h4 className="text-[11px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-widest mb-1">Bileşen Kayıp</h4>
-                      <code className="text-[9px] font-mono bg-white/50 dark:bg-black/20 px-2 py-1 rounded text-rose-600 dark:text-rose-500 font-bold border border-rose-200/50">
+                      <h4 className="text-[11px] font-black text-destructive uppercase tracking-widest mb-1">Bileşen Kayıp</h4>
+                      <code className="text-[9px] font-mono bg-background/50 px-2 py-1 rounded text-destructive font-bold border border-destructive/20">
                         ID: {widget.id}
                       </code>
-                      <p className="text-[9px] text-rose-500/70 mt-3 font-medium leading-tight">
+                      <p className="text-[9px] text-destructive/70 mt-3 font-medium leading-tight">
                         Bu bileşen kayıtlı ancak render edilemedi.<br/>Registry kontrol edilmeli.
                       </p>
                     </div>
@@ -102,14 +102,14 @@ export default function WidgetGrid({
                 className="col-span-1"
               >
                 <button 
-                  className="w-full h-full min-h-[180px] rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 bg-neutral-50/50 dark:bg-zinc-900/30 flex flex-col items-center justify-center gap-3 group hover:border-primary-500 hover:bg-primary-50/50 transition-all duration-300"
+                  className="w-full h-full min-h-[180px] rounded-xl border-2 border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-3 group hover:border-primary hover:bg-primary/5 transition-all duration-300"
                 >
-                  <div className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 group-hover:text-primary-600 group-hover:scale-110 group-hover:shadow-lg transition-all">
+                  <div className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:scale-110 group-hover:shadow-lg transition-all">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                   </div>
-                  <span className="text-[10px] font-black text-zinc-500 group-hover:text-primary-700 uppercase tracking-widest">Yeni Widget Ekle</span>
+                  <span className="text-[10px] font-black text-muted-foreground group-hover:text-primary uppercase tracking-widest">Yeni Widget Ekle</span>
                 </button>
               </motion.div>
             )}

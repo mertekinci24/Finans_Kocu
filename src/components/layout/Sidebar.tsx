@@ -119,10 +119,9 @@ export default function Sidebar(): JSX.Element {
   return (
     <aside
       className={clsx(
-        'fixed left-0 top-16 h-[calc(100vh-4rem)] border-r border-neutral-200 transition-all duration-300 lg:relative lg:translate-x-0 z-30 no-print',
+        'fixed left-0 top-16 h-[calc(100vh-4rem)] border-r border-border bg-card transition-all duration-300 lg:sticky lg:translate-x-0 z-30 no-print',
         sidebarOpen ? 'translate-x-0 w-56' : '-translate-x-full w-56 lg:w-56'
       )}
-      style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border)' }}
     >
       <nav className="flex flex-col gap-0.5 p-3">
         {menuItems.map((item) => {
@@ -134,14 +133,14 @@ export default function Sidebar(): JSX.Element {
               className={clsx(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm font-medium',
                 isActive
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
-              <span className={isActive ? 'text-white' : 'text-neutral-400'}>{item.icon}</span>
+              <span className={isActive ? 'text-primary-foreground' : 'text-muted-foreground/60'}>{item.icon}</span>
               {item.label}
               {item.badge && (
-                <span className="ml-auto text-xs bg-error-500 text-white rounded-full px-1.5 py-0.5">
+                <span className="ml-auto text-xs bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5">
                   {item.badge}
                 </span>
               )}
@@ -151,7 +150,7 @@ export default function Sidebar(): JSX.Element {
       </nav>
 
       <div className="absolute bottom-4 left-3 right-3">
-        <div className="text-xs text-neutral-400 text-center px-2 py-1.5 rounded-lg bg-neutral-50">
+        <div className="text-[10px] font-bold text-muted-foreground/50 text-center px-2 py-1.5 rounded-lg bg-muted/30 uppercase tracking-widest">
           FinansKoçu v0.1
         </div>
       </div>

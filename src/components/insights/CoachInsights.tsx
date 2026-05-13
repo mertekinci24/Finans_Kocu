@@ -31,7 +31,7 @@ export default function CoachInsights({
     <div className="space-y-4">
       {/* ─── Unified Engine Strategic Insight ─── */}
       {(explanation || recommendations.length > 0) && (
-        <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 shadow-xl relative overflow-hidden group">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-emerald-500/20 transition-all" />
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
@@ -39,12 +39,12 @@ export default function CoachInsights({
               <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Stratejik Analiz</h4>
             </div>
             {explanation && (
-              <p className="text-xs font-bold text-white leading-relaxed mb-3">
+              <p className="text-xs font-bold text-foreground leading-relaxed mb-3">
                 {explanation}
               </p>
             )}
             {recommendations.map((rec, idx) => (
-              <div key={idx} className="flex items-start gap-2 text-[11px] text-zinc-300 font-medium bg-white/5 p-2 rounded-lg border border-white/5 mb-1 last:mb-0">
+              <div key={idx} className="flex items-start gap-2 text-[11px] text-muted-foreground font-medium bg-muted/30 p-2 rounded-lg border border-border/50 mb-1 last:mb-0">
                 <span className="text-emerald-500 mt-0.5">♦</span>
                 <span>{rec}</span>
               </div>

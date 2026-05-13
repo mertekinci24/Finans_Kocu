@@ -136,10 +136,10 @@ export default function Debts(): JSX.Element {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-10 w-48 bg-neutral-200 rounded" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-neutral-200 rounded-xl" />)}
-        </div>
+      <div className="h-10 w-48 bg-muted rounded" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-muted rounded-xl" />)}
+      </div>
       </div>
     );
   }
@@ -148,12 +148,12 @@ export default function Debts(): JSX.Element {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Borç Merkezi</h1>
-          <p className="text-neutral-600 mt-1 text-sm">{activeDebts.length} aktif borç</p>
+          <h1 className="text-3xl font-bold text-foreground">Borç Merkezi</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{activeDebts.length} aktif borç</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-colors shadow-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -163,20 +163,20 @@ export default function Debts(): JSX.Element {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-error-50 border border-error-200 rounded-xl p-4">
-          <div className="text-xs font-medium text-error-700">Toplam Aktif Borç</div>
-          <div className="text-2xl font-bold text-error-700 mt-1">{fmt(totalRemaining)}</div>
-          <div className="text-xs text-error-500 mt-1">{activeDebts.length} alacaklı</div>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">
+          <div className="text-xs font-medium text-destructive">Toplam Aktif Borç</div>
+          <div className="text-2xl font-bold text-destructive mt-1">{fmt(totalRemaining)}</div>
+          <div className="text-xs text-destructive/60 mt-1">{activeDebts.length} alacaklı</div>
         </div>
 
-        <div className={`rounded-xl border p-4 ${isHighRisk ? 'bg-error-50 border-error-300' : 'bg-success-50 border-success-200'}`}>
+        <div className={`rounded-xl border p-4 ${isHighRisk ? 'bg-destructive/10 border-destructive/20' : 'bg-success/10 border-success/20'}`}>
           <div className="flex items-center justify-between">
-            <div className={`text-xs font-medium ${isHighRisk ? 'text-error-700' : 'text-success-700'}`}>
+            <div className={`text-xs font-medium ${isHighRisk ? 'text-destructive' : 'text-success'}`}>
               Aylık Taksit Yükü
             </div>
             <button
               onClick={() => { setIncomeInput(String(monthlyIncome || '')); setEditingIncome(true); }}
-              className="text-xs text-primary-600 hover:underline"
+              className="text-xs text-primary hover:underline"
             >
               Gelir gir
             </button>
@@ -189,44 +189,44 @@ export default function Debts(): JSX.Element {
                 onKeyDown={(e) => { if (e.key === 'Enter') saveIncome(); if (e.key === 'Escape') setEditingIncome(false); }}
                 placeholder="Aylık net gelir"
                 autoFocus
-                className="flex-1 border border-neutral-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                className="flex-1 border border-border bg-background rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
-              <button onClick={saveIncome} className="px-2 py-1 bg-primary-600 text-white text-xs rounded">Tamam</button>
+              <button onClick={saveIncome} className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded">Tamam</button>
             </div>
           ) : (
-            <div className={`text-2xl font-bold mt-1 ${isHighRisk ? 'text-error-700' : 'text-success-700'}`}>
+            <div className={`text-2xl font-bold mt-1 ${isHighRisk ? 'text-destructive' : 'text-success'}`}>
               {monthlyIncome > 0 ? `%${debtToIncomeRatio.toFixed(1)}` : '—'}
             </div>
           )}
-          <div className={`text-xs mt-1 ${isHighRisk ? 'text-error-600' : 'text-success-600'}`}>
+          <div className={`text-xs mt-1 ${isHighRisk ? 'text-destructive/80' : 'text-success/80'}`}>
             {monthlyIncome > 0
               ? isHighRisk ? 'Taksit Yükü Kritik (%35+)' : 'Taksit Yükü Güvenli (<%35)'
               : 'Oran için gelir girin'}
           </div>
         </div>
 
-        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
-          <div className="text-xs font-medium text-neutral-600">Aylık Toplam Ödeme</div>
-          <div className="text-2xl font-bold text-neutral-800 mt-1">{fmt(totalMonthlyPayments)}</div>
-          <div className="text-xs text-neutral-400 mt-1">Tüm aktif borçlar</div>
+        <div className="bg-muted/50 border border-border rounded-xl p-4">
+          <div className="text-xs font-medium text-muted-foreground">Aylık Toplam Ödeme</div>
+          <div className="text-2xl font-bold text-foreground mt-1">{fmt(totalMonthlyPayments)}</div>
+          <div className="text-xs text-muted-foreground/60 mt-1">Tüm aktif borçlar</div>
         </div>
       </div>
 
       {isHighRisk && monthlyIncome > 0 && (
-        <div className="bg-error-50 border border-error-300 rounded-xl p-4">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-error-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-              <svg className="w-4 h-4 text-error-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 bg-destructive/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
             <div>
-              <div className="text-sm font-semibold text-error-800">Borç/Gelir Riski Tespit Edildi</div>
-              <div className="text-sm text-error-700 mt-1">
+              <div className="text-sm font-semibold text-destructive">Borç/Gelir Riski Tespit Edildi</div>
+              <div className="text-sm text-destructive/80 mt-1">
                 Aylık borç ödemelerin ({fmt(totalMonthlyPayments)}) gelirinizin %{debtToIncomeRatio.toFixed(0)}'ine ulaştı.
                 Logic Spec'e göre güvenli üst sınır %{RISK_THRESHOLD}.
               </div>
-              <div className="text-sm text-error-600 mt-2">
+              <div className="text-sm text-destructive/60 mt-2">
                 <span className="font-medium">Koç Önerisi:</span> En yüksek faizli borcunu önce kapatmayı hedefle.
                 Yeni borç almadan önce gelir artışı planlaması yap.
               </div>
@@ -236,8 +236,8 @@ export default function Debts(): JSX.Element {
       )}
 
       {showForm && (
-        <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-neutral-900 mb-4">Yeni Borç</h2>
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-foreground mb-4">Yeni Borç</h2>
           <DebtForm onSubmit={handleCreate} onCancel={() => setShowForm(false)} />
         </div>
       )}
@@ -249,8 +249,8 @@ export default function Debts(): JSX.Element {
             onClick={() => setStatusFilter(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               statusFilter === s
-                ? 'bg-primary-600 text-white'
-                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
             {s === 'all' ? 'Tümü' : s === 'active' ? 'Aktif' : s === 'overdue' ? 'Gecikmiş' : 'Kapandı'}
@@ -262,13 +262,13 @@ export default function Debts(): JSX.Element {
       </div>
 
       {filtered.length === 0 && !showForm ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-dashed border-neutral-300">
-          <div className="text-neutral-400 text-4xl mb-3">💳</div>
-          <p className="text-neutral-600 font-medium">Henüz borç kaydı yok</p>
-          <p className="text-neutral-400 text-sm mt-1">Kredi, kişisel borç veya tüketici kredisi ekleyebilirsin</p>
+        <div className="text-center py-16 bg-card rounded-xl border border-dashed border-border">
+          <div className="text-muted-foreground text-4xl mb-3">💳</div>
+          <p className="text-foreground font-medium">Henüz borç kaydı yok</p>
+          <p className="text-muted-foreground text-sm mt-1">Kredi, kişisel borç veya tüketici kredisi ekleyebilirsin</p>
           <button
             onClick={() => setShowForm(true)}
-            className="mt-4 px-5 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+            className="mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-colors"
           >
             Borç Ekle
           </button>

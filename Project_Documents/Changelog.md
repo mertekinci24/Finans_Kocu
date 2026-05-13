@@ -1,5 +1,18 @@
 # Changelog.md
 
+## Phase THEME-DS-1 — Professional Theme System Refactor & Visual Contrast Stabilization
+
+- Görev No: Phase THEME-DS-1
+- Modüller: `index.css`, `tailwind.config.js`, `MainLayout.tsx`, `FinancialScoreCard.tsx`, `TopBar.tsx`, `Assistant.tsx`, `ChatInterface.tsx`, `WidgetGrid.tsx`
+- Root Cause: Koyu ve AMOLED temalarda yaşanan kontrast kayıpları, Tailwind dark pipeline dışında kalan AMOLED teması ve index.css içindeki kırılgan class override hack'leri.
+- Yapılan İş:
+  - **Global Semantic Token Architecture**: HSL tabanlı CSS değişkenleri (:root, [data-theme]) sisteme entegre edildi. `background`, `foreground`, `card`, `primary`, `muted`, `border` gibi semantik anahtarlar tanımlandı.
+  - **Tailwind Config Integration**: `extend.colors` altına semantik tokenlar bağlandı. `darkMode: ['selector', '[data-theme="dark"], [data-theme="amoled"]']` ile AMOLED teması Tailwind'in `dark:` variant desteğine kavuşturuldu.
+  - **Vite/PostCSS Hata Çözümü**: `bg-background` compile hatası, `index.css` dosya yapısı reorder edilerek ve Tailwind content array'ine `index.css` eklenerek profesyonelce çözüldü (Seçenek A).
+  - **Component Migration**: `FinancialScoreCard`, `TopBar`, `ChatInterface`, `ChatBubble` ve `WidgetGrid` gibi kritik bileşenler hardcoded renklerden semantik tokenlara (bg-card, text-foreground, bg-primary vb.) taşındı.
+  - **AMOLED Contrast Fix**: AMOLED modunda gerçek siyah (#000000) arka plan ve yüksek kontrastlı foreground/card değerleri uygulanarak okunabilirlik sağlandı.
+- Durum: DONE (LOCKED). (Build passes, CSS compile error resolved, core components migrated.)
+
 ## Final Regression UAT — AI Assistant + Financial Health Score SSOT Lock
 
 - Görev No: Final Regression UAT

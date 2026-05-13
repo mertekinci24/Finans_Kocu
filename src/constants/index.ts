@@ -17,6 +17,7 @@ export const ROUTES = {
   GOALS: '/goals',
   UPGRADE: '/upgrade',
   SETTINGS: '/settings',
+  PROFILE: '/profile',
 } as const;
 
 export const DEFAULT_CATEGORIES = [

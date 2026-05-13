@@ -35,17 +35,17 @@ export default function TaxObligationsWidget({ obligations, onMarkPaid }: TaxObl
   };
 
   const getStatusColor = (status: string, daysUntil: number) => {
-    if (status === 'paid') return 'bg-green-50 border-green-200';
-    if (status === 'overdue') return 'bg-red-50 border-red-200';
-    if (daysUntil <= 3) return 'bg-orange-50 border-orange-200';
-    return 'bg-blue-50 border-blue-200';
+    if (status === 'paid') return 'bg-score-normal-bg border-score-normal/20';
+    if (status === 'overdue') return 'bg-score-crisis-bg border-score-crisis/20';
+    if (daysUntil <= 3) return 'bg-score-warning-bg border-score-warning/20';
+    return 'bg-muted/30 border-border';
   };
 
   const getStatusBadgeColor = (status: string, daysUntil: number) => {
-    if (status === 'paid') return 'bg-green-100 text-green-800';
-    if (status === 'overdue') return 'bg-red-100 text-red-800';
-    if (daysUntil <= 3) return 'bg-orange-100 text-orange-800';
-    return 'bg-blue-100 text-blue-800';
+    if (status === 'paid') return 'bg-score-normal text-score-normal-bg';
+    if (status === 'overdue') return 'bg-score-crisis text-score-crisis-bg';
+    if (daysUntil <= 3) return 'bg-score-warning text-score-warning-bg';
+    return 'bg-muted text-muted-foreground';
   };
 
   const getStatusText = (status: string, daysUntil: number) => {
@@ -56,25 +56,25 @@ export default function TaxObligationsWidget({ obligations, onMarkPaid }: TaxObl
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-neutral-200">
+    <div className="bg-card rounded-lg shadow-md p-6 border border-border">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-neutral-900">Bu Ayki Yükümlülükler</h2>
-        <div className="text-sm font-medium text-neutral-600">
+        <h2 className="text-xl font-bold text-foreground">Bu Ayki Yükümlülükler</h2>
+        <div className="text-sm font-medium text-muted-foreground">
           {upcomingThisMonth.length} görev
         </div>
       </div>
 
       {upcomingThisMonth.length === 0 ? (
-        <p className="text-neutral-500 text-center py-8">Bu ay yükümlülük bulunmamaktadır.</p>
+        <p className="text-muted-foreground text-center py-8">Bu ay yükümlülük bulunmamaktadır.</p>
       ) : (
         <div className="space-y-3">
           {overdueCost > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-red-50 border border-red-200 rounded-lg p-4"
+              className="bg-score-crisis-bg border border-score-crisis/20 rounded-lg p-4"
             >
-              <p className="text-sm font-medium text-red-900">
+              <p className="text-sm font-medium text-score-crisis">
                 ⚠️ Gecikmiş Ödemeler: ₺{overdueCost.toLocaleString('tr-TR')}
               </p>
             </motion.div>
@@ -84,9 +84,9 @@ export default function TaxObligationsWidget({ obligations, onMarkPaid }: TaxObl
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+              className="bg-primary/5 border border-primary/10 rounded-lg p-4"
             >
-              <p className="text-sm font-medium text-blue-900">
+              <p className="text-sm font-medium text-primary">
                 💰 Bekleyen Ödemeler: ₺{pendingCost.toLocaleString('tr-TR')}
               </p>
             </motion.div>
@@ -108,8 +108,8 @@ export default function TaxObligationsWidget({ obligations, onMarkPaid }: TaxObl
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex-1">
-                      <p className="font-medium text-neutral-900">{ob.description}</p>
-                      <p className="text-xs text-neutral-600">
+                      <p className="font-medium text-foreground">{ob.description}</p>
+                      <p className="text-xs text-muted-foreground">
                         Vade: {new Date(ob.dueDate).toLocaleDateString('tr-TR', {
                           month: 'short',
                           day: 'numeric',
@@ -122,13 +122,13 @@ export default function TaxObligationsWidget({ obligations, onMarkPaid }: TaxObl
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <p className="text-lg font-bold text-neutral-900">
+                    <p className="text-lg font-bold text-foreground">
                       ₺{ob.estimatedAmount.toLocaleString('tr-TR')}
                     </p>
                     {ob.paymentStatus === 'pending' && onMarkPaid && (
                       <button
                         onClick={() => onMarkPaid(ob.id)}
-                        className="text-xs px-2 py-1 bg-neutral-200 hover:bg-neutral-300 rounded transition-colors"
+                        className="text-xs px-2 py-1 bg-muted hover:bg-muted/80 text-foreground rounded transition-colors border border-border"
                       >
                         Ödendi
                       </button>

@@ -1,6 +1,27 @@
 # technical_debt.md
 Her 3 görevde bir gözden geçirilir.
 
+## 2026-05-13 (Phase THEME-DS-1 — Theme System Refactor)
+- Kaynak Görev: THEME-DS-1 (Professional Theme Refactor)
+- Borç Tanımı 1 [RESOLVED]: AMOLED temanın Tailwind dark pipeline dışında kalması
+  - Etki: AMOLED modunda `dark:` prefixed class'ların çalışmaması nedeniyle görsel tutarsızlık.
+  - Çözüm: `tailwind.config.js` darkMode selector'ı amoled'i kapsayacak şekilde güncellendi. ✅
+  - Durum: Kapalı
+
+- Borç Tanımı 2 [NEW]: Legacy CSS Attribute Overrides (index.css)
+  - Etki: Birçok component (`AccountCard`, `Transactions` vb.) hala hardcoded `bg-white` kullandığı için `index.css` içinde `[data-theme="dark"] .bg-white` gibi override'lar tutuluyor.
+  - Öncelik: Orta (Code Cleanliness)
+  - Çözüm: Tüm UI componentleri semantik tokenlara (`bg-card`, `text-foreground` vb.) taşındıktan sonra bu override'lar silinmeli.
+  - Hedef Tarih: Phase THEME-DS-2
+  - Durum: Açık
+
+- Borç Tanımı 3 [NEW]: Repositories TS2322 Type Errors
+  - Etki: Supabase repository'lerinde (`TaxRepository`, `TransactionRepository`) string literal vs Enum uyumsuzlukları var. Build geçiyor ama tip güvenliği zayıf.
+  - Öncelik: Orta (Type Hardening)
+  - Çözüm: Repository dönüş tipleri ve veritabanı şeması arasındaki mismatch'leri gider.
+  - Hedef Tarih: Type Hardening Sprint
+  - Durum: Açık
+
 ## 2026-04-16 (Faz 5 — Taksit Yönetimi Refactoring)
 - Kaynak Görev: 45.10 - 45.13 (Installment Management)
 - Borç Tanımı 1 [RESOLVED]: PaymentCalendar.tsx dosyasının aşırı büyümesi (~600 satır)
@@ -328,14 +349,6 @@ Her 3 görevde bir gözden geçirilir.
 - Çözüm Planı: Karmaşık hesaplamaların uygulamanın (Tauri Rust / TypeScript) tarafında yapılması.
 - Hedef Tarih: Faz 2
 - Durum: Açık
-- Tarih:
-- Kaynak Görev:
-- Borç Tanımı:
-- Etki:
-- Öncelik: Düşük/Orta/Yüksek
-- Çözüm Planı:
-- Hedef Tarih:
-- Durum:
 
 ## Kurallar
 - Geçici çözüm kalıcı bırakılmaz.

@@ -216,10 +216,10 @@ export default function GoalsPage(): JSX.Element {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-neutral-600">Hedefler yükleniyor...</p>
-        </div>
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-muted-foreground">Hedefler yükleniyor...</p>
+      </div>
       </div>
     );
   }
@@ -229,21 +229,21 @@ export default function GoalsPage(): JSX.Element {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-900">🎯 Hedeflerim</h1>
-          <p className="text-neutral-600 mt-1 text-sm">
+          <h1 className="text-3xl font-bold text-foreground">🎯 Hedeflerim</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Birikim hedeflerini oluştur, takip et, hayallerine ulaş
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => navigate(ROUTES.DASHBOARD)}
-            className="px-3 py-1.5 text-xs font-medium bg-neutral-100 text-neutral-600 rounded-lg hover:bg-neutral-200 transition-colors border border-neutral-200"
+            className="px-3 py-1.5 text-xs font-medium bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors border border-border"
           >
             ← Kontrol Paneli
           </button>
           <button
             onClick={() => { resetForm(); setShowForm(true); }}
-            className="px-4 py-1.5 text-xs font-medium bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm"
+            className="px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all shadow-sm"
           >
             + Yeni Hedef
           </button>
@@ -257,9 +257,9 @@ export default function GoalsPage(): JSX.Element {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-white border border-neutral-200 rounded-xl p-6 shadow-lg"
+            className="bg-card border border-border rounded-xl p-6 shadow-lg"
           >
-            <h2 className="text-sm font-semibold text-neutral-900 mb-4">
+            <h2 className="text-sm font-semibold text-foreground mb-4">
               {editingGoal ? '✏️ Hedefi Düzenle' : '✨ Yeni Hedef Oluştur'}
             </h2>
 
@@ -269,8 +269,8 @@ export default function GoalsPage(): JSX.Element {
               animate={{ opacity: 1, height: 'auto' }}
               className={`mb-5 p-3 rounded-lg border flex items-center gap-3 ${
                 monthlyCapacity > 0 
-                  ? 'bg-blue-50 border-blue-100 text-blue-800' 
-                  : 'bg-red-50 border-red-100 text-red-800'
+                  ? 'bg-primary/10 border-primary/20 text-primary' 
+                  : 'bg-destructive/10 border-destructive/20 text-destructive'
               }`}
             >
               <span className="text-xl">{monthlyCapacity > 0 ? '💡' : '⚠️'}</span>
@@ -290,13 +290,13 @@ export default function GoalsPage(): JSX.Element {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1">Hedef Adı</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Hedef Adı</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="Ör: Tatil Fonu, Araba Peşinatı..."
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg text-sm focus:ring-2 focus:ring-primary/40"
                 />
               </div>
 
@@ -309,8 +309,8 @@ export default function GoalsPage(): JSX.Element {
                       onClick={() => setFormCategory(cat)}
                       className={`px-2 py-1 text-xs rounded-md transition-all ${
                         formCategory === cat
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'bg-neutral-50 text-neutral-500 border border-neutral-200 hover:bg-neutral-100'
+                          ? 'bg-primary/10 text-primary border border-primary/20'
+                          : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
                       }`}
                     >
                       {GOAL_CATEGORY_META[cat].icon} {GOAL_CATEGORY_META[cat].label}
@@ -320,39 +320,39 @@ export default function GoalsPage(): JSX.Element {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1">Hedef Tutar (₺)</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Hedef Tutar (₺)</label>
                 <input
                   type="number"
                   value={formTargetAmount}
                   onChange={(e) => setFormTargetAmount(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg text-sm focus:ring-2 focus:ring-primary/40"
                   min={0}
                   step={5000}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1">Biriken Tutar (₺)</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Biriken Tutar (₺)</label>
                 <input
                   type="number"
                   value={formCurrentAmount}
                   onChange={(e) => setFormCurrentAmount(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg text-sm focus:ring-2 focus:ring-primary/40"
                   min={0}
                   step={1000}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1">Aylık Tasarruf Hedefi (₺)</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Aylık Tasarruf Hedefi (₺)</label>
                 <input
                   type="number"
                   value={formMonthlySaving}
                   onChange={(e) => setFormMonthlySaving(Number(e.target.value))}
-                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  className={`w-full px-3 py-2 border bg-background text-foreground rounded-lg text-sm focus:ring-2 focus:ring-primary/40 transition-colors ${
                     formMonthlySaving > monthlyCapacity && monthlyCapacity > 0 
-                      ? 'border-red-500 bg-red-50' 
-                      : 'border-neutral-300'
+                      ? 'border-destructive bg-destructive/5' 
+                      : 'border-border'
                   }`}
                   min={0}
                   step={500}
@@ -361,15 +361,15 @@ export default function GoalsPage(): JSX.Element {
                   <div className="mt-1.5 flex flex-col gap-1">
                     <button
                       onClick={() => setFormMonthlySaving(recommendedSaving)}
-                      className="text-left text-[10px] text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                      className="text-left text-[10px] text-primary hover:text-primary/80 font-medium transition-colors"
                     >
                       ✨ Sistem Önerisi: <span className="underline decoration-dotted">{fmt(recommendedSaving)}</span> 
-                      <span className="text-neutral-400 font-normal ml-1">
+                      <span className="text-muted-foreground font-normal ml-1">
                         (Kapasitenizin %{formPriority === 'high' ? '40' : formPriority === 'medium' ? '20' : '10'}'ı)
                       </span>
                     </button>
                     {formMonthlySaving > monthlyCapacity && (
-                      <p className="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                      <p className="text-[10px] text-destructive font-bold flex items-center gap-1">
                         ❌ Kapasitenizi aşıyorsunuz!
                       </p>
                     )}
@@ -378,17 +378,17 @@ export default function GoalsPage(): JSX.Element {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1">Hedef Tarih (Opsiyonel)</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Hedef Tarih (Opsiyonel)</label>
                 <input
                   type="date"
                   value={formTargetDate}
                   onChange={(e) => setFormTargetDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg text-sm focus:ring-2 focus:ring-primary/40 [color-scheme:dark]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1">Öncelik</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Öncelik</label>
                 <div className="flex gap-2">
                   {(['high', 'medium', 'low'] as GoalPriority[]).map((p) => (
                     <button
@@ -397,11 +397,11 @@ export default function GoalsPage(): JSX.Element {
                       className={`flex-1 px-3 py-1.5 text-xs rounded-md font-medium transition-all ${
                         formPriority === p
                           ? p === 'high'
-                            ? 'bg-red-50 text-red-700 border border-red-200'
+                            ? 'bg-destructive/10 text-destructive border border-destructive/20'
                             : p === 'medium'
-                              ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                              : 'bg-green-50 text-green-700 border border-green-200'
-                          : 'bg-neutral-50 text-neutral-500 border border-neutral-200 hover:bg-neutral-100'
+                              ? 'bg-warning/10 text-warning border border-warning/20'
+                              : 'bg-success/10 text-success border border-success/20'
+                          : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
                       }`}
                     >
                       {p === 'high' ? '🔴 Yüksek' : p === 'medium' ? '🟡 Orta' : '🟢 Düşük'}
@@ -411,13 +411,13 @@ export default function GoalsPage(): JSX.Element {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1">Not (Opsiyonel)</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Not (Opsiyonel)</label>
                 <input
                   type="text"
                   value={formNote}
                   onChange={(e) => setFormNote(e.target.value)}
                   placeholder="Ek notlar..."
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg text-sm focus:ring-2 focus:ring-primary/40"
                 />
               </div>
             </div>
@@ -426,13 +426,13 @@ export default function GoalsPage(): JSX.Element {
               <button
                 onClick={handleSaveGoal}
                 disabled={!formName || formTargetAmount <= 0 || monthlyCapacity <= 0}
-                className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-sm rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                className="flex-1 py-2.5 bg-primary text-primary-foreground font-medium text-sm rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {editingGoal ? 'Güncelle' : 'Hedef Oluştur'}
               </button>
               <button
                 onClick={resetForm}
-                className="px-4 py-2.5 bg-neutral-100 text-neutral-600 text-sm rounded-lg hover:bg-neutral-200 transition-colors"
+                className="px-4 py-2.5 bg-muted text-muted-foreground text-sm rounded-lg hover:bg-muted/80 transition-colors"
               >
                 İptal
               </button>
@@ -505,7 +505,7 @@ function GoalCard({
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+      className="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
     >
       {/* Header */}
       <div
@@ -514,20 +514,20 @@ function GoalCard({
       >
         <span className="text-2xl">{meta.icon}</span>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-neutral-900 truncate">{goal.name}</h3>
-          <p className="text-xs text-neutral-500">
+          <h3 className="text-sm font-bold text-foreground truncate">{goal.name}</h3>
+          <p className="text-xs text-muted-foreground">
             {meta.label} •{' '}
             {goal.priority === 'high' ? '🔴 Yüksek' : goal.priority === 'medium' ? '🟡 Orta' : '🟢 Düşük'}
             {goal.note && ` • ${goal.note}`}
           </p>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={onEdit} className="p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded transition-colors" title="Düzenle">
+          <button onClick={onEdit} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors" title="Düzenle">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </button>
-          <button onClick={onDelete} className="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Sil">
+          <button onClick={onDelete} className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors" title="Sil">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
@@ -540,14 +540,14 @@ function GoalCard({
         {/* Progress Bar */}
         <div>
           <div className="flex items-end justify-between mb-1.5">
-            <span className="text-lg font-bold text-neutral-900">
+            <span className="text-lg font-bold text-foreground">
               {fmt(goal.currentAmount)}
             </span>
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted-foreground">
               / {fmt(goal.targetAmount)}
             </span>
           </div>
-          <div className="relative h-3 bg-neutral-200 rounded-full overflow-hidden">
+          <div className="relative h-3 bg-muted rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(100, projection.progressPercent)}%` }}
@@ -557,10 +557,10 @@ function GoalCard({
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted-foreground">
               %{projection.progressPercent.toFixed(1)} tamamlandı
             </span>
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted-foreground">
               Kalan: {fmt(goal.targetAmount - goal.currentAmount)}
             </span>
           </div>
@@ -594,8 +594,8 @@ function GoalCard({
 
         {/* Enflasyon Uyarısı */}
         {projection.purchasingPowerLoss > 1000 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <p className="text-xs text-amber-800">
+          <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
+            <p className="text-xs text-warning">
               📈 <strong>Enflasyon Etkisi:</strong> Hedefinin reel değeri {fmt(projection.realTargetAmount)}'ye çıkıyor.
               Satın alma gücün {fmt(projection.purchasingPowerLoss)} eriyor.
             </p>
@@ -606,8 +606,8 @@ function GoalCard({
         {projection.recommendations.length > 0 && (
           <div className="space-y-1">
             {projection.recommendations.map((rec, i) => (
-              <p key={i} className="text-xs text-neutral-600 flex items-start gap-1.5">
-                <span className="text-blue-500 mt-0.5">●</span>
+              <p key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <span className="text-primary mt-0.5">●</span>
                 {rec}
               </p>
             ))}
@@ -615,16 +615,16 @@ function GoalCard({
         )}
 
         {/* Aksiyon Butonları */}
-        <div className="flex items-center gap-2 pt-2 border-t border-neutral-100">
+        <div className="flex items-center gap-2 pt-2 border-t border-border">
           <button
             onClick={onAddFunds}
-            className="px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 rounded-md hover:bg-green-100 border border-green-200 transition-colors"
+            className="px-3 py-1.5 text-xs font-medium bg-success/10 text-success rounded-md hover:bg-success/20 border border-success/20 transition-colors"
           >
             💰 Para Ekle
           </button>
           <button
             onClick={onGetCoachAdvice}
-            className="px-3 py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 rounded-md hover:bg-indigo-100 border border-indigo-200 transition-colors"
+            className="px-3 py-1.5 text-xs font-medium bg-primary/10 text-primary rounded-md hover:bg-primary/20 border border-primary/20 transition-colors"
           >
             🤖 Koç Yorumu
           </button>
@@ -644,7 +644,7 @@ function GoalCard({
                 value={addFundsAmount}
                 onChange={(e) => setAddFundsAmount(Number(e.target.value))}
                 placeholder="Tutar (₺)"
-                className="flex-1 px-3 py-1.5 border border-neutral-300 rounded-md text-xs focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="flex-1 px-3 py-1.5 border border-border bg-background text-foreground rounded-md text-xs focus:ring-2 focus:ring-success/40"
                 min={0}
                 step={500}
                 autoFocus
@@ -652,13 +652,13 @@ function GoalCard({
               <button
                 onClick={onConfirmAddFunds}
                 disabled={addFundsAmount <= 0}
-                className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 text-xs font-medium bg-success text-success-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-colors"
               >
                 Ekle
               </button>
               <button
                 onClick={onCancelAddFunds}
-                className="px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-700 transition-colors"
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 İptal
               </button>
@@ -673,10 +673,10 @@ function GoalCard({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 border border-indigo-200 rounded-lg p-4"
+              className="bg-primary/5 border border-primary/20 rounded-lg p-4"
             >
-              <p className="text-xs font-semibold text-indigo-900 mb-2">🤖 Koç Yorumu</p>
-              <p className="text-sm text-neutral-800 whitespace-pre-line leading-relaxed">{coachComment}</p>
+              <p className="text-xs font-semibold text-primary mb-2">🤖 Koç Yorumu</p>
+              <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{coachComment}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -688,14 +688,14 @@ function GoalCard({
 // ─── Yardımcı Bileşenler ────────────────────────────────────────────
 function MetricCard({ label, value, color }: { label: string; value: string; color: string }) {
   const colorMap: Record<string, string> = {
-    blue: 'bg-blue-50 border-blue-200 text-blue-900',
-    green: 'bg-green-50 border-green-200 text-green-900',
-    red: 'bg-red-50 border-red-200 text-red-900',
+    blue: 'bg-primary/10 border-primary/20 text-primary',
+    green: 'bg-success/10 border-success/20 text-success',
+    red: 'bg-destructive/10 border-destructive/20 text-destructive',
   };
 
   return (
     <div className={`p-2.5 rounded-lg border ${colorMap[color]}`}>
-      <p className="text-xs text-neutral-600 mb-0.5">{label}</p>
+      <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
       <p className="text-sm font-bold">{value}</p>
     </div>
   );
@@ -703,15 +703,15 @@ function MetricCard({ label, value, color }: { label: string; value: string; col
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="bg-white border-2 border-dashed border-neutral-300 rounded-xl p-12 text-center">
+    <div className="bg-card border-2 border-dashed border-border rounded-xl p-12 text-center">
       <div className="text-5xl mb-4">🎯</div>
-      <h3 className="text-lg font-bold text-neutral-900 mb-2">Hayallerine Ulaş</h3>
-      <p className="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
+      <h3 className="text-lg font-bold text-foreground mb-2">Hayallerine Ulaş</h3>
+      <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
         İlk birikim hedefini oluştur. Tatil, araba, ev, acil fon... FinansKoçu seninle birlikte planlasın.
       </p>
       <button
         onClick={onAdd}
-        className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md"
+        className="px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-all shadow-md"
       >
         + İlk Hedefini Oluştur
       </button>

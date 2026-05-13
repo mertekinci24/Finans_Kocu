@@ -35,6 +35,7 @@ export interface CheckoutResponse {
   token?: string;                    // Checkout token
   errorMessage?: string;
   paymentPageUrl?: string;
+  errorCode?: string;
 }
 
 // ─── Ödeme Sonucu ───────────────────────────────────────────────────
@@ -66,7 +67,6 @@ export interface IyzicoWebhookEvent {
 export const iyzicoAdapter = {
   /**
    * Checkout başlat — Edge Function endpoint'ine istek gönderir
-   * Frontend bu fonksiyonu çağırır, gerçek API call Edge Function'da olur
    */
   async createCheckoutSession(request: CreateCheckoutRequest): Promise<CheckoutResponse> {
     try {
@@ -76,18 +76,23 @@ export const iyzicoAdapter = {
         body: JSON.stringify(request),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
         return {
           status: 'failure',
-          errorMessage: `HTTP ${response.status}: ${response.statusText}`,
+          errorMessage: data.errorMessage || `Sunucu hatası (HTTP ${response.status})`,
+          errorCode: data.errorCode || 'HTTP_ERROR'
         };
       }
 
-      return await response.json();
+      return data;
     } catch (error) {
+      console.error('[IYZICO_ADAPTER_ERROR]', error);
       return {
         status: 'failure',
-        errorMessage: error instanceof Error ? error.message : 'Ödeme başlatılamadı',
+        errorMessage: 'Ödeme servisine ulaşılamadı. Lütfen internet bağlantınızı kontrol edin.',
+        errorCode: 'NETWORK_ERROR'
       };
     }
   },

@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: ['selector', '[data-theme="dark"], [data-theme="amoled"]'],
   theme: {
@@ -111,6 +111,15 @@ export default {
           800: '#1f2937',
           900: '#111827',
           950: '#030712',
+        },
+        chart: {
+          positive: 'hsl(var(--chart-positive))',
+          negative: 'hsl(var(--chart-negative))',
+          warning: 'hsl(var(--chart-warning))',
+          grid: 'hsl(var(--chart-grid))',
+          axis: 'hsl(var(--chart-axis))',
+          tooltip: 'hsl(var(--chart-tooltip))',
+          'tooltip-foreground': 'hsl(var(--chart-tooltip-foreground))',
         },
       },
       fontFamily: {

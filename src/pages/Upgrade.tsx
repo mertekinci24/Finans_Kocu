@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { PLANS, type PlanType } from '@/services/payment/subscriptionPlans';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -10,14 +10,31 @@ export default function UpgradePage(): JSX.Element {
   const { planType, isPro, startCheckout, cancelSubscription, subscription } = useSubscription();
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; id: number } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    const id = Date.now();
+    setToast({ message, type, id });
+    setTimeout(() => setToast(prev => prev?.id === id ? null : prev), 4000);
+  };
 
   const handleUpgrade = async () => {
+    if (isProcessing) return; // Double-click protection
+    
     setIsProcessing(true);
     try {
-      const url = await startCheckout(billingPeriod);
-      if (url) {
-        window.location.href = url;
+      const result = await startCheckout(billingPeriod);
+      
+      if (result.ok) {
+        window.location.href = result.url;
+        // Not setting isProcessing to false here as we are redirecting
+        return;
       }
+      
+      showToast(result.error, 'error');
+    } catch (err) {
+      showToast('Bir hata oluştu. Lütfen tekrar deneyin.', 'error');
+      console.error('[UPGRADE_ERROR]', err);
     } finally {
       setIsProcessing(false);
     }
@@ -28,13 +45,34 @@ export default function UpgradePage(): JSX.Element {
     setIsProcessing(true);
     try {
       await cancelSubscription();
+      showToast('Aboneliğiniz başarıyla iptal edildi.', 'success');
+    } catch (err) {
+      showToast('İptal işlemi sırasında bir hata oluştu.', 'error');
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 relative">
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 backdrop-blur-md ${
+              toast.type === 'success' 
+                ? 'bg-emerald-500/90 border-emerald-400 text-white' 
+                : 'bg-rose-500/90 border-rose-400 text-white'
+            }`}
+          >
+            <span className="text-lg">{toast.type === 'success' ? '✅' : '❌'}</span>
+            <span className="font-bold text-sm tracking-tight">{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-neutral-900">💎 Planını Seç</h1>

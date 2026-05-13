@@ -354,7 +354,7 @@ export default function Dashboard(): JSX.Element {
   // Initial load still shows full screen, but subsequent commits show the UI explicitly recalculating.
   if (loading && accounts.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-950">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
           <motion.div 
             animate={{ rotate: 360 }}
@@ -399,8 +399,8 @@ export default function Dashboard(): JSX.Element {
       {detailedScore?.crisis && (
         <div className={`p-5 rounded-xl border-l-[6px] shadow-lg animate-pulse ${
           detailedScore.crisis.level === 'severe' 
-            ? 'bg-red-600 border-red-900 text-white' 
-            : 'bg-red-50 border-red-500 text-red-900'
+            ? 'bg-destructive border-destructive-foreground/20 text-destructive-foreground' 
+            : 'bg-score-crisis-bg border-score-crisis/20 text-score-crisis'
         }`}>
           <div className="flex items-start gap-4">
             <span className="text-3xl">🚨</span>
@@ -428,17 +428,17 @@ export default function Dashboard(): JSX.Element {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-neutral-900 tracking-tight">Financial Radar</h1>
-          <p className="text-neutral-500 font-medium">Bireysel Finans Kontrol Paneli</p>
+          <h1 className="text-3xl font-black text-foreground tracking-tight">Financial Radar</h1>
+          <p className="text-muted-foreground font-medium">Bireysel Finans Kontrol Paneli</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center bg-neutral-100 p-1 rounded-lg border border-neutral-200">
+          <div className="flex items-center bg-muted p-1 rounded-lg border border-border">
             <button
               onClick={() => setIsDragMode(!isDragMode)}
               className={`px-4 py-1.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${
                 isDragMode
-                  ? 'bg-primary-600 text-white shadow-md'
-                  : 'text-neutral-600 hover:bg-neutral-200'
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'text-muted-foreground hover:bg-muted/80'
               }`}
             >
               {isDragMode ? 'Kaydet' : 'Düzenle'}
@@ -446,7 +446,7 @@ export default function Dashboard(): JSX.Element {
             {isDragMode && (
               <button
                 onClick={handleResetLayout}
-                className="px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-rose-600 hover:bg-rose-50 rounded-md transition-all"
+                className="px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-destructive hover:bg-destructive/10 rounded-md transition-all"
               >
                 Sıfırla
               </button>
@@ -460,9 +460,10 @@ export default function Dashboard(): JSX.Element {
               debts,
               installments,
               insights,
-              useRealValue
+              useRealValue,
+              month: new Date() // Add current date as default report month
             })}
-            className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-black transition-all shadow-lg active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 bg-foreground text-background text-xs font-bold uppercase tracking-widest rounded-lg hover:opacity-90 transition-all shadow-lg active:scale-95"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
