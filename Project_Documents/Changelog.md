@@ -1374,6 +1374,20 @@ Tüm değişiklikler tarih/saat ile yazılır.
 - Risk: Minimal — RLS enforced, no data leakage possible
 - Sonraki Adım: Account CRUD UI forms + Account list component
 
+# 2026-05-13
+
+- Görev No: SETTINGS-DATA-1C (Transactions Ownership Filter Fix)
+- Modül: Settings / Data Management
+- Yapılan İş:
+  - `transactions` için ownership filtresi `user_id` yerine `account_id -> accounts.user_id` olarak düzeltildi.
+  - Export/Reset/Import akışında tablo bazlı ownership stratejisi eklendi (direct `user_id` vs account-based `transactions`).
+  - Reset delete sırası dependency-safe hale getirildi (`transactions` önce, `accounts` en son).
+  - Reset/transactions hatalarında Supabase error detayları DEV console’a loglanacak şekilde eklendi.
+- Dosyalar:
+  - src/services/dataManager.ts
+- Risk: Orta — veri sıfırlama/restore kritik akış; UAT + build/type doğrulaması zorunlu.
+- Sonraki Adım: Settings UI üzerinden Export/Reset/Restore UAT (valid/invalid JSON) + `npm run build` + `npx tsc --noEmit`.
+
 ## 2026-04-12 04:30
 
 - Görev No: 1-7 (Faz 1 Foundation)

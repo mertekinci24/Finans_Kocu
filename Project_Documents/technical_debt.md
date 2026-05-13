@@ -359,3 +359,10 @@ Her 3 görevde bir gözden geçirilir.
 - Production öncesi `ASSISTANT_DEBUG` (veya benzer debug flag) kullanımı son kez kontrol edilecek.
 - Kredi skoru (ve benzeri nümerik finansal veriler) için yazılan truthy kontrolleri (`hasKnownValue` dahil) ileride proje geneli paylaşımlı bir utils helper'ı ile normalize edilebilir.
 - Sadece geleceğe dönük küçük UI polish notları kalmıştır (örn. PDF görüntüleyicide hala v8.9 statik metni kaldıysa kaldırılabilir).
+
+## 2026-05-13 (SETTINGS-DATA-1C)
+- Borç Tanımı [NEW]: Restore/reset işlemleri client-side çok tablolu delete/insert ile ilerliyor; atomic değil.
+  - Etki: Bir tablo silinip sonraki adım hata verirse veri kısmi/yarım kalabilir (özellikle restore sırasında).
+  - Öncelik: Orta (Data Integrity)
+  - Çözüm Planı: Server-side transactional restore/reset için Supabase RPC veya Edge Function (tek endpoint, tek transaction).
+  - Durum: Açık

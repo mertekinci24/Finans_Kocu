@@ -459,3 +459,11 @@ Eğer timeout oluşursa:
 - `loadMessagesForSession(sessionId)` fallback reload mekanizması ile DB'den kesin senkronizasyon sağlandı.
 **Değişen dosyalar:** `src/pages/Assistant.tsx`
 **Durum:** Phase 7.2F-G Final UAT PASS.
+
+## SETTINGS-DATA-1C — Transactions Reset/Restore 42703 (KanÄ±tlanmÄ±ÅŸ RCA)
+**Date:** 2026-05-13
+**Semptom (UAT):** Settings → “Yedekten Yükle” ve “Verileri Sıfırla” akışı `transactions tablosu sıfırlanırken hata oluştu.` mesajıyla FAIL.
+**Gerçek Hata (KanÄ±t):** PostgREST isteği `transactions?user_id=eq...` HTTP 400 döndürür:
+`{\"code\":\"42703\",\"message\":\"column transactions.user_id does not exist\"}`
+**Root Cause:** `src/services/dataManager.ts` export/reset/import akışı tüm tabloları körlemesine `.eq('user_id', userId)` ile filtreliyordu. Ancak `transactions` tablosunda `user_id` kolonu yok; ownership `transactions.account_id -> accounts.id -> accounts.user_id` üzerinden kuruluyor.
+**Fix Yönü:** `transactions` için ownership stratejisi account-based olacak; export/reset `.in('account_id', userAccountIds)` ile çalışacak; import sırasında `transactions` satırlarına `user_id` enjekte edilmeyecek. Hatalarda Supabase error detayları DEV console’a loglanacak.
