@@ -16,29 +16,66 @@ export interface BackupData {
   };
 }
 
+/**
+ * Kullanıcının hesap ID listesini getirir
+ */
+async function getUserAccountIds(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('accounts')
+    .select('id')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[DATA_MANAGER] Failed to fetch account IDs:', error);
+    throw new Error('Hesap bilgileri alınamadı.');
+  }
+
+  return (data || []).map(row => row.id);
+}
+
 export const dataManager = {
   /**
    * Tüm verileri JSON olarak dışa aktar
    */
   async exportData(userId: string): Promise<BackupData> {
     try {
+      const accountIds = await getUserAccountIds(userId);
+
       const [
-        { data: accounts },
-        { data: transactions },
-        { data: debts },
-        { data: installments },
-        { data: recurringFlows },
-        { data: savingGoals },
-        { data: dashboardLayouts }
+        { data: accounts, error: errAcc },
+        { data: debts, error: errDebts },
+        { data: installments, error: errInst },
+        { data: recurringFlows, error: errRec },
+        { data: savingGoals, error: errGoals },
+        { data: dashboardLayouts, error: errLayout }
       ] = await Promise.all([
         supabase.from('accounts').select('*').eq('user_id', userId),
-        supabase.from('transactions').select('*').eq('user_id', userId),
         supabase.from('debts').select('*').eq('user_id', userId),
         supabase.from('installments').select('*').eq('user_id', userId),
         supabase.from('recurring_flows').select('*').eq('user_id', userId),
         supabase.from('saving_goals').select('*').eq('user_id', userId),
         supabase.from('dashboard_layouts').select('*').eq('user_id', userId)
       ]);
+
+      // Hata kontrolü
+      if (errAcc || errDebts || errInst || errRec || errGoals || errLayout) {
+        throw new Error('Veriler çekilirken bir hata oluştu.');
+      }
+
+      // Transactions account_id üzerinden çekilmeli
+      let transactions: any[] = [];
+      if (accountIds.length > 0) {
+        const { data: txData, error: errTx } = await supabase
+          .from('transactions')
+          .select('*')
+          .in('account_id', accountIds);
+        
+        if (errTx) {
+          console.error('[DATA_EXPORT_ERROR] Table: transactions', errTx);
+          throw new Error('İşlem verileri dışa aktarılamadı.');
+        }
+        transactions = txData || [];
+      }
 
       return {
         schemaVersion: '1.0.0',
@@ -47,7 +84,7 @@ export const dataManager = {
         userId,
         data: {
           accounts: accounts || [],
-          transactions: transactions || [],
+          transactions: transactions,
           debts: debts || [],
           installments: installments || [],
           recurringFlows: recurringFlows || [],
@@ -55,9 +92,9 @@ export const dataManager = {
           dashboardLayouts: dashboardLayouts || []
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('[DATA_EXPORT_ERROR]', error);
-      throw new Error('Veriler dışa aktarılırken bir hata oluştu.');
+      throw error;
     }
   },
 
@@ -65,26 +102,57 @@ export const dataManager = {
    * Verileri sıfırla (Auth ve Profil hariç)
    */
   async resetData(userId: string): Promise<void> {
-    const tables = [
-      'transactions',
-      'installments',
-      'debts',
-      'recurring_flows',
-      'saving_goals',
-      'dashboard_layouts',
-      'accounts' // En son accounts silinmeli çünkü foreign key ilişkisi olabilir
-    ];
+    try {
+      const accountIds = await getUserAccountIds(userId);
 
-    for (const table of tables) {
-      const { error } = await supabase
-        .from(table)
+      // Reset sırası önemli (Foreign Key kısıtlamaları için)
+      // 1. Transactions (Account bağımlı)
+      if (accountIds.length > 0) {
+        const { error: txErr } = await supabase
+          .from('transactions')
+          .delete()
+          .in('account_id', accountIds);
+        
+        if (txErr) {
+          console.error('[DATA_RESET_ERROR] Table: transactions', txErr);
+          throw new Error('İşlemler tablosu sıfırlanırken hata oluştu.');
+        }
+      }
+
+      // 2. Diğer tablolar (user_id bazlı)
+      const directOwnershipTables = [
+        'installments',
+        'debts',
+        'recurring_flows',
+        'saving_goals',
+        'dashboard_layouts'
+      ];
+
+      for (const table of directOwnershipTables) {
+        const { error } = await supabase
+          .from(table)
+          .delete()
+          .eq('user_id', userId);
+        
+        if (error) {
+          console.error(`[DATA_RESET_ERROR] Table: ${table}`, error);
+          throw new Error(`${table} tablosu sıfırlanırken hata oluştu.`);
+        }
+      }
+
+      // 3. Accounts (En son silinmeli)
+      const { error: accErr } = await supabase
+        .from('accounts')
         .delete()
         .eq('user_id', userId);
       
-      if (error) {
-        console.error(`[DATA_RESET_ERROR] Table: ${table}`, error);
-        throw new Error(`${table} tablosu sıfırlanırken hata oluştu.`);
+      if (accErr) {
+        console.error('[DATA_RESET_ERROR] Table: accounts', accErr);
+        throw new Error('Hesaplar tablosu sıfırlanırken hata oluştu.');
       }
+    } catch (error: any) {
+      console.error('[DATA_RESET_GLOBAL_ERROR]', error);
+      throw error;
     }
   },
 
@@ -118,11 +186,14 @@ export const dataManager = {
       const rows = backup.data[dataKey];
 
       if (rows && rows.length > 0) {
-        // Her satırı sanitize et:
-        // 1. user_id'yi güncel userId ile override et (güvenlik)
-        // 2. created_at ve updated_at alanlarını kaldır (Supabase otomatik atasın)
         const sanitizedRows = rows.map((row: any) => {
-          const { created_at, updated_at, ...rest } = row;
+          const { created_at, updated_at, user_id, ...rest } = row;
+          
+          // Transactions tablosunda user_id kolonu yok
+          if (table === 'transactions') {
+            return rest;
+          }
+
           return {
             ...rest,
             user_id: userId
@@ -134,7 +205,12 @@ export const dataManager = {
         const { error } = await supabase.from(table).insert(sanitizedRows);
         
         if (error) {
-          console.error(`[DATA_IMPORT_ERROR] Table: ${table}`, error);
+          console.error(`[DATA_IMPORT_ERROR] Table: ${table}`, {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
           throw new Error(`${table} verileri geri yüklenirken hata oluştu: ${error.message}`);
         }
       }
