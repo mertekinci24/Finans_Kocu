@@ -20,8 +20,15 @@ export default function AccountBalanceWidget({
 
   if (accounts.length === 0) {
     return (
-      <div className="text-center py-4">
-        <p className="text-sm text-muted-foreground">Hesap bulunmuyor</p>
+      <div className="text-center py-6 space-y-3">
+        <p className="text-2xl">🏦</p>
+        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Hesap Bulunmuyor</p>
+        <a
+          href="/accounts"
+          className="inline-block text-[10px] font-black text-primary hover:underline uppercase tracking-widest"
+        >
+          + Hesap Ekle →
+        </a>
       </div>
     );
   }

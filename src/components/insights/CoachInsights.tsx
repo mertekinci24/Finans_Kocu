@@ -19,10 +19,12 @@ export default function CoachInsights({
 }: CoachInsightsProps): JSX.Element {
   if (recommendations.length === 0 && !explanation) {
     return (
-      <div className="bg-success-50 border border-success-200 rounded-xl p-4 text-center">
-        <div className="text-3xl mb-2">🎉</div>
-        <p className="text-success-700 font-medium">Mükemmel!</p>
-        <p className="text-success-600 text-sm">Şu an uyaracak bir durum yok. Böyle devam et!</p>
+      <div className="bg-muted/30 border border-border rounded-xl p-5 text-center space-y-2">
+        <div className="text-3xl mb-1">📊</div>
+        <p className="text-sm font-black text-foreground uppercase tracking-tight">Henüz Analiz Yok</p>
+        <p className="text-muted-foreground text-xs leading-relaxed">
+          Finansal koç önerileri için önce hesap ve işlem verisi gerekmektedir. Veri eklendikçe kişisel analiziniz burada görünecek.
+        </p>
       </div>
     );
   }

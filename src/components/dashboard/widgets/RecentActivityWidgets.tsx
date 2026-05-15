@@ -46,8 +46,15 @@ export function RecentTransactionsWidget({
           ))}
         </div>
       ) : (
-        <div className="text-center py-4 text-muted-foreground text-[10px] font-bold uppercase">
-          İşlem Bulunmuyor
+        <div className="text-center py-5 space-y-2">
+          <p className="text-xl">📋</p>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">İşlem Bulunmuyor</p>
+          <button
+            onClick={onNavigate}
+            className="text-[9px] font-black text-primary hover:underline uppercase tracking-widest"
+          >
+            + İşlem Ekle →
+          </button>
         </div>
       )}
     </div>
@@ -99,8 +106,15 @@ export function ActiveInstallmentsWidget({
           ))}
         </div>
       ) : (
-        <div className="text-center py-4 text-muted-foreground text-[10px] font-bold uppercase">
-          Aktif Taksit Bulunmuyor
+        <div className="text-center py-5 space-y-2">
+          <p className="text-xl">💳</p>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Aktif Taksit Yok</p>
+          <button
+            onClick={onNavigate}
+            className="text-[9px] font-black text-primary hover:underline uppercase tracking-widest"
+          >
+            Taksit Pazarı →
+          </button>
         </div>
       )}
     </div>

@@ -44,11 +44,38 @@ export default function CashFlowForecastWidget({
   const [amount, setAmount] = useState<number>(20000);
   const [showTheoryModal, setShowTheoryModal] = useState(false);
 
-  if (isLoading || !forecast) {
+  if (isLoading) {
     return (
-      <div className="space-y-3 animate-pulse">
-        <div className="h-6 bg-muted rounded w-32" />
-        <div className="h-40 bg-muted rounded" />
+      <div className="space-y-3 animate-pulse bg-card p-4 rounded-3xl border border-border">
+        <div className="h-5 bg-muted rounded w-40" />
+        <div className="h-52 bg-muted rounded-xl" />
+        <div className="grid grid-cols-3 gap-2">
+          <div className="h-16 bg-muted rounded-xl" />
+          <div className="h-16 bg-muted rounded-xl" />
+          <div className="h-16 bg-muted rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!forecast) {
+    return (
+      <div className="bg-card border border-border rounded-3xl p-8 text-center space-y-4 shadow-xl">
+        <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto">
+          <span className="text-2xl">🔮</span>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-black text-foreground uppercase tracking-tight">Nakit Akışı Navigatörü</p>
+          <p className="text-muted-foreground text-xs leading-relaxed max-w-xs mx-auto">
+            30 günlük nakit akışı tahmini için en az bir hesap eklemeniz gerekmektedir. Hesap ekledikten sonra bu grafik otomatik olarak oluşturulacaktır.
+          </p>
+        </div>
+        <button
+          onClick={() => window.location.href = '/accounts'}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-500 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg hover:bg-indigo-600 transition-all active:scale-95"
+        >
+          <span>+</span> Hesap Ekle
+        </button>
       </div>
     );
   }

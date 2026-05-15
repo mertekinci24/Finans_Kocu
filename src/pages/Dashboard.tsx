@@ -374,6 +374,8 @@ export default function Dashboard(): JSX.Element {
   const displayTotalDebt = useRealValue ? Math.round(getInflationContext(totalDebt).real) : totalDebt;
   const displayWNW = useRealValue ? Math.round(getInflationContext(weightedNetWorth).real) : weightedNetWorth;
 
+  const hasData = accounts.length > 0;
+
   return (
     <div className="space-y-6">
       {/* Premium Toast Notification System */}
@@ -453,17 +455,26 @@ export default function Dashboard(): JSX.Element {
             )}
           </div>
           <button 
-            onClick={() => generateMonthlyReport({
-              detailedScore: scoreData!,
-              accounts,
-              transactions,
-              debts,
-              installments,
-              insights,
-              useRealValue,
-              month: new Date() // Add current date as default report month
-            })}
-            className="flex items-center gap-2 px-4 py-2 bg-foreground text-background text-xs font-bold uppercase tracking-widest rounded-lg hover:opacity-90 transition-all shadow-lg active:scale-95"
+            onClick={() => {
+              if (!hasData) return;
+              generateMonthlyReport({
+                detailedScore: scoreData!,
+                accounts,
+                transactions,
+                debts,
+                installments,
+                insights,
+                useRealValue,
+                month: new Date()
+              });
+            }}
+            disabled={!hasData}
+            title={!hasData ? 'Rapor oluşturmak için önce hesap ekleyin' : 'Aylık PDF raporu oluştur'}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all shadow-lg active:scale-95 ${
+              hasData
+                ? 'bg-foreground text-background hover:opacity-90'
+                : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+            }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -472,6 +483,48 @@ export default function Dashboard(): JSX.Element {
           </button>
         </div>
       </div>
+
+      {/* Onboarding Hero — only when no data */}
+      {!loading && !hasData && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden bg-card border border-border rounded-3xl p-8 shadow-2xl"
+        >
+          {/* Background accent */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl -mr-36 -mt-36 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-2xl -ml-24 -mb-24 pointer-events-none" />
+
+          <div className="relative z-10 text-center max-w-md mx-auto space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-indigo-500/20 border border-emerald-500/20 flex items-center justify-center mx-auto">
+              <span className="text-3xl">🎯</span>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-black text-foreground tracking-tight">Finansal Radarını Başlat</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                İlk analizini görmek için hesabını ekle ya da mevcut verileri yükle. Sisteme veri girdikçe skor, nakit akışı ve koç önerilerin otomatik olarak oluşturulur.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                href="/accounts"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg hover:bg-emerald-600 transition-all active:scale-95"
+              >
+                <span>🏦</span> Hesap Ekle
+              </a>
+              <a
+                href="/settings"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-muted text-foreground text-xs font-black uppercase tracking-widest rounded-xl border border-border hover:bg-muted/80 transition-all active:scale-95"
+              >
+                <span>📥</span> Yedekten Yükle
+              </a>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 font-medium">
+              Verileriniz şifreli ve yalnızca size özeldir.
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {layout && (
         <WidgetGrid
