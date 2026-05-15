@@ -19,18 +19,14 @@ export default function UpgradePage(): JSX.Element {
   };
 
   const handleUpgrade = async () => {
-    if (isProcessing) return; // Double-click protection
-    
+    if (isProcessing) return;
     setIsProcessing(true);
     try {
       const result = await startCheckout(billingPeriod);
-      
       if (result.ok) {
         window.location.href = result.url;
-        // Not setting isProcessing to false here as we are redirecting
         return;
       }
-      
       showToast(result.error, 'error');
     } catch (err) {
       showToast('Bir hata oluştu. Lütfen tekrar deneyin.', 'error');
@@ -63,8 +59,8 @@ export default function UpgradePage(): JSX.Element {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 backdrop-blur-md ${
-              toast.type === 'success' 
-                ? 'bg-emerald-500/90 border-emerald-400 text-white' 
+              toast.type === 'success'
+                ? 'bg-emerald-500/90 border-emerald-400 text-white'
                 : 'bg-rose-500/90 border-rose-400 text-white'
             }`}
           >
@@ -73,10 +69,11 @@ export default function UpgradePage(): JSX.Element {
           </motion.div>
         )}
       </AnimatePresence>
+
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-neutral-900">💎 Planını Seç</h1>
-        <p className="text-neutral-600 mt-2 text-sm">
+        <h1 className="text-3xl font-bold text-foreground">💎 Planını Seç</h1>
+        <p className="text-muted-foreground mt-2 text-sm">
           FinansKoçu ile finansal geleceğini şekillendir
         </p>
       </div>
@@ -87,8 +84,8 @@ export default function UpgradePage(): JSX.Element {
           onClick={() => setBillingPeriod('monthly')}
           className={`px-4 py-1.5 text-sm rounded-lg font-medium transition-all ${
             billingPeriod === 'monthly'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              ? 'bg-primary text-primary-foreground shadow-md'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
           }`}
         >
           Aylık
@@ -97,12 +94,12 @@ export default function UpgradePage(): JSX.Element {
           onClick={() => setBillingPeriod('annual')}
           className={`px-4 py-1.5 text-sm rounded-lg font-medium transition-all ${
             billingPeriod === 'annual'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              ? 'bg-primary text-primary-foreground shadow-md'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
           }`}
         >
           Yıllık
-          <span className="ml-1.5 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">
+          <span className="ml-1.5 text-xs bg-emerald-500/20 text-emerald-500 px-1.5 py-0.5 rounded font-semibold">
             2 ay hediye
           </span>
         </button>
@@ -134,11 +131,11 @@ export default function UpgradePage(): JSX.Element {
 
       {/* Current Status */}
       {subscription && (
-        <div className="bg-white border border-neutral-200 rounded-xl p-4 text-center">
-          <p className="text-sm text-neutral-600">
-            Mevcut plan: <strong className="text-indigo-600">{PLANS[planType].name}</strong>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            Mevcut plan: <strong className="text-primary">{PLANS[planType].name}</strong>
             {subscription.currentPeriodEnd && (
-              <span className="text-neutral-400 ml-2">
+              <span className="text-muted-foreground/60 ml-2">
                 (dönem sonu: {new Date(subscription.currentPeriodEnd).toLocaleDateString('tr-TR')})
               </span>
             )}
@@ -149,7 +146,7 @@ export default function UpgradePage(): JSX.Element {
       <div className="text-center">
         <button
           onClick={() => navigate(ROUTES.DASHBOARD)}
-          className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Kontrol Paneline Dön
         </button>
@@ -182,10 +179,10 @@ function PlanCard({
   return (
     <motion.div
       whileHover={{ y: -4 }}
-      className={`relative rounded-2xl border-2 p-6 transition-shadow ${
+      className={`relative rounded-2xl border-2 p-6 transition-shadow bg-card ${
         highlighted
-          ? 'border-indigo-400 shadow-lg shadow-indigo-100 bg-white'
-          : 'border-neutral-200 bg-white hover:shadow-md'
+          ? 'border-primary shadow-lg shadow-primary/10'
+          : 'border-border hover:shadow-md hover:border-border/80'
       }`}
     >
       {/* Popular Badge */}
@@ -200,20 +197,20 @@ function PlanCard({
       {/* Header */}
       <div className="text-center mb-6 mt-2">
         <span className="text-2xl">{plan.badge}</span>
-        <h3 className="text-lg font-bold text-neutral-900 mt-1">{plan.name}</h3>
+        <h3 className="text-lg font-bold text-card-foreground mt-1">{plan.name}</h3>
         <div className="mt-3">
           {plan.price === 0 ? (
-            <div className="text-3xl font-bold text-neutral-900">Ücretsiz</div>
+            <div className="text-3xl font-bold text-foreground">Ücretsiz</div>
           ) : (
             <>
               <div className="flex items-baseline justify-center gap-1">
-                <span className="text-3xl font-bold text-neutral-900">
+                <span className="text-3xl font-bold text-foreground">
                   {CURRENCY_SYMBOL}{price}
                 </span>
-                <span className="text-sm text-neutral-500">/ay</span>
+                <span className="text-sm text-muted-foreground">/ay</span>
               </div>
               {billingPeriod === 'annual' && (
-                <p className="text-xs text-neutral-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Toplam: {CURRENCY_SYMBOL}{totalPrice}/yıl
                 </p>
               )}
@@ -226,10 +223,10 @@ function PlanCard({
       <div className="space-y-2 mb-6">
         {plan.features.map((f) => (
           <div key={f.key} className="flex items-center gap-2 text-sm">
-            <span className={f.included ? 'text-green-500' : 'text-neutral-300'}>
+            <span className={f.included ? 'text-emerald-500' : 'text-muted-foreground/40'}>
               {f.included ? '✓' : '✕'}
             </span>
-            <span className={f.included ? 'text-neutral-700' : 'text-neutral-400'}>
+            <span className={f.included ? 'text-card-foreground' : 'text-muted-foreground'}>
               {f.label}
             </span>
           </div>
@@ -242,10 +239,10 @@ function PlanCard({
         disabled={disabled}
         className={`w-full py-2.5 text-sm font-medium rounded-xl transition-all ${
           highlighted && !isCurrent
-            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-200'
+            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/20'
             : isCurrent
-              ? 'bg-neutral-100 text-neutral-500 cursor-not-allowed'
-              : 'bg-neutral-900 text-white hover:bg-neutral-800'
+              ? 'bg-muted text-muted-foreground cursor-not-allowed'
+              : 'bg-foreground text-background hover:opacity-90'
         } disabled:opacity-50`}
       >
         {isCurrent && !highlighted ? '✓ Mevcut Plan' : buttonLabel}

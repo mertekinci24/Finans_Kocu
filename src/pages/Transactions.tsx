@@ -435,7 +435,7 @@ export default function Transactions(): JSX.Element {
   };
 
   return (
-    <div className={`space-y-6 min-h-screen transition-colors duration-500 ${activeTab === 'recurring' ? 'bg-zinc-950 px-4 py-2 -mx-4 -my-2' : ''}`}>
+    <div className={`space-y-6 min-h-screen transition-colors duration-500 ${activeTab === 'recurring' ? 'bg-background px-4 py-2 -mx-4 -my-2' : ''}`}>
        {showImport && (
         <ImportPreview
           accounts={accounts}
@@ -494,10 +494,10 @@ export default function Transactions(): JSX.Element {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-foreground">
             {activeTab === 'recurring' ? 'Sabit Akış Planlama' : 'İşlem Kayıtları'}
           </h1>
-          <p className="text-neutral-600 dark:text-zinc-400 mt-1 text-sm">
+          <p className="text-muted-foreground mt-1 text-sm">
             {activeTab === 'recurring' ? 'Gelecek ödemeleri ve gelirleri yönet' : 'Bugün ve geçmişteki tüm hareketlerin'}
           </p>
         </div>
@@ -515,9 +515,9 @@ export default function Transactions(): JSX.Element {
               <button
                 onClick={() => setShowImport(true)}
                 disabled={accounts.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 text-neutral-700 dark:text-zinc-300 text-sm font-medium rounded-xl hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
                 İçe Aktar
@@ -535,21 +535,21 @@ export default function Transactions(): JSX.Element {
                   Kasayı Eşitle
                 </button>
               )}
-          <div className="flex items-center gap-1 bg-neutral-100 dark:bg-zinc-900 p-1 rounded-xl border border-neutral-200 dark:border-zinc-800">
+          <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border">
              <button
                onClick={prevMonth}
-               className="p-1.5 hover:bg-white dark:hover:bg-zinc-800 rounded-lg transition-all text-neutral-600 dark:text-zinc-400"
+               className="p-1.5 hover:bg-card rounded-lg transition-all text-muted-foreground"
              >
                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                </svg>
              </button>
-             <span className="text-[11px] font-black text-neutral-700 dark:text-zinc-300 w-24 text-center uppercase tracking-tighter">
+             <span className="text-[11px] font-black text-foreground w-24 text-center uppercase tracking-tighter">
                {formatMonth(currentMonth)}
              </span>
              <button
                onClick={nextMonth}
-               className="p-1.5 hover:bg-white dark:hover:bg-zinc-800 rounded-lg transition-all text-neutral-600 dark:text-zinc-400"
+               className="p-1.5 hover:bg-card rounded-lg transition-all text-muted-foreground"
              >
                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -560,13 +560,13 @@ export default function Transactions(): JSX.Element {
       </div>
 
       {/* Radical Tabs */}
-      <div className="flex p-1 bg-neutral-100 dark:bg-zinc-900 rounded-2xl w-fit border border-neutral-200 dark:border-zinc-800">
+      <div className="flex p-1 bg-muted rounded-2xl w-fit border border-border">
         <button
           onClick={() => setActiveTab('records')}
           className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${
-            activeTab === 'records' 
-              ? 'bg-white dark:bg-zinc-800 text-primary-600 dark:text-white shadow-sm ring-1 ring-black/5' 
-              : 'text-neutral-500 hover:text-neutral-700'
+            activeTab === 'records'
+              ? 'bg-card text-primary shadow-sm ring-1 ring-border'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           KAYITLAR (ŞİMDİ)
@@ -574,9 +574,9 @@ export default function Transactions(): JSX.Element {
         <button
           onClick={() => setActiveTab('recurring')}
           className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${
-            activeTab === 'recurring' 
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
-              : 'text-neutral-500 hover:text-neutral-700'
+            activeTab === 'recurring'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           PLANLAMA (GELECEK)
@@ -604,10 +604,10 @@ export default function Transactions(): JSX.Element {
 
           <QuickInput accounts={accounts} recentTransactions={transactions} onSave={handleSave} />
 
-          <div className="bg-white dark:bg-zinc-900/50 border border-neutral-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-neutral-100 dark:border-zinc-800/50 flex flex-col md:flex-row gap-4">
+          <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
+            <div className="p-4 border-b border-border/50 flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
@@ -615,7 +615,7 @@ export default function Transactions(): JSX.Element {
                   placeholder="İşlem ara..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white dark:bg-zinc-950 border border-neutral-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all text-neutral-900 dark:text-white"
+                  className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all text-foreground placeholder:text-muted-foreground"
                 />
               </div>
 
@@ -623,7 +623,7 @@ export default function Transactions(): JSX.Element {
                 <select
                   value={selectedAccountFilter}
                   onChange={(e) => setSelectedAccountFilter(e.target.value)}
-                  className="border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-neutral-600 dark:text-zinc-400 min-w-[140px]"
+                  className="border border-border bg-background rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground min-w-[140px]"
                 >
                   <option value="">Hesap Seçin</option>
                   {accounts.map((acc) => (
@@ -634,7 +634,7 @@ export default function Transactions(): JSX.Element {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-neutral-600 dark:text-zinc-400 min-w-[140px]"
+                  className="border border-border bg-background rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground min-w-[140px]"
                 >
                   <option value="">Tüm Kategoriler</option>
                   {categories.map((cat) => (
@@ -642,15 +642,15 @@ export default function Transactions(): JSX.Element {
                   ))}
                 </select>
 
-                <div className="flex bg-neutral-100 dark:bg-zinc-950 p-1 rounded-xl border border-neutral-200 dark:border-zinc-800">
+                <div className="flex bg-muted p-1 rounded-xl border border-border">
                   {(['all', 'gelir', 'gider'] as FilterType[]).map((f) => (
                     <button
                       key={f}
                       onClick={() => setFilter(f)}
                       className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all ${
                         filter === f
-                          ? 'bg-white dark:bg-zinc-800 text-primary-600 dark:text-white shadow-sm'
-                          : 'text-neutral-500'
+                          ? 'bg-card text-primary shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       {f === 'all' ? 'Tümü' : f === 'gelir' ? 'Gelir' : 'Gider'}
@@ -667,7 +667,7 @@ export default function Transactions(): JSX.Element {
                 ))}
               </div>
             ) : filtered.length > 0 ? (
-              <div className="divide-y divide-neutral-50 dark:divide-zinc-800/50 p-2">
+              <div className="divide-y divide-border/50 p-2">
                 {filtered.map((tx) => (
                   <TransactionRow
                     key={tx.id}
@@ -679,14 +679,14 @@ export default function Transactions(): JSX.Element {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-neutral-500">
-                <p className="text-sm font-bold opacity-30">BU AY İŞLEM BULUNAMADI</p>
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-sm font-bold opacity-40">BU AY İŞLEM BULUNAMADI</p>
               </div>
             )}
           </div>
         </>
       ) : (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 shadow-2xl animate-in slide-in-from-right-4 duration-300">
+        <div className="bg-card border border-border rounded-3xl p-6 shadow-2xl animate-in slide-in-from-right-4 duration-300">
           <RecurringFlowPanel isObserver={true} />
         </div>
       )}

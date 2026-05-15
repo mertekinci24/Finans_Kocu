@@ -99,25 +99,25 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
   const hasContent = parsed !== null;
 
   return (
-    <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-sm overflow-hidden relative transition-all">
+    <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden relative transition-all">
       {errorMsg && (
         <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 shadow-xl text-center max-w-xs animate-in zoom-in-95 duration-200 border dark:border-neutral-800">
+          <div className="bg-card border border-border rounded-lg p-4 shadow-xl text-center max-w-xs animate-in zoom-in-95 duration-200">
             <div className="text-error-600 mb-2">
               <svg className="w-8 h-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h4 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Hesap Bulunamadı</h4>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">{errorMsg}</p>
-            <button onClick={() => setErrorMsg('')} className="bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-sm px-4 py-1.5 rounded-md hover:bg-neutral-800 dark:hover:bg-white w-full transition-colors font-bold">Tamam</button>
+            <h4 className="font-semibold text-foreground mb-1">Hesap Bulunamadı</h4>
+            <p className="text-sm text-muted-foreground mb-3">{errorMsg}</p>
+            <button onClick={() => setErrorMsg('')} className="bg-foreground text-background text-sm px-4 py-1.5 rounded-md hover:opacity-90 w-full transition-colors font-bold">Tamam</button>
           </div>
         </div>
       )}
       
-      <div className="flex items-center gap-3 p-4 border-b border-neutral-100 dark:border-zinc-800 bg-neutral-50/50 dark:bg-black">
-        <div className="text-sm font-black text-neutral-700 dark:text-white uppercase tracking-tighter">Anlık/Günlük Harcama Kaydı</div>
-        <div className="text-[10px] text-neutral-400 dark:text-zinc-500 uppercase tracking-widest font-black">Sadece Tek Seferlik</div>
+      <div className="flex items-center gap-3 p-4 border-b border-border bg-muted/50">
+        <div className="text-sm font-black text-foreground uppercase tracking-tighter">Anlık/Günlük Harcama Kaydı</div>
+        <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">Sadece Tek Seferlik</div>
         <div className="ml-auto">
           {successMsg && (
             <span className="text-xs text-success-600 dark:text-success-400 font-bold animate-pulse">{successMsg}</span>
@@ -125,7 +125,7 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
         </div>
       </div>
 
-      <div className="p-4 space-y-3 dark:bg-black">
+      <div className="p-4 space-y-3">
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <input
@@ -135,9 +135,9 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
               onKeyDown={handleKeyDown}
               placeholder="Bugün yaptığınız tek seferlik harcamaları yazın (Örn: 250 Market, 1000 Benzin)..."
               autoFocus
-              className="w-full border border-neutral-300 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-zinc-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all pr-24"
+              className="w-full border border-border bg-background text-foreground placeholder:text-muted-foreground rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all pr-24"
             />
-            <div className="absolute -top-2 left-3 px-1 bg-white dark:bg-black text-[9px] font-black text-neutral-400 dark:text-zinc-600 uppercase tracking-tighter">
+            <div className="absolute -top-2 left-3 px-1 bg-card text-[9px] font-black text-muted-foreground uppercase tracking-tighter">
               Tek Seferlik İşlem
             </div>
             {parsed && (
@@ -168,7 +168,7 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
                 <select
                   value={selectedAccountId}
                   onChange={(e) => setSelectedAccountId(e.target.value)}
-                  className={`border border-neutral-300 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-all`}
+                  className={`border border-border rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground transition-all`}
                 >
                   {accounts.map((a) => (
                     <option key={a.id} value={a.id}>{a.name}</option>
@@ -187,8 +187,8 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all border ${
                     selectedCategory === cat
-                      ? 'bg-primary-600 text-white border-primary-500 shadow-md scale-105'
-                      : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-md scale-105'
+                      : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
                   }`}
                 >
                   {cat}
@@ -197,7 +197,7 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
               <select
                 value={ALL_CATEGORIES.includes(selectedCategory) ? selectedCategory : ''}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="border border-neutral-200 dark:border-neutral-700 rounded-full px-2.5 py-1 text-[10px] font-bold focus:outline-none bg-neutral-50 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-pointer"
+                className="border border-border rounded-full px-2.5 py-1 text-[10px] font-bold focus:outline-none bg-muted text-muted-foreground cursor-pointer"
               >
                 <option value="">Diğer...</option>
                 {ALL_CATEGORIES.map((cat) => (
@@ -206,8 +206,8 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
               </select>
             </div>
 
-            <div className="flex items-center gap-2 border-l border-neutral-200 dark:border-neutral-700 pl-3 ml-1">
-              <span className="text-[10px] font-black text-neutral-400 dark:text-zinc-600 uppercase tracking-tighter">Tarih</span>
+            <div className="flex items-center gap-2 border-l border-border pl-3 ml-1">
+              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-tighter">Tarih</span>
               <input
                 type="date"
                 value={selectedDate}
@@ -217,8 +217,8 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
             </div>
           </div>
         )}
-        <div className="pt-2 mt-2 border-t border-neutral-100 dark:border-zinc-800/50">
-          <p className="text-[10px] text-neutral-400 dark:text-zinc-600 font-medium italic">
+        <div className="pt-2 mt-2 border-t border-border/50">
+          <p className="text-[10px] text-muted-foreground font-medium italic">
             * Düzenli ödemeler (Maaş, Kira, Fatura) için yukarıdaki <span className="text-blue-500 font-black">"PLANLAMA"</span> sekmesini kullanın.
           </p>
         </div>
