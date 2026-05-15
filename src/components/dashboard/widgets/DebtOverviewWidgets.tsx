@@ -22,9 +22,15 @@ export function InstallmentLoadWidget({
         <div className="text-3xl font-black text-warning">{fmt(monthlyInstallment)}</div>
       </div>
       <div className="flex items-center gap-2 mt-4">
-        <div className="px-2 py-0.5 bg-warning/10 text-warning text-[10px] font-bold rounded-full">
-          GELİRİN %{monthlyIncome > 0 ? ((monthlyInstallment / monthlyIncome) * 100).toFixed(0) : '—'}
-        </div>
+        {monthlyIncome > 0 ? (
+          <div className="px-2 py-0.5 bg-warning/10 text-warning text-[10px] font-bold rounded-full">
+            GELİRİN %{((monthlyInstallment / monthlyIncome) * 100).toFixed(0)}
+          </div>
+        ) : (
+          <div className="px-2 py-0.5 bg-muted text-muted-foreground text-[10px] font-bold rounded-full">
+            Gelir verisi yok
+          </div>
+        )}
       </div>
     </div>
   );

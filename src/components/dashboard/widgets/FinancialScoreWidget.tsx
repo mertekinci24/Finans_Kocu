@@ -23,8 +23,14 @@ export default function FinancialScoreWidget({
 
   if (!score) {
     return (
-      <div className="h-48 flex items-center justify-center">
-        <p className="text-muted-foreground text-center uppercase font-black text-[10px] tracking-widest">Veri Bulunamadı</p>
+      <div className="h-48 flex flex-col items-center justify-center gap-2 text-center px-4">
+        <span className="text-3xl">🎯</span>
+        <p className="text-foreground font-black text-sm uppercase tracking-tight">
+          Finansal Sağlık Skoru Yok
+        </p>
+        <p className="text-muted-foreground text-xs leading-relaxed max-w-48">
+          İlk skorunu oluşturmak için hesap, gelir/gider veya borç bilgisi ekle.
+        </p>
       </div>
     );
   }
