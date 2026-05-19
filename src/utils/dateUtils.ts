@@ -66,3 +66,51 @@ export function formatFullDate(date: Date): string {
   const y = date.getFullYear();
   return `${d}.${m}.${y}`;
 }
+
+// ─── Local Date Safety Helpers (TIME-SSOT-1) ────────────────────────
+
+/**
+ * Returns midnight of the given date in LOCAL timezone.
+ * Prevents UTC-based hour shifts that cause off-by-one day bugs.
+ */
+export function startOfLocalDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
+ * Formats a Date as YYYY-MM-DD using LOCAL year/month/day.
+ * Drop-in replacement for the unsafe `toISOString().split('T')[0]`.
+ */
+export function formatDateInputLocal(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Parses a YYYY-MM-DD string into a LOCAL Date (midnight).
+ * Drop-in replacement for the unsafe `new Date(value)` which parses as UTC.
+ */
+export function parseDateInputLocal(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Checks whether two Date objects fall on the same LOCAL calendar day.
+ */
+export function isSameLocalDate(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+/**
+ * Returns today's date at local midnight — the canonical "now" for date inputs.
+ */
+export function todayLocal(): Date {
+  return startOfLocalDay(new Date());
+}

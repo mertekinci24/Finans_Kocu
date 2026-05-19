@@ -3,6 +3,7 @@ import { parseQuickInput, ALL_CATEGORIES, predictFromHistory } from '@/utils/cat
 import { CURRENCY_SYMBOL, ACCOUNT_COLORS } from '@/constants';
 import { getAccountTypeLabel } from '@/utils/bankLogos';
 import { useTimeStore } from '@/stores/timeStore';
+import { formatDateInputLocal } from '@/utils/dateUtils';
 import type { Transaction, Account } from '@/types';
 
 interface QuickInputProps {
@@ -22,10 +23,10 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { systemDate } = useTimeStore();
-  const [selectedDate, setSelectedDate] = useState(new Date(systemDate).toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(formatDateInputLocal(new Date(systemDate)));
 
   useEffect(() => {
-    setSelectedDate(new Date(systemDate).toISOString().split('T')[0]);
+    setSelectedDate(formatDateInputLocal(new Date(systemDate)));
   }, [systemDate]);
 
   const selectedAccount = accounts.find(a => a.id === selectedAccountId);

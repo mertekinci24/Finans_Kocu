@@ -4,6 +4,7 @@ import { dataSourceAdapter, supabase } from '@/services/supabase/adapter';
 import { CURRENCY_SYMBOL } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useTimeStore } from '@/stores/timeStore';
+import { formatDateInputLocal } from '@/utils/dateUtils';
 import type { Transaction, Account, Category } from '@/types';
 
 const RECURRING_OPTIONS = [
@@ -32,7 +33,7 @@ export default function TransactionForm({
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const defaultDate = new Date(systemDate).toISOString().split('T')[0];
+  const defaultDate = formatDateInputLocal(new Date(systemDate));
 
   const [form, setForm] = useState({
     accountId: transaction?.accountId ?? accounts[0]?.id ?? '',
@@ -40,7 +41,7 @@ export default function TransactionForm({
     description: transaction?.description ?? '',
     category: transaction?.category ?? 'Diğer',
     date: transaction?.date
-      ? new Date(transaction.date).toISOString().split('T')[0]
+      ? formatDateInputLocal(new Date(transaction.date))
       : defaultDate,
     type: transaction?.type ?? ('gider' as 'gelir' | 'gider'),
     note: transaction?.note ?? '',

@@ -3,6 +3,7 @@ import { useUIStore } from '@stores/index';
 import { APP_NAME } from '@constants/index';
 import ThemeSelector from './ThemeSelector';
 import { useTimeStore } from '@/stores/timeStore';
+import { formatDateInputLocal, parseDateInputLocal, isSameLocalDate } from '@/utils/dateUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { authService } from '@/services/authService';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +16,7 @@ export default function TopBar(): JSX.Element {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isSimulated = new Date(systemDate).toDateString() !== new Date().toDateString();
+  const isSimulated = !isSameLocalDate(new Date(systemDate), new Date());
 
   // Close on outside click
   useEffect(() => {
@@ -90,8 +91,8 @@ export default function TopBar(): JSX.Element {
       <div className="flex items-center gap-2 bg-muted p-1 rounded-xl border border-border">
         <input 
           type="date" 
-          value={new Date(systemDate).toISOString().split('T')[0]}
-          onChange={(e) => setSystemDate(new Date(e.target.value))}
+          value={formatDateInputLocal(new Date(systemDate))}
+          onChange={(e) => setSystemDate(parseDateInputLocal(e.target.value))}
           className="bg-transparent text-[11px] font-bold text-foreground outline-none px-2 py-1"
         />
         {isSimulated && (
