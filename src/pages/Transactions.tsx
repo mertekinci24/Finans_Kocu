@@ -106,14 +106,34 @@ export default function Transactions(): JSX.Element {
   };
 
   const handleSave = async (data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const acc = accounts.find(a => a.id === data.accountId);
+    if (!acc) throw new Error('Hesap bulunamadı.');
+
+    if (acc.type === 'nakit' && data.type === 'gider' && (acc.balance - data.amount < 0)) {
+      throw new Error('Nakit hesabı negatife düşemez. Lütfen farklı bir hesap seçin veya tutarı kontrol edin.');
+    }
+
     try {
       setIsSyncing(true);
       const created = await dataSourceAdapter.transaction.create(data);
       setTransactions((prev) => [created, ...prev]);
-      await syncAccountBalance(data.accountId, data.amount, data.type);
+      
+      try {
+        await syncAccountBalance(data.accountId, data.amount, data.type);
+      } catch (syncErr) {
+        console.error('[BALANCE_SYNC_FAILED_ROLLBACK_ATTEMPT]', syncErr);
+        try {
+          await dataSourceAdapter.transaction.delete(created.id);
+          setTransactions((prev) => prev.filter(t => t.id !== created.id));
+          console.log('[BALANCE_SYNC_ROLLBACK_SUCCESS]');
+        } catch (rollbackErr) {
+          console.error('[BALANCE_SYNC_ROLLBACK_FAILED]', rollbackErr);
+        }
+        throw new Error('Bakiye güncellenemediği için işlem geri alındı.');
+      }
     } catch (err) {
       console.error('İşlem kaydedilirken hata:', err);
-      alert('İşlem kaydedilemedi.');
+      throw err;
     } finally {
       setIsSyncing(false);
     }
@@ -131,8 +151,20 @@ export default function Transactions(): JSX.Element {
       if (updates.amount !== undefined || updates.type !== undefined) {
         const acc = accounts.find(a => a.id === oldTx.accountId);
         if (acc) {
-          const recalibratedAcc = await dataSourceAdapter.account.recalibrateBalance(acc.id);
-          setAccounts(prev => prev.map(a => a.id === acc.id ? recalibratedAcc : a));
+          try {
+            const recalibratedAcc = await dataSourceAdapter.account.recalibrateBalance(acc.id);
+            setAccounts(prev => prev.map(a => a.id === acc.id ? recalibratedAcc : a));
+          } catch (syncErr) {
+            console.error('[BALANCE_SYNC_FAILED_ROLLBACK_ATTEMPT]', syncErr);
+            try {
+              await dataSourceAdapter.transaction.update(id, { amount: oldTx.amount, type: oldTx.type });
+              console.log('[BALANCE_SYNC_ROLLBACK_SUCCESS]');
+            } catch (rollbackErr) {
+              console.error('[BALANCE_SYNC_ROLLBACK_FAILED]', rollbackErr);
+            }
+            alert('Bakiye kısıtlaması nedeniyle işlem geri alındı. (Nakit hesabı eksiye düşemez)');
+            return;
+          }
         }
       }
 
@@ -427,8 +459,19 @@ export default function Transactions(): JSX.Element {
     });
 
     if (!exists) {
-      // Only sync balance for new transactions to avoid complex diffing logic right now
-      await syncAccountBalance(tx.accountId, tx.amount, tx.type);
+      try {
+        await syncAccountBalance(tx.accountId, tx.amount, tx.type);
+      } catch (syncErr) {
+        console.error('[BALANCE_SYNC_FAILED_ROLLBACK_ATTEMPT]', syncErr);
+        try {
+          await dataSourceAdapter.transaction.delete(tx.id);
+          setTransactions((prev) => prev.filter(t => t.id !== tx.id));
+          console.log('[BALANCE_SYNC_ROLLBACK_SUCCESS]');
+        } catch (rollbackErr) {
+          console.error('[BALANCE_SYNC_ROLLBACK_FAILED]', rollbackErr);
+        }
+        alert('İşlem bakiye kısıtlamasına takıldı ve geri alındı. (Örn: Nakit hesap eksiye düşemez)');
+      }
     }
     
     setShowTransactionForm(false);

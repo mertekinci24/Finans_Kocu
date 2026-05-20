@@ -32,6 +32,7 @@ export default function TransactionForm({
   const { systemDate } = useTimeStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const defaultDate = formatDateInputLocal(new Date(systemDate));
 
@@ -84,7 +85,22 @@ export default function TransactionForm({
     const amount = parseFloat(form.amount);
     if (!form.accountId || isNaN(amount) || amount <= 0 || !form.description.trim()) return;
 
+    const acc = accounts.find(a => a.id === form.accountId);
+    if (!acc) return;
+
+    // PRE-VALIDATION: Nakit hesabı eksiye düşemez
+    if (acc.type === 'nakit' && form.type === 'gider') {
+      const diff = transaction?.id ? (transaction.amount - amount) : -amount;
+      const newBalance = transaction?.id ? acc.balance + diff : acc.balance - amount;
+      
+      if (newBalance < 0) {
+        setErrorMsg('Nakit hesabı negatife düşemez. Lütfen farklı bir hesap seçin veya tutarı kontrol edin.');
+        return;
+      }
+    }
+
     setSaving(true);
+    setErrorMsg('');
     try {
       const payload = {
         accountId: form.accountId,
@@ -142,6 +158,15 @@ export default function TransactionForm({
                 </svg>
               </button>
             </div>
+
+            {errorMsg && (
+              <div className="mx-6 mt-4 p-3 bg-error-50 border border-error-200 rounded-lg flex items-start gap-2">
+                <svg className="w-5 h-5 text-error-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-sm text-error-800 font-medium">{errorMsg}</p>
+              </div>
+            )}
 
             <div className="p-6 space-y-4">
               <div className="flex gap-1 p-1 bg-neutral-100 rounded-xl">
