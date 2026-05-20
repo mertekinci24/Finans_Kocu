@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { todayLocal } from '@/utils/dateUtils';
 
 interface TimeState {
   systemDate: Date;
@@ -7,7 +8,8 @@ interface TimeState {
 }
 
 export const useTimeStore = create<TimeState>((set) => ({
-  systemDate: new Date(),
+  systemDate: todayLocal(),
   setSystemDate: (date) => set({ systemDate: date }),
-  resetToRealTime: () => set({ systemDate: new Date() }),
+  resetToRealTime: () => set({ systemDate: todayLocal() }),
 }));
+

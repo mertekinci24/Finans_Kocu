@@ -4,7 +4,7 @@ import { dataSourceAdapter, supabase } from '@/services/supabase/adapter';
 import { CURRENCY_SYMBOL } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useTimeStore } from '@/stores/timeStore';
-import { formatDateInputLocal } from '@/utils/dateUtils';
+import { formatDateInputLocal, parseDateInputLocal } from '@/utils/dateUtils';
 import type { Transaction, Account, Category } from '@/types';
 
 const RECURRING_OPTIONS = [
@@ -91,7 +91,7 @@ export default function TransactionForm({
         amount,
         description: form.description,
         category: form.category,
-        date: new Date(form.date),
+        date: parseDateInputLocal(form.date),
         type: form.type,
         note: form.note || undefined,
         recurring: form.recurring,

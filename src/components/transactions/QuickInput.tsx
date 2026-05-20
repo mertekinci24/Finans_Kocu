@@ -3,7 +3,7 @@ import { parseQuickInput, ALL_CATEGORIES, predictFromHistory } from '@/utils/cat
 import { CURRENCY_SYMBOL, ACCOUNT_COLORS } from '@/constants';
 import { getAccountTypeLabel } from '@/utils/bankLogos';
 import { useTimeStore } from '@/stores/timeStore';
-import { formatDateInputLocal } from '@/utils/dateUtils';
+import { formatDateInputLocal, parseDateInputLocal } from '@/utils/dateUtils';
 import type { Transaction, Account } from '@/types';
 
 interface QuickInputProps {
@@ -78,7 +78,7 @@ export default function QuickInput({ accounts, recentTransactions, onSave }: Qui
         amount: parsed.amount,
         description: parsed.description || raw,
         category: selectedCategory || (parsed.type === 'gelir' ? 'Gelir' : 'Diğer'),
-        date: new Date(selectedDate),
+        date: parseDateInputLocal(selectedDate),
         type: parsed.type,
         recurring: 'none',
       });
